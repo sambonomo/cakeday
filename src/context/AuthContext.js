@@ -1,3 +1,4 @@
+"use client";
 // src/context/AuthContext.js
 import { createContext, useContext, useEffect, useState } from "react";
 import { auth, db } from "../lib/firebase";
