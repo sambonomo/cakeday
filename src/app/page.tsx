@@ -1,6 +1,7 @@
 import Link from "next/link";
+// import React from "react"; // Optional with react-jsx
 
-export default function Home() {
+export default function Home(): React.ReactElement {
   return (
     <div className="flex flex-col items-center justify-center min-h-screen bg-gray-50 px-4">
       <main className="flex flex-col items-center gap-8 w-full max-w-lg bg-white rounded-xl shadow-lg p-8 mt-8">
