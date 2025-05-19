@@ -3,13 +3,14 @@ import {
   collection,
   addDoc,
   query,
+  where,
   orderBy,
   limit,
   getDocs,
   serverTimestamp,
 } from "firebase/firestore";
 
-// Give recognition (kudos) with badge
+// Give recognition (kudos) with badge and companyId
 export async function giveKudos({
   fromUid,
   fromEmail,
@@ -17,13 +18,15 @@ export async function giveKudos({
   toEmail,
   message,
   badge,
+  companyId,
 }: {
   fromUid: string;
   fromEmail: string;
   toUid: string;
   toEmail: string;
   message: string;
-  badge: string; // New!
+  badge: string;
+  companyId: string;
 }) {
   const colRef = collection(db, "kudos");
   await addDoc(colRef, {
@@ -33,14 +36,20 @@ export async function giveKudos({
     toEmail,
     message,
     badge,
+    companyId,             // Include companyId in the document!
     createdAt: serverTimestamp(),
   });
 }
 
-// Fetch latest kudos (e.g., 20)
-export async function fetchRecentKudos(limitCount = 20) {
+// Fetch latest kudos for a company (e.g., 20)
+export async function fetchRecentKudos(companyId: string, limitCount = 20) {
   const colRef = collection(db, "kudos");
-  const q = query(colRef, orderBy("createdAt", "desc"), limit(limitCount));
+  const q = query(
+    colRef,
+    where("companyId", "==", companyId),
+    orderBy("createdAt", "desc"),
+    limit(limitCount)
+  );
   const snapshot = await getDocs(q);
   return snapshot.docs.map((doc) => ({
     id: doc.id,

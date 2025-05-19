@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from "react";
 import { giveKudos } from "../lib/firestoreRecognition";
 import { useAuth } from "../context/AuthContext";
-import { collection, getDocs } from "firebase/firestore";
+import { collection, getDocs, query, where } from "firebase/firestore";
 import { db } from "../lib/firebase";
 import type { UserProfile } from "../lib/firestoreUsers";
 
@@ -21,8 +21,14 @@ const BADGES = [
   { label: "Kindness", emoji: "💖" },
 ];
 
-export default function GiveKudosForm(): React.ReactElement {
-  const { user } = useAuth();
+interface GiveKudosFormProps {
+  companyId?: string;
+}
+
+export default function GiveKudosForm({ companyId: propCompanyId }: GiveKudosFormProps): React.ReactElement {
+  const { user, companyId: contextCompanyId } = useAuth();
+  const companyId = propCompanyId || contextCompanyId;
+
   const [employees, setEmployees] = useState<UserProfile[]>([]);
   const [toUid, setToUid] = useState<string>("");
   const [message, setMessage] = useState<string>("");
@@ -31,10 +37,15 @@ export default function GiveKudosForm(): React.ReactElement {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState<boolean>(false);
 
-  // Fetch all employees (users collection)
+  // Fetch all employees (users collection in this company)
   useEffect(() => {
+    if (!companyId || !user) return;
     const fetchEmployees = async () => {
-      const snapshot = await getDocs(collection(db, "users"));
+      const usersQuery = query(
+        collection(db, "users"),
+        where("companyId", "==", companyId)
+      );
+      const snapshot = await getDocs(usersQuery);
       const list: UserProfile[] = snapshot.docs.map((doc) => ({
         uid: doc.id,
         ...doc.data(),
@@ -42,13 +53,19 @@ export default function GiveKudosForm(): React.ReactElement {
       setEmployees(list.filter((e) => e.uid !== user?.uid)); // Exclude self
     };
     fetchEmployees();
-  }, [user?.uid]);
+  }, [user?.uid, companyId, user]);
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setSuccess(null);
     setError(null);
     setLoading(true);
+
+    if (!companyId || !user) {
+      setError("Missing company information. Please log in again.");
+      setLoading(false);
+      return;
+    }
 
     const recipient = employees.find((e) => e.uid === toUid);
     if (!recipient || !message.trim()) {
@@ -59,12 +76,13 @@ export default function GiveKudosForm(): React.ReactElement {
 
     try {
       await giveKudos({
-        fromUid: user!.uid,
-        fromEmail: user!.email!,
+        fromUid: user.uid,
+        fromEmail: user.email!,
         toUid: recipient.uid,
         toEmail: recipient.email,
         message: message.trim(),
-        badge, // Send badge!
+        badge,
+        companyId, // Pass companyId for isolation!
       });
       setSuccess("Kudos sent!");
       setToUid("");

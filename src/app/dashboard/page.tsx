@@ -13,7 +13,7 @@ const RecognitionFeed = dynamic(() => import("../../components/RecognitionFeed")
 const BirthdayAnniversaryFeed = dynamic(() => import("../../components/BirthdayAnniversaryFeed"), { ssr: false });
 
 export default function DashboardPage(): React.ReactElement {
-  const { user, role, logout, loading } = useAuth();
+  const { user, role, logout, loading, companyId } = useAuth();
   const router = useRouter();
 
   useEffect(() => {
@@ -55,27 +55,27 @@ export default function DashboardPage(): React.ReactElement {
         {/* Onboarding Checklist */}
         <section className="bg-white rounded-lg shadow p-6 w-full max-w-xl mt-8">
           <h2 className="text-xl font-semibold mb-4 text-blue-700">Onboarding Checklist</h2>
-          <OnboardingChecklist />
+          <OnboardingChecklist companyId={companyId!} />
         </section>
 
         {/* Admin panel only visible to admins */}
         {role === "admin" && (
           <section className="w-full flex flex-col items-center">
-            <AdminOnboardingTasks />
+            <AdminOnboardingTasks companyId={companyId!} />
           </section>
         )}
 
         {/* Employee Recognition Feed */}
         <section className="bg-white rounded-lg shadow p-6 w-full max-w-xl">
           <h2 className="text-xl font-semibold mb-4 text-blue-700">Employee Recognition Feed</h2>
-          <GiveKudosForm />
-          <RecognitionFeed />
+          <GiveKudosForm companyId={companyId!} />
+          <RecognitionFeed companyId={companyId!} />
         </section>
 
         {/* Birthdays & Anniversaries */}
         <section className="bg-white rounded-lg shadow p-6 w-full max-w-xl">
           <h2 className="text-xl font-semibold mb-4 text-blue-700">Birthdays & Anniversaries</h2>
-          <BirthdayAnniversaryFeed />
+          <BirthdayAnniversaryFeed companyId={companyId!} />
         </section>
       </main>
       <footer className="py-4 text-center text-xs text-gray-400 bg-gray-100">

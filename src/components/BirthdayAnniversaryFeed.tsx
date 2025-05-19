@@ -2,21 +2,30 @@
 
 import { useEffect, useState } from "react";
 import { fetchAllUsers, getUpcomingEvents } from "../lib/firestoreUsers";
+import { useAuth } from "../context/AuthContext";
 
-export default function BirthdayAnniversaryFeed() {
+interface BirthdayAnniversaryFeedProps {
+  companyId?: string;
+}
+
+export default function BirthdayAnniversaryFeed({ companyId: propCompanyId }: BirthdayAnniversaryFeedProps) {
+  const { companyId: contextCompanyId } = useAuth();
+  const companyId = propCompanyId || contextCompanyId;
+
   const [events, setEvents] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    if (!companyId) return;
     const fetchEvents = async () => {
       setLoading(true);
-      const users = await fetchAllUsers();
+      const users = await fetchAllUsers(companyId);
       const evts = getUpcomingEvents(users).filter(ev => ev.daysUntil >= 0);
       setEvents(evts.slice(0, 5)); // Show next 5 upcoming
       setLoading(false);
     };
     fetchEvents();
-  }, []);
+  }, [companyId]);
 
   if (loading) return <div className="text-gray-600">Loading...</div>;
   if (events.length === 0) return <div className="text-gray-500">No upcoming birthdays or anniversaries.</div>;

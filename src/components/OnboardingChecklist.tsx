@@ -4,35 +4,40 @@ import { useEffect, useState } from "react";
 import { getOnboardingTasks, getUserProgress, setUserTaskProgress } from "../lib/firestoreOnboarding";
 import { useAuth } from "../context/AuthContext";
 
-export default function OnboardingChecklist() {
-  const { user } = useAuth();
+interface OnboardingChecklistProps {
+  companyId?: string;
+}
+
+export default function OnboardingChecklist({ companyId: propCompanyId }: OnboardingChecklistProps) {
+  const { user, companyId: contextCompanyId } = useAuth();
+  const companyId = propCompanyId || contextCompanyId;
+
   const [tasks, setTasks] = useState<any[]>([]);
   const [progress, setProgress] = useState<{ [key: string]: boolean }>({});
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (!user) return;
+    if (!user || !companyId) return;
     const fetchData = async () => {
       setLoading(true);
       const [tasksData, progressData] = await Promise.all([
-        getOnboardingTasks(),
-        getUserProgress(user.uid),
+        getOnboardingTasks(companyId),
+        getUserProgress(user.uid, companyId),
       ]);
       setTasks(tasksData);
       setProgress(progressData || {});
       setLoading(false);
     };
     fetchData();
-  }, [user]);
+  }, [user, companyId]);
 
   const toggleTask = async (taskId: string, completed: boolean) => {
-    if (!user) return;
+    if (!user || !companyId) return;
     setProgress((prev) => ({ ...prev, [taskId]: completed }));
-    await setUserTaskProgress(user.uid, taskId, completed);
+    await setUserTaskProgress(user.uid, taskId, completed, companyId);
   };
 
   if (loading) return <div className="text-gray-600">Loading checklist...</div>;
-
   if (tasks.length === 0) return <div>No onboarding steps have been added yet.</div>;
 
   return (

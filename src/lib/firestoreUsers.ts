@@ -18,25 +18,19 @@ import { diffInDays, nextEventDate } from "./dateUtils";
 export type UserProfile = {
   uid: string;
   email: string;
-  companyId?: string;       // <-- Add this for company filtering
+  companyId: string;        // Now required for true multi-tenancy
   birthday?: string;        // "YYYY-MM-DD"
   anniversary?: string;     // "YYYY-MM-DD"
   // Add other profile fields if needed (name, photoURL, etc)
 };
 
 // ------------------------------
-// Fetch all users (for feeds, admin, etc) — now filters by companyId
+// Fetch all users (for feeds, admin, etc) — ALWAYS filters by companyId
 // ------------------------------
-export async function fetchAllUsers(companyId?: string): Promise<UserProfile[]> {
+export async function fetchAllUsers(companyId: string): Promise<UserProfile[]> {
   const colRef = collection(db, "users");
-  let snapshot;
-
-  if (companyId) {
-    const q = query(colRef, where("companyId", "==", companyId));
-    snapshot = await getDocs(q);
-  } else {
-    snapshot = await getDocs(colRef);
-  }
+  const q = query(colRef, where("companyId", "==", companyId));
+  const snapshot = await getDocs(q);
 
   return snapshot.docs.map(
     (doc: QueryDocumentSnapshot<DocumentData>) => ({
@@ -58,18 +52,18 @@ export async function fetchUserProfile(uid: string): Promise<UserProfile | null>
 }
 
 // ------------------------------
-// Update a user's profile (birthday, anniversary, etc)
+// Update a user's profile (birthday, anniversary, etc) — optionally add companyId for future safety
 // ------------------------------
 export async function updateUserProfile(
   uid: string,
-  updates: { birthday?: string; anniversary?: string }
+  updates: { birthday?: string; anniversary?: string; companyId?: string }
 ): Promise<void> {
   const userRef = doc(db, "users", uid);
   await updateDoc(userRef, updates);
 }
 
 // ------------------------------
-// Helper: get the next upcoming birthday/anniversary events for all users
+// Helper: get the next upcoming birthday/anniversary events for all users in company
 // ------------------------------
 export type UserEvent = {
   type: "birthday" | "anniversary";

@@ -8,8 +8,16 @@ import {
   deleteOnboardingTask,
   OnboardingTask,
 } from "../lib/firestoreOnboarding";
+import { useAuth } from "../context/AuthContext";
 
-export default function AdminOnboardingTasks() {
+interface AdminOnboardingTasksProps {
+  companyId?: string;
+}
+
+export default function AdminOnboardingTasks({ companyId: propCompanyId }: AdminOnboardingTasksProps) {
+  const { companyId: contextCompanyId } = useAuth();
+  const companyId = propCompanyId || contextCompanyId;
+
   const [tasks, setTasks] = useState<OnboardingTask[]>([]);
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
@@ -20,13 +28,16 @@ export default function AdminOnboardingTasks() {
   const [success, setSuccess] = useState<string | null>(null);
 
   const fetchTasks = async () => {
-    const loadedTasks = await getOnboardingTasks();
+    if (!companyId) return;
+    const loadedTasks = await getOnboardingTasks(companyId);
     setTasks(loadedTasks);
   };
 
   useEffect(() => {
     fetchTasks();
-  }, []);
+    // Only fetch tasks when companyId changes
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [companyId]);
 
   // Start editing a task
   const startEdit = (task: OnboardingTask) => {
@@ -55,6 +66,12 @@ export default function AdminOnboardingTasks() {
     setSuccess(null);
     setLoading(true);
 
+    if (!companyId) {
+      setError("Company ID missing. Please log in again.");
+      setLoading(false);
+      return;
+    }
+
     if (!title.trim()) {
       setError("Title is required.");
       setLoading(false);
@@ -67,14 +84,14 @@ export default function AdminOnboardingTasks() {
           title: title.trim(),
           description: description.trim(),
           order,
-        });
+        }, companyId);
         setSuccess("Task updated!");
       } else {
         await addOnboardingTask({
           title: title.trim(),
           description: description.trim(),
           order,
-        });
+        }, companyId);
         setSuccess("Task added!");
       }
       setTitle("");
@@ -95,7 +112,8 @@ export default function AdminOnboardingTasks() {
     setSuccess(null);
     setLoading(true);
     try {
-      await deleteOnboardingTask(id);
+      if (!companyId) throw new Error("Missing company ID.");
+      await deleteOnboardingTask(id, companyId);
       setSuccess("Task deleted!");
       fetchTasks();
     } catch (err: any) {
