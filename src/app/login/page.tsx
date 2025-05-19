@@ -1,10 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import React, { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "../../context/AuthContext";
 
-export default function LoginPage(): JSX.Element {
+export default function LoginPage(): React.ReactElement {
   const [email, setEmail] = useState<string>("");
   const [password, setPassword] = useState<string>("");
   const [error, setError] = useState<string | null>(null);
@@ -21,7 +21,6 @@ export default function LoginPage(): JSX.Element {
       await login(email, password);
       router.push("/dashboard");
     } catch (err) {
-      // If err is a FirebaseError, it will have a message property
       if (err instanceof Error) {
         setError(err.message || "Login failed");
       } else {

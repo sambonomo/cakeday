@@ -1,10 +1,10 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import { useAuth } from "../context/AuthContext";
 import { fetchUserProfile, updateUserProfile, UserProfile } from "../lib/firestoreUsers";
 
-export default function ProfileEditor(): JSX.Element {
+export default function ProfileEditor(): React.ReactElement {
   const { user } = useAuth();
   const [birthday, setBirthday] = useState<string>("");
   const [anniversary, setAnniversary] = useState<string>("");

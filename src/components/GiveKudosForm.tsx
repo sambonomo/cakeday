@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import { giveKudos } from "../lib/firestoreRecognition";
 import { useAuth } from "../context/AuthContext";
 import { collection, getDocs } from "firebase/firestore";
@@ -21,7 +21,7 @@ const BADGES = [
   { label: "Kindness", emoji: "💖" },
 ];
 
-export default function GiveKudosForm(): JSX.Element {
+export default function GiveKudosForm(): React.ReactElement {
   const { user } = useAuth();
   const [employees, setEmployees] = useState<UserProfile[]>([]);
   const [toUid, setToUid] = useState<string>("");

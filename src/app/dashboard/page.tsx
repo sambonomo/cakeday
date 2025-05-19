@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import React, { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "../../context/AuthContext";
 import dynamic from "next/dynamic";
@@ -12,7 +12,7 @@ const GiveKudosForm = dynamic(() => import("../../components/GiveKudosForm"), { 
 const RecognitionFeed = dynamic(() => import("../../components/RecognitionFeed"), { ssr: false });
 const BirthdayAnniversaryFeed = dynamic(() => import("../../components/BirthdayAnniversaryFeed"), { ssr: false });
 
-export default function DashboardPage(): JSX.Element {
+export default function DashboardPage(): React.ReactElement {
   const { user, role, logout, loading } = useAuth();
   const router = useRouter();
 
