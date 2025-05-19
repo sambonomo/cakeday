@@ -6,8 +6,6 @@ import {
   useEffect,
   useState,
   ReactNode,
-  Dispatch,
-  SetStateAction,
 } from "react";
 import { auth, db } from "../lib/firebase";
 import {
@@ -23,10 +21,15 @@ import { doc, setDoc, getDoc } from "firebase/firestore";
 // Type for the context value
 interface AuthContextType {
   user: User | null;
+  companyId: string | null;
   role: string | null;
   loading: boolean;
   login: (email: string, password: string) => Promise<UserCredential>;
-  signup: (email: string, password: string) => Promise<UserCredential>;
+  signup: (
+    email: string,
+    password: string,
+    extra: { companyId: string; role: string }
+  ) => Promise<UserCredential>;
   logout: () => Promise<void>;
 }
 
@@ -35,6 +38,7 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [role, setRole] = useState<string | null>(null);
+  const [companyId, setCompanyId] = useState<string | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
 
   useEffect(() => {
@@ -42,39 +46,47 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setUser(user || null);
       setLoading(true);
 
-      // If logged in, fetch role from Firestore
+      // If logged in, fetch role and companyId from Firestore
       if (user) {
-        const role = await getUserRole(user.uid);
-        setRole(role);
+        const userRef = doc(db, "users", user.uid);
+        const userSnap = await getDoc(userRef);
+        if (userSnap.exists()) {
+          const data = userSnap.data() as any;
+          setRole(data.role || "user");
+          setCompanyId(data.companyId || null);
+        } else {
+          setRole("user");
+          setCompanyId(null);
+        }
       } else {
         setRole(null);
+        setCompanyId(null);
       }
       setLoading(false);
     });
     return () => unsubscribe();
   }, []);
 
-  // Helper to get role from Firestore
-  async function getUserRole(uid: string): Promise<string> {
-    const userRef = doc(db, "users", uid);
-    const userSnap = await getDoc(userRef);
-    return userSnap.exists() ? (userSnap.data() as any).role || "user" : "user";
-  }
-
-  // Sign up a new user, then set their role in Firestore
-  const signup = async (email: string, password: string): Promise<UserCredential> => {
+  // Sign up a new user with extra fields (companyId, role)
+  const signup = async (
+    email: string,
+    password: string,
+    extra: { companyId: string; role: string }
+  ): Promise<UserCredential> => {
     const userCred = await createUserWithEmailAndPassword(auth, email, password);
-    // Add Firestore user doc with default role "user"
+    // Add Firestore user doc with extra fields
     await setDoc(doc(db, "users", userCred.user.uid), {
       email,
-      role: "user",
+      companyId: extra.companyId,
+      role: extra.role,
       createdAt: new Date(),
     });
-    setRole("user");
+    setRole(extra.role);
+    setCompanyId(extra.companyId);
     return userCred;
   };
 
-  // Log in user (role will be fetched by effect)
+  // Log in user (role and companyId will be fetched by effect)
   const login = (email: string, password: string): Promise<UserCredential> =>
     signInWithEmailAndPassword(auth, email, password);
 
@@ -82,7 +94,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const logout = (): Promise<void> => signOut(auth);
 
   return (
-    <AuthContext.Provider value={{ user, role, loading, login, signup, logout }}>
+    <AuthContext.Provider value={{ user, companyId, role, loading, login, signup, logout }}>
       {children}
     </AuthContext.Provider>
   );

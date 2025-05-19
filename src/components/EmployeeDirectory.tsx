@@ -1,22 +1,28 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { fetchAllUsers } from "../lib/firestoreUsers";
+import { fetchAllUsers, UserProfile } from "../lib/firestoreUsers";
 
-export default function EmployeeDirectory() {
-  const [employees, setEmployees] = useState<any[]>([]);
+type EmployeeDirectoryProps = {
+  companyId: string;
+};
+
+export default function EmployeeDirectory({ companyId }: EmployeeDirectoryProps) {
+  const [employees, setEmployees] = useState<UserProfile[]>([]);
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    if (!companyId) return; // Don't fetch until we have a companyId
+
     const load = async () => {
       setLoading(true);
-      const users = await fetchAllUsers();
+      const users = await fetchAllUsers(companyId);
       setEmployees(users);
       setLoading(false);
     };
     load();
-  }, []);
+  }, [companyId]);
 
   const filtered = employees
     .filter(

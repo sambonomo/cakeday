@@ -5,9 +5,12 @@ import {
   doc,
   getDoc,
   updateDoc,
+  query,
+  where,
   DocumentData,
   QueryDocumentSnapshot,
 } from "firebase/firestore";
+import { diffInDays, nextEventDate } from "./dateUtils";
 
 // ------------------------------
 // User Profile Types
@@ -15,17 +18,26 @@ import {
 export type UserProfile = {
   uid: string;
   email: string;
-  birthday?: string;     // "YYYY-MM-DD"
-  anniversary?: string;  // "YYYY-MM-DD"
+  companyId?: string;       // <-- Add this for company filtering
+  birthday?: string;        // "YYYY-MM-DD"
+  anniversary?: string;     // "YYYY-MM-DD"
   // Add other profile fields if needed (name, photoURL, etc)
 };
 
 // ------------------------------
-// Fetch all users (for feeds, admin, etc)
+// Fetch all users (for feeds, admin, etc) — now filters by companyId
 // ------------------------------
-export async function fetchAllUsers(): Promise<UserProfile[]> {
+export async function fetchAllUsers(companyId?: string): Promise<UserProfile[]> {
   const colRef = collection(db, "users");
-  const snapshot = await getDocs(colRef);
+  let snapshot;
+
+  if (companyId) {
+    const q = query(colRef, where("companyId", "==", companyId));
+    snapshot = await getDocs(q);
+  } else {
+    snapshot = await getDocs(colRef);
+  }
+
   return snapshot.docs.map(
     (doc: QueryDocumentSnapshot<DocumentData>) => ({
       uid: doc.id,
@@ -99,33 +111,4 @@ export function getUpcomingEvents(users: UserProfile[]): UserEvent[] {
   // Sort by soonest
   events.sort((a, b) => a.daysUntil - b.daysUntil);
   return events;
-}
-
-// ------------------------------
-// Helpers
-// ------------------------------
-
-// Return the next occurrence (this year or next) of a YYYY-MM-DD string
-function nextEventDate(ymd: string, today: Date): Date {
-  const [, m, d] = ymd.split("-").map(Number); // Ignore stored year for recurring events
-  const thisYear = today.getFullYear();
-  const nextEvent = new Date(thisYear, m - 1, d);
-
-  // If the event has already occurred this year, schedule for next year
-  if (
-    nextEvent < today &&
-    (nextEvent.getMonth() < today.getMonth() ||
-      (nextEvent.getMonth() === today.getMonth() && nextEvent.getDate() < today.getDate()))
-  ) {
-    return new Date(thisYear + 1, m - 1, d);
-  }
-  return nextEvent;
-}
-
-function diffInDays(a: Date, b: Date): number {
-  // Normalize to midnight for accurate day count
-  const start = new Date(a.getFullYear(), a.getMonth(), a.getDate());
-  const end = new Date(b.getFullYear(), b.getMonth(), b.getDate());
-  const oneDay = 24 * 60 * 60 * 1000;
-  return Math.ceil((end.getTime() - start.getTime()) / oneDay);
 }
