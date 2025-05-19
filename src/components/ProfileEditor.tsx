@@ -2,37 +2,41 @@
 
 import { useState, useEffect } from "react";
 import { useAuth } from "../context/AuthContext";
-import { fetchUserProfile, updateUserProfile } from "../lib/firestoreUsers";
+import { fetchUserProfile, updateUserProfile, UserProfile } from "../lib/firestoreUsers";
 
-export default function ProfileEditor() {
+export default function ProfileEditor(): JSX.Element {
   const { user } = useAuth();
-  const [birthday, setBirthday] = useState("");
-  const [anniversary, setAnniversary] = useState("");
-  const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
+  const [birthday, setBirthday] = useState<string>("");
+  const [anniversary, setAnniversary] = useState<string>("");
+  const [loading, setLoading] = useState<boolean>(true);
+  const [saving, setSaving] = useState<boolean>(false);
   const [success, setSuccess] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!user) return;
     setLoading(true);
-    fetchUserProfile(user.uid).then((profile: any) => {
+    fetchUserProfile(user.uid).then((profile: UserProfile | null) => {
       setBirthday(profile?.birthday || "");
       setAnniversary(profile?.anniversary || "");
       setLoading(false);
     });
   }, [user]);
 
-  const handleSave = async (e: React.FormEvent) => {
+  const handleSave = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setSaving(true);
     setSuccess(null);
     setError(null);
     try {
-      await updateUserProfile(user.uid, { birthday, anniversary });
+      await updateUserProfile(user!.uid, { birthday, anniversary });
       setSuccess("Profile updated!");
-    } catch (err: any) {
-      setError(err.message || "Error saving profile.");
+    } catch (err) {
+      if (err instanceof Error) {
+        setError(err.message || "Error saving profile.");
+      } else {
+        setError("Error saving profile.");
+      }
     }
     setSaving(false);
   };
@@ -40,7 +44,10 @@ export default function ProfileEditor() {
   if (loading) return <div className="text-gray-600">Loading profile...</div>;
 
   return (
-    <form onSubmit={handleSave} className="flex flex-col gap-4 mb-6 bg-white border rounded-lg p-4 w-full max-w-md shadow">
+    <form
+      onSubmit={handleSave}
+      className="flex flex-col gap-4 mb-6 bg-white border rounded-lg p-4 w-full max-w-md shadow"
+    >
       <h2 className="text-xl font-semibold text-blue-700">Edit Your Profile</h2>
       <label className="font-medium">
         Birthday

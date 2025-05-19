@@ -5,6 +5,7 @@ import { giveKudos } from "../lib/firestoreRecognition";
 import { useAuth } from "../context/AuthContext";
 import { collection, getDocs } from "firebase/firestore";
 import { db } from "../lib/firebase";
+import type { UserProfile } from "../lib/firestoreUsers";
 
 // List of preset badges/emojis
 const BADGES = [
@@ -20,30 +21,30 @@ const BADGES = [
   { label: "Kindness", emoji: "💖" },
 ];
 
-export default function GiveKudosForm() {
+export default function GiveKudosForm(): JSX.Element {
   const { user } = useAuth();
-  const [employees, setEmployees] = useState<any[]>([]);
-  const [toUid, setToUid] = useState("");
-  const [message, setMessage] = useState("");
-  const [badge, setBadge] = useState(BADGES[0].emoji); // Default to first emoji
+  const [employees, setEmployees] = useState<UserProfile[]>([]);
+  const [toUid, setToUid] = useState<string>("");
+  const [message, setMessage] = useState<string>("");
+  const [badge, setBadge] = useState<string>(BADGES[0].emoji); // Default to first emoji
   const [success, setSuccess] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState<boolean>(false);
 
   // Fetch all employees (users collection)
   useEffect(() => {
     const fetchEmployees = async () => {
       const snapshot = await getDocs(collection(db, "users"));
-      const list = snapshot.docs.map((doc) => ({
+      const list: UserProfile[] = snapshot.docs.map((doc) => ({
         uid: doc.id,
         ...doc.data(),
-      }));
+      })) as UserProfile[];
       setEmployees(list.filter((e) => e.uid !== user?.uid)); // Exclude self
     };
     fetchEmployees();
   }, [user?.uid]);
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setSuccess(null);
     setError(null);
@@ -58,8 +59,8 @@ export default function GiveKudosForm() {
 
     try {
       await giveKudos({
-        fromUid: user.uid,
-        fromEmail: user.email,
+        fromUid: user!.uid,
+        fromEmail: user!.email!,
         toUid: recipient.uid,
         toEmail: recipient.email,
         message: message.trim(),
@@ -69,8 +70,12 @@ export default function GiveKudosForm() {
       setToUid("");
       setMessage("");
       setBadge(BADGES[0].emoji); // Reset badge to default
-    } catch (err: any) {
-      setError(err.message || "Error sending kudos.");
+    } catch (err) {
+      if (err instanceof Error) {
+        setError(err.message || "Error sending kudos.");
+      } else {
+        setError("Error sending kudos.");
+      }
     }
     setLoading(false);
   };
@@ -95,12 +100,17 @@ export default function GiveKudosForm() {
               aria-label={b.label}
               onClick={() => setBadge(b.emoji)}
             >
-              <span role="img" aria-label={b.label}>{b.emoji}</span>
+              <span role="img" aria-label={b.label}>
+                {b.emoji}
+              </span>
             </button>
           ))}
         </div>
         <div className="text-xs text-gray-600 mb-2">
-          Selected: <span className="font-semibold">{BADGES.find((b) => b.emoji === badge)?.label}</span>
+          Selected:{" "}
+          <span className="font-semibold">
+            {BADGES.find((b) => b.emoji === badge)?.label}
+          </span>
         </div>
       </div>
 
@@ -113,7 +123,9 @@ export default function GiveKudosForm() {
       >
         <option value="">Select colleague</option>
         {employees.map((e) => (
-          <option key={e.uid} value={e.uid}>{e.email}</option>
+          <option key={e.uid} value={e.uid}>
+            {e.email}
+          </option>
         ))}
       </select>
 
@@ -122,7 +134,7 @@ export default function GiveKudosForm() {
         placeholder="Message"
         value={message}
         className="p-2 border border-gray-300 rounded"
-        onChange={e => setMessage(e.target.value)}
+        onChange={(e) => setMessage(e.target.value)}
         rows={2}
         required
       />

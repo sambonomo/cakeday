@@ -4,24 +4,28 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "../../context/AuthContext";
 
-export default function SignupPage() {
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
+export default function SignupPage(): JSX.Element {
+  const [email, setEmail] = useState<string>("");
+  const [password, setPassword] = useState<string>("");
   const [error, setError] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState<boolean>(false);
 
   const { signup } = useAuth();
   const router = useRouter();
 
-  const handleSignup = async (e: React.FormEvent) => {
+  const handleSignup = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setError(null);
     setLoading(true);
     try {
       await signup(email, password);
       router.push("/dashboard");
-    } catch (err: any) {
-      setError(err.message || "Signup failed");
+    } catch (err) {
+      if (err instanceof Error) {
+        setError(err.message || "Signup failed");
+      } else {
+        setError("Signup failed");
+      }
     }
     setLoading(false);
   };

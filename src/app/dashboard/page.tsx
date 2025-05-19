@@ -12,7 +12,7 @@ const GiveKudosForm = dynamic(() => import("../../components/GiveKudosForm"), { 
 const RecognitionFeed = dynamic(() => import("../../components/RecognitionFeed"), { ssr: false });
 const BirthdayAnniversaryFeed = dynamic(() => import("../../components/BirthdayAnniversaryFeed"), { ssr: false });
 
-export default function DashboardPage() {
+export default function DashboardPage(): JSX.Element {
   const { user, role, logout, loading } = useAuth();
   const router = useRouter();
 
