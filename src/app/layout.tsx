@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
-import "../styles/globals.css"; // Make sure this path is correct based on your structure
-import { AuthProvider } from "../context/AuthContext"; // Make sure this path is correct
+import "./globals.css"; // <-- updated for correct path!
+import { AuthProvider } from "../context/AuthContext"; // path is correct if your context is in src/context
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -28,7 +28,6 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased bg-gray-50 min-h-screen`}
       >
-        {/* Provide global authentication context to all pages */}
         <AuthProvider>
           {children}
         </AuthProvider>
