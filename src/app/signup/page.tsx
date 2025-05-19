@@ -51,7 +51,33 @@ export default function SignupPage(): React.ReactElement {
           setLoading(false);
           return;
         }
-        // Prevent duplicate company names
+        if (!email.trim() || !email.includes("@")) {
+          setError("Please enter a valid email.");
+          setLoading(false);
+          return;
+        }
+
+        // Extract domain from email (e.g., 'user@acme.com' => 'acme.com')
+        const domain = email.split("@")[1]?.toLowerCase().trim();
+        if (!domain) {
+          setError("Could not extract domain from email.");
+          setLoading(false);
+          return;
+        }
+
+        // Check if domain is already in use by another company
+        const domainExists = await getDocs(
+          query(collection(db, "companies"), where("domain", "==", domain))
+        );
+        if (!domainExists.empty) {
+          setError(
+            "A company with this email domain already exists. Please join that company or use a different email."
+          );
+          setLoading(false);
+          return;
+        }
+
+        // Prevent duplicate company names (optional)
         const existing = await getDocs(
           query(collection(db, "companies"), where("name", "==", companyName.trim()))
         );
@@ -60,11 +86,13 @@ export default function SignupPage(): React.ReactElement {
           setLoading(false);
           return;
         }
+
         // Generate unique invite code
         code = nanoid(8).toUpperCase();
-        // Create the company doc with invite code
+        // Create the company doc with invite code and domain
         const companyRef = await addDoc(collection(db, "companies"), {
           name: companyName.trim(),
+          domain,
           createdAt: new Date(),
           inviteCode: code,
         });
