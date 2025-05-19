@@ -1,0 +1,73 @@
+"use client";
+
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { useAuth } from "../../context/AuthContext";
+
+export default function SignupPage() {
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
+
+  const { signup } = useAuth();
+  const router = useRouter();
+
+  const handleSignup = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError(null);
+    setLoading(true);
+    try {
+      await signup(email, password);
+      router.push("/dashboard");
+    } catch (err: any) {
+      setError(err.message || "Signup failed");
+    }
+    setLoading(false);
+  };
+
+  return (
+    <div className="flex flex-col items-center justify-center min-h-screen bg-gray-50 px-4">
+      <form
+        onSubmit={handleSignup}
+        className="bg-white p-8 rounded-lg shadow-md w-full max-w-md mt-8"
+      >
+        <h2 className="text-2xl font-bold mb-6 text-center text-blue-700">
+          Create an Account
+        </h2>
+        {error && <div className="text-red-500 mb-4 text-center">{error}</div>}
+        <input
+          type="email"
+          placeholder="Email"
+          className="mb-4 w-full p-2 border border-gray-300 rounded"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          required
+          autoComplete="email"
+        />
+        <input
+          type="password"
+          placeholder="Password"
+          className="mb-4 w-full p-2 border border-gray-300 rounded"
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+          required
+          autoComplete="new-password"
+        />
+        <button
+          type="submit"
+          className="w-full bg-blue-600 text-white py-2 rounded hover:bg-blue-700 transition-colors"
+          disabled={loading}
+        >
+          {loading ? "Signing Up..." : "Sign Up"}
+        </button>
+        <p className="mt-4 text-center">
+          Already have an account?{" "}
+          <a href="/login" className="text-blue-600 hover:underline">
+            Login
+          </a>
+        </p>
+      </form>
+    </div>
+  );
+}
