@@ -28,7 +28,7 @@ interface AuthContextType {
   signup: (
     email: string,
     password: string,
-    extra: { companyId: string; role: string }
+    extra: Record<string, any> // Accept any additional user profile fields
   ) => Promise<UserCredential>;
   logout: () => Promise<void>;
 }
@@ -67,18 +67,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return () => unsubscribe();
   }, []);
 
-  // Sign up a new user with extra fields (companyId, role)
+  // Sign up a new user with any extra profile fields (companyId, role, name, etc)
   const signup = async (
     email: string,
     password: string,
-    extra: { companyId: string; role: string }
+    extra: Record<string, any>
   ): Promise<UserCredential> => {
     const userCred = await createUserWithEmailAndPassword(auth, email, password);
     // Add Firestore user doc with extra fields
     await setDoc(doc(db, "users", userCred.user.uid), {
       email,
-      companyId: extra.companyId,
-      role: extra.role,
+      ...extra, // includes companyId, role, name, etc.
       createdAt: new Date(),
     });
     setRole(extra.role);

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "../../context/AuthContext";
 
@@ -10,8 +10,15 @@ export default function LoginPage(): React.ReactElement {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState<boolean>(false);
 
-  const { login } = useAuth();
+  const { login, user, loading: authLoading } = useAuth();
   const router = useRouter();
+
+  // Redirect logged-in users to dashboard
+  useEffect(() => {
+    if (!authLoading && user) {
+      router.replace("/dashboard");
+    }
+  }, [authLoading, user, router]);
 
   const handleLogin = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -19,16 +26,24 @@ export default function LoginPage(): React.ReactElement {
     setLoading(true);
     try {
       await login(email, password);
-      router.push("/dashboard");
-    } catch (err) {
-      if (err instanceof Error) {
-        setError(err.message || "Login failed");
-      } else {
-        setError("Login failed");
-      }
+      // router.push("/dashboard"); // Now handled by useEffect
+    } catch (err: any) {
+      // Optional: Map common Firebase errors to friendlier text
+      const msg = err?.message || "Login failed";
+      if (msg.includes("auth/wrong-password")) setError("Incorrect password.");
+      else if (msg.includes("auth/user-not-found")) setError("No account found for that email.");
+      else setError(msg);
     }
     setLoading(false);
   };
+
+  if (authLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen bg-gray-50">
+        <div className="text-lg text-gray-600">Loading...</div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col items-center justify-center min-h-screen bg-gray-50 px-4">

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "../../context/AuthContext";
 import { db } from "../../lib/firebase";
@@ -10,32 +10,26 @@ import {
   getDocs,
   query,
   where,
-  DocumentData,
 } from "firebase/firestore";
+import { nanoid } from "nanoid"; // For invite code
 
 export default function SignupPage(): React.ReactElement {
   const [email, setEmail] = useState<string>("");
   const [password, setPassword] = useState<string>("");
+  const [name, setName] = useState<string>("");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState<boolean>(false);
 
   // Company selection/creation
   const [mode, setMode] = useState<"create" | "join">("create");
   const [companyName, setCompanyName] = useState<string>("");
-  const [companies, setCompanies] = useState<DocumentData[]>([]);
-  const [companyId, setCompanyId] = useState<string>("");
+  const [inviteCode, setInviteCode] = useState<string>("");
+
+  // After admin creates company, show code
+  const [generatedCode, setGeneratedCode] = useState<string | null>(null);
 
   const { signup } = useAuth();
   const router = useRouter();
-
-  // Fetch existing companies for join option
-  useEffect(() => {
-    const fetchCompanies = async () => {
-      const snapshot = await getDocs(collection(db, "companies"));
-      setCompanies(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
-    };
-    if (mode === "join") fetchCompanies();
-  }, [mode]);
 
   const handleSignup = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -43,17 +37,21 @@ export default function SignupPage(): React.ReactElement {
     setLoading(true);
 
     try {
-      let newCompanyId = companyId;
+      let companyId = "";
+      let code = inviteCode.trim().toUpperCase();
 
-      // If creating a new company
       if (mode === "create") {
         if (!companyName.trim()) {
           setError("Please enter a company name.");
           setLoading(false);
           return;
         }
-
-        // Prevent duplicate company names (optional, but nice)
+        if (!name.trim()) {
+          setError("Please enter your name.");
+          setLoading(false);
+          return;
+        }
+        // Prevent duplicate company names
         const existing = await getDocs(
           query(collection(db, "companies"), where("name", "==", companyName.trim()))
         );
@@ -62,36 +60,82 @@ export default function SignupPage(): React.ReactElement {
           setLoading(false);
           return;
         }
-
-        // Create the company doc
+        // Generate unique invite code
+        code = nanoid(8).toUpperCase();
+        // Create the company doc with invite code
         const companyRef = await addDoc(collection(db, "companies"), {
           name: companyName.trim(),
           createdAt: new Date(),
+          inviteCode: code,
         });
-        newCompanyId = companyRef.id;
+        companyId = companyRef.id;
+        setGeneratedCode(code);
       } else {
-        if (!companyId) {
-          setError("Please select your company.");
+        // Join by invite code
+        if (!inviteCode.trim()) {
+          setError("Please enter your company invite code.");
           setLoading(false);
           return;
         }
+        // Lookup company by invite code
+        const q = query(collection(db, "companies"), where("inviteCode", "==", code));
+        const snap = await getDocs(q);
+        if (snap.empty) {
+          setError("Invite code not found. Please check with your admin.");
+          setLoading(false);
+          return;
+        }
+        const companyDoc = snap.docs[0];
+        companyId = companyDoc.id;
       }
 
       // Sign up user and add company/role info
       await signup(email, password, {
-        companyId: newCompanyId,
+        companyId,
         role: mode === "create" ? "admin" : "user",
+        name,
       });
-      router.push("/dashboard");
-    } catch (err) {
-      if (err instanceof Error) {
-        setError(err.message || "Signup failed");
-      } else {
-        setError("Signup failed");
+
+      if (mode === "create") {
+        // Show invite code to admin after creating company
+        setLoading(false);
+        return; // Don't push to dashboard yet
       }
+
+      router.push("/dashboard");
+    } catch (err: any) {
+      setError(err.message || "Signup failed");
+      setLoading(false);
     }
-    setLoading(false);
   };
+
+  // Show code after company creation for admin
+  if (generatedCode) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-screen bg-gray-50 px-4">
+        <div className="bg-white p-8 rounded-lg shadow-md w-full max-w-md mt-8">
+          <h2 className="text-2xl font-bold mb-6 text-center text-blue-700">
+            Company Created!
+          </h2>
+          <div className="mb-6 text-center">
+            <p className="font-semibold mb-2">Your invite code:</p>
+            <div className="text-2xl font-mono bg-gray-100 rounded p-2 inline-block">
+              {generatedCode}
+            </div>
+            <p className="mt-4 text-gray-700">
+              Share this code with your teammates so they can join your company!
+            </p>
+          </div>
+          <button
+            className="w-full bg-blue-600 text-white py-2 rounded hover:bg-blue-700 transition-colors"
+            onClick={() => router.push("/dashboard")}
+          >
+            Continue to Dashboard
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col items-center justify-center min-h-screen bg-gray-50 px-4">
@@ -124,34 +168,48 @@ export default function SignupPage(): React.ReactElement {
               onChange={() => setMode("join")}
               className="mr-1"
             />
-            Join Existing
+            Join Existing (with Invite Code)
           </label>
         </div>
 
-        {/* Company name or join dropdown */}
         {mode === "create" ? (
-          <input
-            type="text"
-            placeholder="Company Name"
-            className="mb-4 w-full p-2 border border-gray-300 rounded"
-            value={companyName}
-            onChange={(e) => setCompanyName(e.target.value)}
-            required
-          />
+          <>
+            <input
+              type="text"
+              placeholder="Company Name"
+              className="mb-4 w-full p-2 border border-gray-300 rounded"
+              value={companyName}
+              onChange={(e) => setCompanyName(e.target.value)}
+              required
+            />
+            <input
+              type="text"
+              placeholder="Your Name"
+              className="mb-4 w-full p-2 border border-gray-300 rounded"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              required
+            />
+          </>
         ) : (
-          <select
-            className="mb-4 w-full p-2 border border-gray-300 rounded"
-            value={companyId}
-            onChange={(e) => setCompanyId(e.target.value)}
-            required
-          >
-            <option value="">Select Company</option>
-            {companies.map((c) => (
-              <option key={c.id} value={c.id}>
-                {c.name}
-              </option>
-            ))}
-          </select>
+          <>
+            <input
+              type="text"
+              placeholder="Enter your company invite code"
+              className="mb-4 w-full p-2 border border-gray-300 rounded"
+              value={inviteCode}
+              onChange={(e) => setInviteCode(e.target.value)}
+              required
+            />
+            <input
+              type="text"
+              placeholder="Your Name"
+              className="mb-4 w-full p-2 border border-gray-300 rounded"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              required
+            />
+          </>
         )}
 
         <input

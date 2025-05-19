@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
-import "./globals.css"; // <-- updated for correct path!
-import { AuthProvider } from "../context/AuthContext"; // path is correct if your context is in src/context
+import "./globals.css";
+import { AuthProvider } from "../context/AuthContext";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -26,10 +26,14 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased bg-gray-50 min-h-screen`}
+        className={`${geistSans.variable} ${geistMono.variable} antialiased min-h-screen`}
+        style={{
+          background: "var(--color-background)",
+          color: "var(--color-foreground)",
+        }}
       >
         <AuthProvider>
-          {children}
+          <main>{children}</main>
         </AuthProvider>
       </body>
     </html>

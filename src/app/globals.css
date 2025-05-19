@@ -33,8 +33,7 @@ body {
 
 /* Optionally remove default outlines for buttons/inputs, but still keep focus visible for a11y */
 /* Use Tailwind's focus:ring utilities in your components for focus styles. */
-
-/* Example: 
+/*
 input:focus, button:focus, textarea:focus, select:focus {
   outline: none;
   box-shadow: 0 0 0 2px var(--color-foreground);

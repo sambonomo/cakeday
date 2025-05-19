@@ -17,12 +17,12 @@ export default function DashboardPage(): React.ReactElement {
   const router = useRouter();
 
   useEffect(() => {
-    if (!loading && !user) {
+    if (!loading && (!user || !companyId)) {
       router.replace("/login");
     }
-  }, [user, loading, router]);
+  }, [user, loading, companyId, router]);
 
-  if (loading || !user) {
+  if (loading || !user || !companyId) {
     return (
       <div className="flex items-center justify-center min-h-screen bg-gray-50">
         <div className="text-lg text-gray-600">Loading your dashboard...</div>
@@ -55,27 +55,27 @@ export default function DashboardPage(): React.ReactElement {
         {/* Onboarding Checklist */}
         <section className="bg-white rounded-lg shadow p-6 w-full max-w-xl mt-8">
           <h2 className="text-xl font-semibold mb-4 text-blue-700">Onboarding Checklist</h2>
-          <OnboardingChecklist companyId={companyId!} />
+          <OnboardingChecklist companyId={companyId} />
         </section>
 
         {/* Admin panel only visible to admins */}
         {role === "admin" && (
           <section className="w-full flex flex-col items-center">
-            <AdminOnboardingTasks companyId={companyId!} />
+            <AdminOnboardingTasks companyId={companyId} />
           </section>
         )}
 
         {/* Employee Recognition Feed */}
         <section className="bg-white rounded-lg shadow p-6 w-full max-w-xl">
           <h2 className="text-xl font-semibold mb-4 text-blue-700">Employee Recognition Feed</h2>
-          <GiveKudosForm companyId={companyId!} />
-          <RecognitionFeed companyId={companyId!} />
+          <GiveKudosForm companyId={companyId} />
+          <RecognitionFeed companyId={companyId} />
         </section>
 
         {/* Birthdays & Anniversaries */}
         <section className="bg-white rounded-lg shadow p-6 w-full max-w-xl">
           <h2 className="text-xl font-semibold mb-4 text-blue-700">Birthdays & Anniversaries</h2>
-          <BirthdayAnniversaryFeed companyId={companyId!} />
+          <BirthdayAnniversaryFeed companyId={companyId} />
         </section>
       </main>
       <footer className="py-4 text-center text-xs text-gray-400 bg-gray-100">

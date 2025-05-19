@@ -1,16 +1,38 @@
 import Link from "next/link";
-// import React from "react"; // Optional with react-jsx
 
 export default function Home(): React.ReactElement {
   return (
     <div className="flex flex-col items-center justify-center min-h-screen bg-gray-50 px-4">
       <main className="flex flex-col items-center gap-8 w-full max-w-lg bg-white rounded-xl shadow-lg p-8 mt-8">
+        {/* Optional: Illustration */}
+        {/* <img src="/cakeday-hero.svg" alt="Celebration" className="w-32 mb-2" /> */}
         <h1 className="text-3xl sm:text-4xl font-bold text-blue-700 text-center">
           🎉 Cakeday HR Onboarding & Recognition
         </h1>
         <p className="text-lg text-gray-700 text-center">
           Welcome! Create an engaging employee experience with onboarding checklists, automated celebrations, and peer recognition—all in one place.
         </p>
+
+        {/* Features Section (optional) */}
+        <ul className="w-full max-w-xs text-gray-600 text-sm bg-gray-50 rounded-lg shadow-inner p-4 mt-2">
+          <li className="mb-2 flex items-center">
+            <span className="text-green-500 mr-2">✔️</span>
+            Onboarding Checklists
+          </li>
+          <li className="mb-2 flex items-center">
+            <span className="text-green-500 mr-2">🎂</span>
+            Automated Birthdays & Anniversaries
+          </li>
+          <li className="mb-2 flex items-center">
+            <span className="text-green-500 mr-2">🤝</span>
+            Peer-to-Peer Kudos
+          </li>
+          <li className="flex items-center">
+            <span className="text-green-500 mr-2">🔒</span>
+            Company-Only Access
+          </li>
+        </ul>
+
         <div className="flex gap-4 mt-4">
           <Link
             href="/signup"
