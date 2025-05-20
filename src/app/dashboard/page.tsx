@@ -1,9 +1,11 @@
 "use client";
 
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "../../context/AuthContext";
 import dynamic from "next/dynamic";
+import { fetchAllUsers, getUpcomingEvents, UserEvent } from "../../lib/firestoreUsers";
+import Toast from "../../components/Toast";
 
 // Dynamic imports (client-side only)
 const OnboardingChecklist = dynamic(() => import("../../components/OnboardingChecklist"), { ssr: false });
@@ -15,6 +17,22 @@ const BirthdayAnniversaryFeed = dynamic(() => import("../../components/BirthdayA
 export default function DashboardPage(): React.ReactElement {
   const { user, role, logout, loading, companyId } = useAuth();
   const router = useRouter();
+
+  // 🎉 Today's Event Toast state
+  const [todayEvents, setTodayEvents] = useState<UserEvent[]>([]);
+  const [showTodayToast, setShowTodayToast] = useState<boolean>(true);
+
+  // Fetch today's events only when user/companyId loaded
+  useEffect(() => {
+    if (!loading && user && companyId) {
+      fetchAllUsers(companyId).then(users => {
+        const allEvents = getUpcomingEvents(users);
+        const todays = allEvents.filter(ev => ev.daysUntil === 0);
+        setTodayEvents(todays);
+        setShowTodayToast(todays.length > 0);
+      });
+    }
+  }, [loading, user, companyId]);
 
   useEffect(() => {
     if (!loading && (!user || !companyId)) {
@@ -29,6 +47,17 @@ export default function DashboardPage(): React.ReactElement {
       </div>
     );
   }
+
+  // Construct today's event message
+  const todayMsg =
+    todayEvents.length > 0
+      ? todayEvents
+          .map(ev =>
+            `${ev.type === "birthday" ? "🎂" : "🎉"} ${ev.user.fullName || ev.user.email
+            }'s ${ev.type === "birthday" ? "birthday" : "work anniversary"} is today!`
+          )
+          .join("  ")
+      : "";
 
   return (
     <div className="flex flex-col min-h-screen bg-gray-50">
@@ -51,6 +80,16 @@ export default function DashboardPage(): React.ReactElement {
           </button>
         </div>
       </header>
+
+      {/* Today Event Toast/Banner */}
+      {todayMsg && showTodayToast && (
+        <Toast
+          message={todayMsg}
+          type="success"
+          onClose={() => setShowTodayToast(false)}
+        />
+      )}
+
       <main className="flex-1 flex flex-col items-center justify-center gap-8 px-4">
         {/* Onboarding Checklist */}
         <section className="bg-white rounded-lg shadow p-6 w-full max-w-xl mt-8">

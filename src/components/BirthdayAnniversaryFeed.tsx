@@ -1,18 +1,22 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { fetchAllUsers, getUpcomingEvents } from "../lib/firestoreUsers";
+import { fetchAllUsers, getUpcomingEvents, UserEvent } from "../lib/firestoreUsers";
 import { useAuth } from "../context/AuthContext";
 
 interface BirthdayAnniversaryFeedProps {
   companyId?: string;
+  maxEvents?: number; // allow unlimited if undefined
 }
 
-export default function BirthdayAnniversaryFeed({ companyId: propCompanyId }: BirthdayAnniversaryFeedProps) {
+export default function BirthdayAnniversaryFeed({
+  companyId: propCompanyId,
+  maxEvents = 5,
+}: BirthdayAnniversaryFeedProps) {
   const { companyId: contextCompanyId } = useAuth();
   const companyId = propCompanyId || contextCompanyId;
 
-  const [events, setEvents] = useState<any[]>([]);
+  const [events, setEvents] = useState<UserEvent[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -21,11 +25,11 @@ export default function BirthdayAnniversaryFeed({ companyId: propCompanyId }: Bi
       setLoading(true);
       const users = await fetchAllUsers(companyId);
       const evts = getUpcomingEvents(users).filter(ev => ev.daysUntil >= 0);
-      setEvents(evts.slice(0, 5)); // Show next 5 upcoming
+      setEvents(maxEvents === undefined ? evts : evts.slice(0, maxEvents));
       setLoading(false);
     };
     fetchEvents();
-  }, [companyId]);
+  }, [companyId, maxEvents]);
 
   if (loading) return <div className="text-gray-600">Loading...</div>;
   if (events.length === 0) return <div className="text-gray-500">No upcoming birthdays or anniversaries.</div>;
@@ -33,11 +37,26 @@ export default function BirthdayAnniversaryFeed({ companyId: propCompanyId }: Bi
   return (
     <ul className="flex flex-col gap-3">
       {events.map((event, idx) => (
-        <li key={idx} className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 shadow flex flex-col sm:flex-row sm:items-center gap-2">
-          <span>
-            <span className="font-semibold">{event.user.email}</span>
-            {event.type === "birthday" ? " has a birthday " : " celebrates a work anniversary "}
-            <span className="font-semibold">{event.daysUntil === 0 ? "today!" : `in ${event.daysUntil} day${event.daysUntil === 1 ? "" : "s"}`}</span>
+        <li
+          key={idx}
+          className={`border rounded-lg p-4 shadow flex flex-col sm:flex-row sm:items-center gap-2
+            ${event.type === "birthday" ? "bg-yellow-50 border-yellow-200" : "bg-blue-50 border-blue-200"}
+            ${event.daysUntil === 0 ? "border-2 border-green-400" : ""}
+          `}
+        >
+          <span className="flex items-center gap-1">
+            <span className="text-xl">
+              {event.type === "birthday" ? "🎂" : "🎉"}
+            </span>
+            <span className="font-semibold">{event.user.fullName || event.user.email}</span>
+            {event.type === "birthday"
+              ? " has a birthday "
+              : " celebrates a work anniversary "}
+            <span className="font-semibold">
+              {event.daysUntil === 0
+                ? "today!"
+                : `in ${event.daysUntil} day${event.daysUntil === 1 ? "" : "s"}`}
+            </span>
           </span>
           <span className="ml-auto text-xs text-gray-400">{event.formatted}</span>
         </li>
