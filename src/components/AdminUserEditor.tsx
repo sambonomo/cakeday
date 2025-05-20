@@ -1,6 +1,10 @@
+"use client";
+
 import React, { useState, useEffect, ChangeEvent, FormEvent } from "react";
 import { fetchAllUsers, updateUserProfile, UserProfile } from "../lib/firestoreUsers";
 import { useAuth } from "../context/AuthContext";
+import Toast from "./Toast";
+import UserAvatar from "./UserAvatar";
 
 const ROLES = ["user", "admin", "manager"];
 
@@ -11,6 +15,8 @@ type FormState = {
   anniversary: string;
   role: string;
   email: string;
+  photoURL?: string;
+  disabled?: boolean;
 };
 
 export default function AdminUserEditor(): React.ReactElement {
@@ -25,6 +31,8 @@ export default function AdminUserEditor(): React.ReactElement {
     anniversary: "",
     role: "user",
     email: "",
+    photoURL: "",
+    disabled: false,
   });
   const [loading, setLoading] = useState<boolean>(true);
   const [saving, setSaving] = useState<boolean>(false);
@@ -58,6 +66,8 @@ export default function AdminUserEditor(): React.ReactElement {
         anniversary: user.anniversary || "",
         role: user.role || "user",
         email: user.email || "",
+        photoURL: typeof user.photoURL === "string" ? user.photoURL : "",
+        disabled: !!user.disabled,
       });
       setSuccess(null);
       setError(null);
@@ -68,8 +78,11 @@ export default function AdminUserEditor(): React.ReactElement {
   function handleChange(
     e: ChangeEvent<HTMLInputElement | HTMLSelectElement>
   ) {
-    const { name, value } = e.target;
-    setForm((prev) => ({ ...prev, [name]: value }));
+    const { name, value, type, checked } = e.target as any;
+    setForm((prev) => ({
+      ...prev,
+      [name]: type === "checkbox" ? checked : value,
+    }));
   }
 
   // Save handler
@@ -87,6 +100,8 @@ export default function AdminUserEditor(): React.ReactElement {
       birthday: form.birthday,
       anniversary: form.anniversary,
       role: form.role,
+      photoURL: form.photoURL,
+      disabled: !!form.disabled,
     };
     try {
       await updateUserProfile(selectedUserId, updates);
@@ -98,6 +113,30 @@ export default function AdminUserEditor(): React.ReactElement {
       );
     } catch (err) {
       setError(err instanceof Error ? err.message : "Error updating user.");
+    }
+    setSaving(false);
+  }
+
+  // Disable/enable user handler
+  async function handleToggleDisable() {
+    if (!selectedUserId) return;
+    const newDisabled = !form.disabled;
+    setSaving(true);
+    setSuccess(null);
+    setError(null);
+    try {
+      await updateUserProfile(selectedUserId, { disabled: newDisabled });
+      setForm((prev) => ({ ...prev, disabled: newDisabled }));
+      setSuccess(
+        newDisabled ? "User disabled. They will not be able to log in." : "User re-enabled."
+      );
+      setUsers((prev) =>
+        prev.map((u) =>
+          u.uid === selectedUserId ? { ...u, disabled: newDisabled } : u
+        )
+      );
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Error updating user status.");
     }
     setSaving(false);
   }
@@ -124,7 +163,7 @@ export default function AdminUserEditor(): React.ReactElement {
           {users.map((u) => (
             <li
               key={u.uid}
-              className={`p-3 cursor-pointer hover:bg-blue-50 ${selectedUserId === u.uid ? "bg-blue-100 font-semibold" : ""}`}
+              className={`flex items-center gap-3 p-3 cursor-pointer hover:bg-blue-50 ${selectedUserId === u.uid ? "bg-blue-100 font-semibold" : ""} ${u.disabled ? "opacity-50" : ""}`}
               onClick={() => setSelectedUserId(u.uid)}
               aria-selected={selectedUserId === u.uid}
               tabIndex={0}
@@ -132,11 +171,21 @@ export default function AdminUserEditor(): React.ReactElement {
                 if (e.key === "Enter" || e.key === " ") setSelectedUserId(u.uid);
               }}
             >
+              <UserAvatar
+                nameOrEmail={u.fullName || u.email}
+                photoURL={typeof u.photoURL === "string" ? u.photoURL : undefined}
+                size={36}
+              />
               <div>
-                {u.fullName || "(No name)"}{" "}
-                <span className="text-xs text-gray-500">({u.email})</span>
+                <div>
+                  {u.fullName || "(No name)"}{" "}
+                  <span className="text-xs text-gray-500">({u.email})</span>
+                  {u.disabled && (
+                    <span className="ml-2 text-xs font-bold text-red-500">(Disabled)</span>
+                  )}
+                </div>
+                <div className="text-xs text-gray-400">{u.role || "user"}</div>
               </div>
-              <div className="text-xs text-gray-400">{u.role || "user"}</div>
             </li>
           ))}
         </ul>
@@ -151,6 +200,15 @@ export default function AdminUserEditor(): React.ReactElement {
             autoComplete="off"
           >
             <h3 className="text-lg font-medium text-blue-700 mb-2">Edit User Profile</h3>
+            {form.photoURL && (
+              <div className="flex justify-center">
+                <UserAvatar
+                  nameOrEmail={form.fullName || form.email}
+                  photoURL={form.photoURL}
+                  size={64}
+                />
+              </div>
+            )}
             <label className="font-medium">
               Full Name
               <input
@@ -224,15 +282,38 @@ export default function AdminUserEditor(): React.ReactElement {
                 ))}
               </select>
             </label>
+            {/* Disable/Enable button */}
+            <button
+              type="button"
+              className={`mt-2 px-4 py-2 rounded ${
+                form.disabled ? "bg-green-500 hover:bg-green-600" : "bg-gray-500 hover:bg-gray-700"
+              } text-white transition`}
+              onClick={handleToggleDisable}
+              disabled={saving}
+            >
+              {form.disabled ? "Re-enable User" : "Disable User"}
+            </button>
             <button
               type="submit"
-              className="bg-blue-600 text-white rounded px-4 py-2 hover:bg-blue-700 transition disabled:opacity-60"
+              className="bg-blue-600 text-white rounded px-4 py-2 hover:bg-blue-700 transition disabled:opacity-60 mt-2"
               disabled={saving}
             >
               {saving ? "Saving..." : "Save"}
             </button>
-            {success && <div className="text-green-600">{success}</div>}
-            {error && <div className="text-red-600">{error}</div>}
+            {success && (
+              <Toast
+                message={success}
+                type="success"
+                onClose={() => setSuccess(null)}
+              />
+            )}
+            {error && (
+              <Toast
+                message={error}
+                type="error"
+                onClose={() => setError(null)}
+              />
+            )}
           </form>
         ) : (
           <div className="text-gray-500 mt-8">Select a user to edit their profile.</div>

@@ -5,7 +5,11 @@ import { useAuth } from "../context/AuthContext";
 import { fetchUserProfile, updateUserProfile, UserProfile } from "../lib/firestoreUsers";
 import { getStorage, ref, uploadBytes, getDownloadURL } from "firebase/storage";
 
-export default function ProfileEditor(): React.ReactElement {
+export default function ProfileEditor({
+  onDone,
+}: {
+  onDone?: (updated?: boolean, errMsg?: string) => void;
+}): React.ReactElement {
   const { user } = useAuth();
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [form, setForm] = useState({
@@ -83,6 +87,7 @@ export default function ProfileEditor(): React.ReactElement {
       } catch (uploadErr) {
         setError("Failed to upload photo.");
         setSaving(false);
+        if (onDone) onDone(false, "Failed to upload photo.");
         return;
       }
     }
@@ -95,8 +100,11 @@ export default function ProfileEditor(): React.ReactElement {
       setSuccess("Profile updated!");
       setProfile({ ...profile!, ...form, photoURL: uploadedPhotoURL });
       setPhotoFile(null);
+      if (onDone) onDone(true);
     } catch (err) {
-      setError((err instanceof Error ? err.message : "Error saving profile."));
+      const errMsg = err instanceof Error ? err.message : "Error saving profile.";
+      setError(errMsg);
+      if (onDone) onDone(false, errMsg);
     }
     setSaving(false);
   }
@@ -198,8 +206,8 @@ export default function ProfileEditor(): React.ReactElement {
       >
         {saving ? "Saving..." : "Save"}
       </button>
-      {success && <div className="text-green-600">{success}</div>}
-      {error && <div className="text-red-600">{error}</div>}
+      {!onDone && success && <div className="text-green-600">{success}</div>}
+      {!onDone && error && <div className="text-red-600">{error}</div>}
     </form>
   );
 }

@@ -5,13 +5,17 @@ import { useAuth } from "../../context/AuthContext";
 import { fetchUserProfile, UserProfile } from "../../lib/firestoreUsers";
 import UserAvatar from "../../components/UserAvatar";
 import ProfileEditor from "../../components/ProfileEditor";
+import Toast from "../../components/Toast";
 
 export default function ProfilePage(): React.ReactElement {
   const { user } = useAuth();
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState(false);
+  const [success, setSuccess] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
+  // Fetch profile on load and after editing
   useEffect(() => {
     if (!user) return;
     setLoading(true);
@@ -19,7 +23,14 @@ export default function ProfilePage(): React.ReactElement {
       setProfile(profile);
       setLoading(false);
     });
-  }, [user, editing]);
+  }, [user, editing]); // when 'editing' changes, re-fetch
+
+  // Callback for the ProfileEditor to pass back result
+  function handleEditDone(updated?: boolean, errMsg?: string) {
+    setEditing(false);
+    if (updated) setSuccess("Profile updated!");
+    if (errMsg) setError(errMsg);
+  }
 
   if (loading) {
     return <div className="text-gray-600">Loading profile...</div>;
@@ -30,10 +41,12 @@ export default function ProfilePage(): React.ReactElement {
   }
 
   if (editing) {
-    // Show the profile editor
+    // Pass a callback prop to ProfileEditor to show toast on success/error
     return (
       <div className="flex flex-col items-center mt-8">
-        <ProfileEditor />
+        <ProfileEditor
+          onDone={handleEditDone}
+        />
         <button
           className="mt-4 text-blue-600 underline text-sm"
           onClick={() => setEditing(false)}
@@ -48,22 +61,29 @@ export default function ProfilePage(): React.ReactElement {
     <div className="flex flex-col items-center mt-10">
       <UserAvatar
         nameOrEmail={profile.fullName || profile.email}
-        photoURL={typeof profile.photoURL === "string" ? profile.photoURL : undefined}
+        photoURL={
+          typeof profile.photoURL === "string" ? profile.photoURL : undefined
+        }
         size={80}
         className="mb-4"
       />
-      <h1 className="text-2xl font-bold mb-1">{profile.fullName || "(No Name)"}</h1>
+      <h1 className="text-2xl font-bold mb-1">
+        {profile.fullName || "(No Name)"}
+      </h1>
       <div className="text-gray-600 mb-2">{profile.email}</div>
       <div className="text-gray-500 text-sm mb-2">
         {profile.birthday && (
-          <div>🎂 Birthday: {new Date(profile.birthday).toLocaleDateString()}</div>
+          <div>
+            🎂 Birthday: {new Date(profile.birthday).toLocaleDateString()}
+          </div>
         )}
         {profile.anniversary && (
-          <div>🎉 Work Anniversary: {new Date(profile.anniversary).toLocaleDateString()}</div>
+          <div>
+            🎉 Work Anniversary:{" "}
+            {new Date(profile.anniversary).toLocaleDateString()}
+          </div>
         )}
-        {profile.phone && (
-          <div>📞 Phone: {profile.phone}</div>
-        )}
+        {profile.phone && <div>📞 Phone: {profile.phone}</div>}
       </div>
       {/* Add stats or kudos info here if you want */}
       <button
@@ -72,6 +92,21 @@ export default function ProfilePage(): React.ReactElement {
       >
         Edit Profile
       </button>
+      {/* Toast feedback */}
+      {success && (
+        <Toast
+          message={success}
+          type="success"
+          onClose={() => setSuccess(null)}
+        />
+      )}
+      {error && (
+        <Toast
+          message={error}
+          type="error"
+          onClose={() => setError(null)}
+        />
+      )}
     </div>
   );
 }
