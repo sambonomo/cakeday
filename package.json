@@ -11,18 +11,16 @@
   },
   "dependencies": {
     "@hello-pangea/dnd": "^18.0.1",
-    "autoprefixer": "^10.4.21",
     "firebase": "^11.7.3",
+    "framer-motion": "^12.12.1",
     "lucide-react": "^0.511.0",
     "nanoid": "^5.1.5",
     "next": "15.3.2",
-    "postcss": "^8.5.3",
     "react": "^19.0.0",
     "react-dom": "^19.0.0"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3",
-    "@tailwindcss/postcss": "^4.1.7",
     "@testing-library/jest-dom": "^6.6.3",
     "@testing-library/react": "^16.3.0",
     "@testing-library/user-event": "^14.6.1",
@@ -30,10 +28,12 @@
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "autoprefixer": "^10.4.21",
     "eslint": "^9",
     "eslint-config-next": "15.3.2",
     "jest": "^29.7.0",
-    "tailwindcss": "^4.1.7",
+    "postcss": "^8.5.3",
+    "tailwindcss": "^3.4.3",
     "ts-jest": "^29.3.4",
     "typescript": "^5"
   }
