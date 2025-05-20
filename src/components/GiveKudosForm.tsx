@@ -51,7 +51,7 @@ export default function GiveKudosForm({
         uid: doc.id,
         ...doc.data(),
       })) as UserProfile[];
-      setEmployees(list.filter((e) => e.uid !== user?.uid)); // Exclude self
+      setEmployees(list.filter((e) => e.uid !== user?.uid));
     };
     fetchEmployees();
   }, [user?.uid, companyId, user]);
@@ -75,21 +75,13 @@ export default function GiveKudosForm({
       return;
     }
 
-    // Safely get display name and photoURL if available (for Firebase Auth, these may exist)
-    const fromName =
-      "displayName" in user && user.displayName
-        ? user.displayName
-        : user.email || "";
-    const fromPhotoURL =
-      "photoURL" in user && user.photoURL
-        ? user.photoURL
-        : "";
-
-    // Get recipient's name and photoURL, fallback to email/undefined if not present
+    // TypeScript/ESLint safe: direct access, no in checks
+    const fromName = user.displayName ?? user.email ?? "";
+    const fromPhotoURL = user.photoURL ?? "";
     const toName = recipient.fullName || recipient.email;
-    const toPhotoURL = "photoURL" in recipient && recipient.photoURL
-      ? recipient.photoURL
-      : undefined;
+    // Safe photoURL: only string or undefined, never object
+    const toPhotoURL =
+      typeof recipient.photoURL === "string" ? recipient.photoURL : undefined;
 
     try {
       await giveKudos({
@@ -119,7 +111,7 @@ export default function GiveKudosForm({
     setLoading(false);
   };
 
-  // Helper to get recipient profile
+  // Get recipient profile for avatar
   const selectedEmployee = employees.find((e) => e.uid === toUid);
 
   return (
@@ -177,7 +169,7 @@ export default function GiveKudosForm({
             <UserAvatar
               nameOrEmail={selectedEmployee.fullName || selectedEmployee.email}
               photoURL={
-                "photoURL" in selectedEmployee && selectedEmployee.photoURL
+                typeof selectedEmployee.photoURL === "string"
                   ? selectedEmployee.photoURL
                   : undefined
               }

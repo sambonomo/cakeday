@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from "react";
 import { useAuth } from "../context/AuthContext";
 import { fetchUserProfile, updateUserProfile, UserProfile } from "../lib/firestoreUsers";
+import { getStorage, ref, uploadBytes, getDownloadURL } from "firebase/storage";
 
 export default function ProfileEditor(): React.ReactElement {
   const { user } = useAuth();
@@ -11,8 +12,11 @@ export default function ProfileEditor(): React.ReactElement {
     fullName: "",
     phone: "",
     birthday: "",
-    anniversary: ""
+    anniversary: "",
   });
+  const [photoURL, setPhotoURL] = useState<string>("");
+  const [preview, setPreview] = useState<string>("");
+  const [photoFile, setPhotoFile] = useState<File | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [success, setSuccess] = useState<string | null>(null);
@@ -28,8 +32,10 @@ export default function ProfileEditor(): React.ReactElement {
         fullName: profile?.fullName || "",
         phone: profile?.phone || "",
         birthday: profile?.birthday || "",
-        anniversary: profile?.anniversary || ""
+        anniversary: profile?.anniversary || "",
       });
+      setPhotoURL(profile?.photoURL || "");
+      setPreview(profile?.photoURL || "");
       setLoading(false);
     });
   }, [user]);
@@ -40,12 +46,22 @@ export default function ProfileEditor(): React.ReactElement {
   }
 
   // Track changes for Save button
-  const hasChanges = profile &&
+  const hasChanges =
+    profile &&
     (form.fullName !== (profile.fullName || "") ||
-     form.phone !== (profile.phone || "") ||
-     form.birthday !== (profile.birthday || "") ||
-     form.anniversary !== (profile.anniversary || "")
-    );
+      form.phone !== (profile.phone || "") ||
+      form.birthday !== (profile.birthday || "") ||
+      form.anniversary !== (profile.anniversary || "") ||
+      photoFile);
+
+  // Handle photo change
+  const handlePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files && e.target.files[0];
+    if (file) {
+      setPhotoFile(file);
+      setPreview(URL.createObjectURL(file));
+    }
+  };
 
   // Submit handler
   async function handleSave(e: React.FormEvent<HTMLFormElement>) {
@@ -53,10 +69,32 @@ export default function ProfileEditor(): React.ReactElement {
     setSaving(true);
     setSuccess(null);
     setError(null);
+
+    let uploadedPhotoURL = photoURL;
+
+    // If a new photo is selected, upload it
+    if (photoFile) {
+      try {
+        const storage = getStorage();
+        const storageRef = ref(storage, `user-profiles/${user!.uid}/${photoFile.name}`);
+        await uploadBytes(storageRef, photoFile);
+        uploadedPhotoURL = await getDownloadURL(storageRef);
+        setPhotoURL(uploadedPhotoURL);
+      } catch (uploadErr) {
+        setError("Failed to upload photo.");
+        setSaving(false);
+        return;
+      }
+    }
+
     try {
-      await updateUserProfile(user!.uid, form);
+      await updateUserProfile(user!.uid, {
+        ...form,
+        photoURL: uploadedPhotoURL,
+      });
       setSuccess("Profile updated!");
-      setProfile({ ...profile!, ...form });
+      setProfile({ ...profile!, ...form, photoURL: uploadedPhotoURL });
+      setPhotoFile(null);
     } catch (err) {
       setError((err instanceof Error ? err.message : "Error saving profile."));
     }
@@ -71,6 +109,32 @@ export default function ProfileEditor(): React.ReactElement {
       className="flex flex-col gap-4 mb-6 bg-white border rounded-lg p-4 w-full max-w-md shadow"
     >
       <h2 className="text-xl font-semibold text-blue-700">Edit Your Profile</h2>
+      {/* Profile Photo Upload */}
+      <label className="font-medium flex flex-col gap-2">
+        Profile Photo
+        <div className="flex items-center gap-4">
+          {preview ? (
+            <img
+              src={preview}
+              alt="Profile Preview"
+              className="rounded-full border object-cover"
+              style={{ width: 64, height: 64 }}
+            />
+          ) : (
+            <div
+              className="rounded-full bg-gray-200 border"
+              style={{ width: 64, height: 64 }}
+            />
+          )}
+          <input
+            type="file"
+            accept="image/*"
+            onChange={handlePhotoChange}
+            className="text-sm"
+            disabled={saving}
+          />
+        </div>
+      </label>
       <label className="font-medium">
         Full Name
         <input

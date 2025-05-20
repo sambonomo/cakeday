@@ -10,7 +10,7 @@ import {
   serverTimestamp,
 } from "firebase/firestore";
 
-// Give recognition (kudos) with badge and companyId
+// Updated: Give recognition (kudos) with badge, companyId, and optional name/photo fields
 export async function giveKudos({
   fromUid,
   fromEmail,
@@ -19,6 +19,10 @@ export async function giveKudos({
   message,
   badge,
   companyId,
+  fromName,
+  fromPhotoURL,
+  toName,
+  toPhotoURL,
 }: {
   fromUid: string;
   fromEmail: string;
@@ -27,6 +31,10 @@ export async function giveKudos({
   message: string;
   badge: string;
   companyId: string;
+  fromName?: string;
+  fromPhotoURL?: string;
+  toName?: string;
+  toPhotoURL?: string;
 }) {
   const colRef = collection(db, "kudos");
   await addDoc(colRef, {
@@ -36,7 +44,11 @@ export async function giveKudos({
     toEmail,
     message,
     badge,
-    companyId,             // Include companyId in the document!
+    companyId, // Include companyId in the document!
+    fromName,
+    fromPhotoURL,
+    toName,
+    toPhotoURL,
     createdAt: serverTimestamp(),
   });
 }

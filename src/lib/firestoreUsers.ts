@@ -24,6 +24,7 @@ export type UserProfile = {
   birthday?: string;      // "YYYY-MM-DD"
   anniversary?: string;   // "YYYY-MM-DD"
   role?: string;          // "user", "admin", "manager", etc.
+  photoURL?: string;
 };
 
 /**
@@ -64,7 +65,7 @@ export async function fetchUserProfile(uid: string): Promise<UserProfile | null>
  */
 export async function updateUserProfile(
   uid: string,
-  updates: Partial<Pick<UserProfile, "fullName" | "phone" | "birthday" | "anniversary" | "role">>
+  updates: Partial<Pick<UserProfile, "fullName" | "phone" | "birthday" | "anniversary" | "role" | "photoURL">>
 ): Promise<void> {
   const userRef = doc(db, "users", uid);
   await updateDoc(userRef, updates);
