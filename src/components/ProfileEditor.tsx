@@ -6,40 +6,62 @@ import { fetchUserProfile, updateUserProfile, UserProfile } from "../lib/firesto
 
 export default function ProfileEditor(): React.ReactElement {
   const { user } = useAuth();
-  const [birthday, setBirthday] = useState<string>("");
-  const [anniversary, setAnniversary] = useState<string>("");
-  const [loading, setLoading] = useState<boolean>(true);
-  const [saving, setSaving] = useState<boolean>(false);
+  const [profile, setProfile] = useState<UserProfile | null>(null);
+  const [form, setForm] = useState({
+    fullName: "",
+    phone: "",
+    birthday: "",
+    anniversary: ""
+  });
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
   const [success, setSuccess] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
+  // Fetch profile info on mount
   useEffect(() => {
     if (!user) return;
     setLoading(true);
     fetchUserProfile(user.uid).then((profile: UserProfile | null) => {
-      setBirthday(profile?.birthday || "");
-      setAnniversary(profile?.anniversary || "");
+      setProfile(profile);
+      setForm({
+        fullName: profile?.fullName || "",
+        phone: profile?.phone || "",
+        birthday: profile?.birthday || "",
+        anniversary: profile?.anniversary || ""
+      });
       setLoading(false);
     });
   }, [user]);
 
-  const handleSave = async (e: React.FormEvent<HTMLFormElement>) => {
+  // Change handler
+  function handleChange(e: React.ChangeEvent<HTMLInputElement>) {
+    setForm({ ...form, [e.target.name]: e.target.value });
+  }
+
+  // Track changes for Save button
+  const hasChanges = profile &&
+    (form.fullName !== (profile.fullName || "") ||
+     form.phone !== (profile.phone || "") ||
+     form.birthday !== (profile.birthday || "") ||
+     form.anniversary !== (profile.anniversary || "")
+    );
+
+  // Submit handler
+  async function handleSave(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setSaving(true);
     setSuccess(null);
     setError(null);
     try {
-      await updateUserProfile(user!.uid, { birthday, anniversary });
+      await updateUserProfile(user!.uid, form);
       setSuccess("Profile updated!");
+      setProfile({ ...profile!, ...form });
     } catch (err) {
-      if (err instanceof Error) {
-        setError(err.message || "Error saving profile.");
-      } else {
-        setError("Error saving profile.");
-      }
+      setError((err instanceof Error ? err.message : "Error saving profile."));
     }
     setSaving(false);
-  };
+  }
 
   if (loading) return <div className="text-gray-600">Loading profile...</div>;
 
@@ -50,12 +72,45 @@ export default function ProfileEditor(): React.ReactElement {
     >
       <h2 className="text-xl font-semibold text-blue-700">Edit Your Profile</h2>
       <label className="font-medium">
+        Full Name
+        <input
+          type="text"
+          name="fullName"
+          value={form.fullName}
+          className="p-2 border border-gray-300 rounded w-full mt-1"
+          onChange={handleChange}
+          placeholder="Your name"
+          required
+        />
+      </label>
+      <label className="font-medium">
+        Email
+        <input
+          type="email"
+          value={user?.email || ""}
+          className="p-2 border border-gray-200 rounded w-full mt-1 bg-gray-100"
+          disabled
+        />
+      </label>
+      <label className="font-medium">
+        Phone Number
+        <input
+          type="tel"
+          name="phone"
+          value={form.phone}
+          className="p-2 border border-gray-300 rounded w-full mt-1"
+          onChange={handleChange}
+          placeholder="e.g. (555) 123-4567"
+        />
+      </label>
+      <label className="font-medium">
         Birthday
         <input
           type="date"
-          value={birthday}
+          name="birthday"
+          value={form.birthday}
           className="p-2 border border-gray-300 rounded w-full mt-1"
-          onChange={e => setBirthday(e.target.value)}
+          onChange={handleChange}
           max={new Date().toISOString().split("T")[0]}
           required
         />
@@ -64,17 +119,18 @@ export default function ProfileEditor(): React.ReactElement {
         Work Anniversary
         <input
           type="date"
-          value={anniversary}
+          name="anniversary"
+          value={form.anniversary}
           className="p-2 border border-gray-300 rounded w-full mt-1"
-          onChange={e => setAnniversary(e.target.value)}
+          onChange={handleChange}
           max={new Date().toISOString().split("T")[0]}
           required
         />
       </label>
       <button
         type="submit"
-        className="bg-blue-600 text-white rounded px-4 py-2 hover:bg-blue-700 transition"
-        disabled={saving}
+        className="bg-blue-600 text-white rounded px-4 py-2 hover:bg-blue-700 transition disabled:opacity-60"
+        disabled={saving || !hasChanges}
       >
         {saving ? "Saving..." : "Save"}
       </button>

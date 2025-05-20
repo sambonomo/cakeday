@@ -25,16 +25,16 @@ export default function EmployeeDirectory({ companyId }: EmployeeDirectoryProps)
 
   const filtered = employees
     .filter(
-      (e) =>
-        e.email.toLowerCase().includes(search.toLowerCase()) ||
-        (e.name && e.name.toLowerCase().includes(search.toLowerCase()))
-    )
+     (e) =>
+       e.email.toLowerCase().includes(search.toLowerCase()) ||
+       (e.fullName && e.fullName.toLowerCase().includes(search.toLowerCase()))
+   )
     .sort((a, b) => {
-      // Sort by name, then by email
-      const aName = (a.name || a.email || "").toLowerCase();
-      const bName = (b.name || b.email || "").toLowerCase();
+     // Sort by name, then by email
+     const aName = (a.fullName || a.email || "").toLowerCase();
+     const bName = (b.fullName || b.email || "").toLowerCase();
       return aName.localeCompare(bName);
-    });
+   });
 
   if (loading)
     return <div className="text-gray-600">Loading employee directory...</div>;
@@ -66,7 +66,7 @@ export default function EmployeeDirectory({ companyId }: EmployeeDirectoryProps)
             {filtered.map((e) => (
               <tr key={e.uid} className="border-t">
                 <td className="py-2 px-3 font-medium">
-                  {e.name || e.email}
+                  {e.fullName || e.email}
                   <div className="text-xs text-gray-400">{e.email}</div>
                 </td>
                 <td className="py-2 px-3">
