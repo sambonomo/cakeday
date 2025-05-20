@@ -103,7 +103,7 @@ export function getUpcomingEvents(users: UserProfile[]): UserEvent[] {
       events.push({
         type: "anniversary",
         user,
-        date: aDate.toLocaleDateString(),
+        date: aDate,
         formatted: aDate.toLocaleDateString(),
         daysUntil: diffInDays(today, aDate),
       });
