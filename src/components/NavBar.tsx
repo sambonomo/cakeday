@@ -20,16 +20,7 @@ export default function NavBar(): React.ReactElement | null {
 
   const dropdownRef = useRef<HTMLDivElement>(null);
 
-  // Only show navbar for authenticated users
-  if (!user || loading) return null;
-
-  // Ensures nameOrEmail is always a string
-  const nameOrEmail =
-    (typeof user.displayName === "string" && user.displayName) ||
-    (typeof user.email === "string" ? user.email : "") ||
-    "User";
-
-  // Close dropdown on outside click
+  // Always run the effect, even if we return null below.
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
       if (
@@ -46,6 +37,15 @@ export default function NavBar(): React.ReactElement | null {
       document.removeEventListener("mousedown", handleClickOutside);
     };
   }, [dropdownOpen]);
+
+  // Only show navbar for authenticated users (but all hooks always run)
+  if (!user || loading) return null;
+
+  // Ensures nameOrEmail is always a string
+  const nameOrEmail =
+    (typeof user.displayName === "string" && user.displayName) ||
+    (typeof user.email === "string" ? user.email : "") ||
+    "User";
 
   // User dropdown (profile + logout)
   const avatarMenu = (
