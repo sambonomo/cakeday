@@ -6,8 +6,8 @@ import { useAuth } from "../context/AuthContext";
 import { collection, getDocs, query, where } from "firebase/firestore";
 import { db } from "../lib/firebase";
 import type { UserProfile } from "../lib/firestoreUsers";
+import UserAvatar from "./UserAvatar";
 
-// List of preset badges/emojis
 const BADGES = [
   { label: "Team Player", emoji: "🤝" },
   { label: "Innovator", emoji: "💡" },
@@ -25,19 +25,20 @@ interface GiveKudosFormProps {
   companyId?: string;
 }
 
-export default function GiveKudosForm({ companyId: propCompanyId }: GiveKudosFormProps): React.ReactElement {
+export default function GiveKudosForm({
+  companyId: propCompanyId,
+}: GiveKudosFormProps): React.ReactElement {
   const { user, companyId: contextCompanyId } = useAuth();
   const companyId = propCompanyId || contextCompanyId;
 
   const [employees, setEmployees] = useState<UserProfile[]>([]);
   const [toUid, setToUid] = useState<string>("");
   const [message, setMessage] = useState<string>("");
-  const [badge, setBadge] = useState<string>(BADGES[0].emoji); // Default to first emoji
+  const [badge, setBadge] = useState<string>(BADGES[0].emoji);
   const [success, setSuccess] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState<boolean>(false);
 
-  // Fetch all employees (users collection in this company)
   useEffect(() => {
     if (!companyId || !user) return;
     const fetchEmployees = async () => {
@@ -74,6 +75,22 @@ export default function GiveKudosForm({ companyId: propCompanyId }: GiveKudosFor
       return;
     }
 
+    // Safely get display name and photoURL if available (for Firebase Auth, these may exist)
+    const fromName =
+      "displayName" in user && user.displayName
+        ? user.displayName
+        : user.email || "";
+    const fromPhotoURL =
+      "photoURL" in user && user.photoURL
+        ? user.photoURL
+        : "";
+
+    // Get recipient's name and photoURL, fallback to email/undefined if not present
+    const toName = recipient.fullName || recipient.email;
+    const toPhotoURL = "photoURL" in recipient && recipient.photoURL
+      ? recipient.photoURL
+      : undefined;
+
     try {
       await giveKudos({
         fromUid: user.uid,
@@ -82,12 +99,16 @@ export default function GiveKudosForm({ companyId: propCompanyId }: GiveKudosFor
         toEmail: recipient.email,
         message: message.trim(),
         badge,
-        companyId, // Pass companyId for isolation!
+        companyId,
+        fromName,
+        fromPhotoURL,
+        toName,
+        toPhotoURL,
       });
       setSuccess("Kudos sent!");
       setToUid("");
       setMessage("");
-      setBadge(BADGES[0].emoji); // Reset badge to default
+      setBadge(BADGES[0].emoji);
     } catch (err) {
       if (err instanceof Error) {
         setError(err.message || "Error sending kudos.");
@@ -97,6 +118,9 @@ export default function GiveKudosForm({ companyId: propCompanyId }: GiveKudosFor
     }
     setLoading(false);
   };
+
+  // Helper to get recipient profile
+  const selectedEmployee = employees.find((e) => e.uid === toUid);
 
   return (
     <form onSubmit={handleSubmit} className="flex flex-col gap-4 mb-6">
@@ -133,29 +157,51 @@ export default function GiveKudosForm({ companyId: propCompanyId }: GiveKudosFor
       </div>
 
       {/* Recipient selection */}
-      <select
-        value={toUid}
-        onChange={(e) => setToUid(e.target.value)}
-        className="p-2 border border-gray-300 rounded"
-        required
-      >
-        <option value="">Select colleague</option>
-        {employees.map((e) => (
-          <option key={e.uid} value={e.uid}>
-            {e.email}
-          </option>
-        ))}
-      </select>
+      <label className="font-medium">
+        Recipient
+        <select
+          value={toUid}
+          onChange={(e) => setToUid(e.target.value)}
+          className="p-2 border border-gray-300 rounded w-full mt-1"
+          required
+        >
+          <option value="">Select colleague</option>
+          {employees.map((e) => (
+            <option key={e.uid} value={e.uid}>
+              {e.fullName || e.email}
+            </option>
+          ))}
+        </select>
+        {toUid && selectedEmployee && (
+          <div className="flex items-center gap-2 mt-2">
+            <UserAvatar
+              nameOrEmail={selectedEmployee.fullName || selectedEmployee.email}
+              photoURL={
+                "photoURL" in selectedEmployee && selectedEmployee.photoURL
+                  ? selectedEmployee.photoURL
+                  : undefined
+              }
+              size={32}
+            />
+            <span className="text-sm">
+              {selectedEmployee.fullName || selectedEmployee.email}
+            </span>
+          </div>
+        )}
+      </label>
 
       {/* Message */}
-      <textarea
-        placeholder="Message"
-        value={message}
-        className="p-2 border border-gray-300 rounded"
-        onChange={(e) => setMessage(e.target.value)}
-        rows={2}
-        required
-      />
+      <label className="font-medium">
+        Message
+        <textarea
+          placeholder="Message"
+          value={message}
+          className="p-2 border border-gray-300 rounded w-full mt-1"
+          onChange={(e) => setMessage(e.target.value)}
+          rows={2}
+          required
+        />
+      </label>
 
       <button
         type="submit"
