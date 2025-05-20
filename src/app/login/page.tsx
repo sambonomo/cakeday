@@ -64,113 +64,125 @@ export default function LoginPage(): React.ReactElement {
 
   if (authLoading) {
     return (
-      <div className="flex items-center justify-center min-h-screen bg-gray-50">
-        <div className="text-lg text-gray-600">Loading...</div>
+      <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-blue-50 via-pink-50 to-yellow-50">
+        <div className="text-lg text-blue-600 animate-pulse">Loading...</div>
       </div>
     );
   }
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen bg-gray-50 px-4">
-      {!resetMode ? (
-        <form
-          onSubmit={handleLogin}
-          className="bg-white p-8 rounded-lg shadow-md w-full max-w-md mt-8"
-        >
-          <h2 className="text-2xl font-bold mb-6 text-center text-blue-700">
-            Welcome Back
-          </h2>
-          {error && <div className="text-red-500 mb-4 text-center">{error}</div>}
-          <input
-            type="email"
-            placeholder="Email"
-            className="mb-4 w-full p-2 border border-gray-300 rounded"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            required
-            autoComplete="email"
-          />
-          <input
-            type="password"
-            placeholder="Password"
-            className="mb-4 w-full p-2 border border-gray-300 rounded"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            required
-            autoComplete="current-password"
-          />
-          <button
-            type="submit"
-            className="w-full bg-blue-600 text-white py-2 rounded hover:bg-blue-700 transition-colors"
-            disabled={loading}
+    <div className="flex flex-col items-center justify-center min-h-screen bg-gradient-to-br from-blue-50 via-white to-yellow-50 px-4">
+      <main className="w-full max-w-md">
+        <div className="flex flex-col items-center mb-4">
+          <span className="text-5xl mb-2 animate-bounce">🎂</span>
+          <h1 className="text-3xl font-extrabold text-blue-700 text-center drop-shadow">
+            Welcome to Cakeday
+          </h1>
+          <p className="text-blue-600 text-base text-center mt-1 mb-3">
+            Log in to celebrate, recognize, and thrive.
+          </p>
+        </div>
+        {!resetMode ? (
+          <form
+            onSubmit={handleLogin}
+            className="bg-white/95 p-8 rounded-2xl shadow-xl w-full animate-fade-in"
           >
-            {loading ? "Logging In..." : "Log In"}
-          </button>
-          <div className="mt-4 flex flex-col items-center gap-2">
+            <h2 className="text-xl font-semibold mb-5 text-center text-blue-700">Sign In</h2>
+            {error && (
+              <div className="text-red-600 mb-4 text-center font-medium">{error}</div>
+            )}
+            <input
+              type="email"
+              placeholder="Email"
+              className="mb-4 w-full p-3 border-2 border-blue-100 focus:border-blue-500 rounded-xl outline-none transition"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              required
+              autoComplete="email"
+            />
+            <input
+              type="password"
+              placeholder="Password"
+              className="mb-4 w-full p-3 border-2 border-blue-100 focus:border-blue-500 rounded-xl outline-none transition"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              required
+              autoComplete="current-password"
+            />
+            <button
+              type="submit"
+              className="w-full bg-blue-600 text-white py-2 rounded-xl font-semibold text-lg hover:bg-blue-700 transition"
+              disabled={loading}
+            >
+              {loading ? "Logging In..." : "Log In"}
+            </button>
+            <div className="mt-4 flex flex-col items-center gap-2">
+              <button
+                type="button"
+                className="text-blue-600 hover:underline text-sm"
+                onClick={() => {
+                  setResetMode(true);
+                  setResetEmail("");
+                  setResetError(null);
+                  setResetSent(false);
+                }}
+              >
+                Forgot password?
+              </button>
+              <p className="text-center text-sm">
+                Don&apos;t have an account?{" "}
+                <a href="/signup" className="text-blue-600 hover:underline font-semibold">
+                  Sign Up
+                </a>
+              </p>
+            </div>
+          </form>
+        ) : (
+          <form
+            onSubmit={handlePasswordReset}
+            className="bg-white/95 p-8 rounded-2xl shadow-xl w-full animate-fade-in"
+          >
+            <h2 className="text-xl font-semibold mb-4 text-center text-blue-700">Reset Password</h2>
+            <p className="mb-4 text-center text-gray-700 text-sm">
+              Enter your account email and we&apos;ll send you a password reset link.
+            </p>
+            <input
+              type="email"
+              placeholder="Your email"
+              className="mb-4 w-full p-3 border-2 border-blue-100 focus:border-blue-500 rounded-xl outline-none transition"
+              value={resetEmail}
+              onChange={(e) => setResetEmail(e.target.value)}
+              required
+              autoComplete="email"
+            />
+            <button
+              type="submit"
+              className="w-full bg-blue-600 text-white py-2 rounded-xl font-semibold text-lg hover:bg-blue-700 transition"
+              disabled={!resetEmail}
+            >
+              Send Reset Email
+            </button>
             <button
               type="button"
-              className="text-blue-600 hover:underline text-sm"
-              onClick={() => {
-                setResetMode(true);
-                setResetEmail("");
-                setResetError(null);
-                setResetSent(false);
-              }}
+              className="w-full mt-3 bg-gray-100 text-blue-700 py-2 rounded-xl font-semibold hover:bg-gray-200 transition"
+              onClick={() => setResetMode(false)}
             >
-              Forgot password?
+              Back to Login
             </button>
-            <p className="text-center text-sm">
-              Don&apos;t have an account?{" "}
-              <a href="/signup" className="text-blue-600 hover:underline">
-                Sign Up
-              </a>
-            </p>
-          </div>
-        </form>
-      ) : (
-        <form
-          onSubmit={handlePasswordReset}
-          className="bg-white p-8 rounded-lg shadow-md w-full max-w-md mt-8"
-        >
-          <h2 className="text-2xl font-bold mb-6 text-center text-blue-700">
-            Reset Password
-          </h2>
-          <p className="mb-4 text-center text-gray-700 text-sm">
-            Enter your account email and we&apos;ll send you a password reset link.
-          </p>
-          <input
-            type="email"
-            placeholder="Your email"
-            className="mb-4 w-full p-2 border border-gray-300 rounded"
-            value={resetEmail}
-            onChange={(e) => setResetEmail(e.target.value)}
-            required
-            autoComplete="email"
-          />
-          <button
-            type="submit"
-            className="w-full bg-blue-600 text-white py-2 rounded hover:bg-blue-700 transition-colors"
-            disabled={!resetEmail}
-          >
-            Send Reset Email
-          </button>
-          <button
-            type="button"
-            className="w-full mt-3 bg-gray-200 text-blue-700 py-2 rounded hover:bg-gray-300 transition-colors"
-            onClick={() => setResetMode(false)}
-          >
-            Back to Login
-          </button>
-          {resetSent && (
-            <div className="text-green-600 mt-4 text-center">
-              Password reset email sent!
-            </div>
-          )}
-          {resetError && (
-            <div className="text-red-600 mt-4 text-center">{resetError}</div>
-          )}
-        </form>
-      )}
+            {resetSent && (
+              <div className="text-green-600 mt-4 text-center font-semibold">
+                Password reset email sent!
+              </div>
+            )}
+            {resetError && (
+              <div className="text-red-600 mt-4 text-center font-medium">{resetError}</div>
+            )}
+          </form>
+        )}
+      </main>
+      <footer className="py-6 text-center text-xs text-gray-500 bg-gradient-to-br from-blue-100 via-yellow-50 to-white border-t border-blue-100 mt-10 w-full">
+        &copy; {new Date().getFullYear()} Cakeday HR Onboarding & Recognition
+      </footer>
     </div>
   );
 }

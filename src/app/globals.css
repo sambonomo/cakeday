@@ -4,38 +4,148 @@
 
 /* Theme & Font Variables */
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --background: #f7faff;
+  --foreground: #18192b;
   --color-background: var(--background);
   --color-foreground: var(--foreground);
 
+  --color-brand: #2563eb;      /* blue-600 */
+  --color-accent: #f472b6;     /* pink-400 */
+  --color-yellow: #fde68a;     /* yellow-300 */
+  --color-green: #34d399;      /* green-400 */
+  --color-glass: rgba(255,255,255,0.88);
+
   --font-sans: var(--font-geist-sans), Arial, Helvetica, sans-serif;
   --font-mono: var(--font-geist-mono), ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+  --glass-blur: 22px;
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+    --background: #1a2233;
+    --foreground: #f6f7fb;
     --color-background: var(--background);
     --color-foreground: var(--foreground);
+    --color-glass: rgba(23,27,41,0.93);
   }
 }
 
-/* Apply global styles */
+/* App-wide background gradient */
 body {
-  background: var(--color-background);
+  @apply antialiased;
+  background: linear-gradient(115deg, #e0e7ff 0%, #fdf2f8 100%);
   color: var(--color-foreground);
   font-family: var(--font-sans);
   min-height: 100vh;
-  transition: background 0.2s, color 0.2s;
+  transition: background 0.3s, color 0.3s;
+}
+@media (prefers-color-scheme: dark) {
+  body {
+    background: linear-gradient(115deg, #161e34 0%, #31294a 100%);
+  }
 }
 
-/* Optionally remove default outlines for buttons/inputs, but still keep focus visible for a11y */
-/* Use Tailwind's focus:ring utilities in your components for focus styles. */
-/*
-input:focus, button:focus, textarea:focus, select:focus {
-  outline: none;
-  box-shadow: 0 0 0 2px var(--color-foreground);
+/* Glassmorphism for cards and overlays */
+.glass-card {
+  background: var(--color-glass);
+  box-shadow: 0 8px 40px 0 rgba(31, 38, 135, 0.14);
+  backdrop-filter: blur(var(--glass-blur));
+  -webkit-backdrop-filter: blur(var(--glass-blur));
+  border-radius: 2rem;
+  border: 1.5px solid rgba(85, 100, 220, 0.09);
+  transition: background 0.22s, box-shadow 0.22s;
 }
-*/
+
+/* Fancy Animations for entry/fade and float */
+@keyframes fade-in {
+  from { opacity: 0; transform: translateY(32px);}
+  to { opacity: 1; transform: none;}
+}
+.animate-fade-in {
+  animation: fade-in 0.7s cubic-bezier(.44,1.26,.6,1) both;
+}
+@keyframes fade-in-up {
+  from { opacity: 0; transform: translateY(48px);}
+  to { opacity: 1; transform: none;}
+}
+.animate-fade-in-up {
+  animation: fade-in-up 0.9s cubic-bezier(.44,1.26,.6,1) both;
+}
+@keyframes float-bubbles {
+  0% { transform: translateY(0);}
+  100% { transform: translateY(-18px);}
+}
+.animate-float-bubbles {
+  animation: float-bubbles 6s ease-in-out infinite alternate;
+}
+
+/* Inputs, Buttons: Focus and smooth pop transition */
+input, button, textarea, select {
+  @apply transition focus:ring-2 focus:ring-blue-400 focus:outline-none;
+}
+input:disabled, button:disabled {
+  @apply opacity-60 cursor-not-allowed;
+}
+
+/* Fun utility classes */
+.rounded-glass {
+  border-radius: 2.3rem;
+}
+.text-pop {
+  font-family: var(--font-sans);
+  font-weight: 900;
+  letter-spacing: 0.03em;
+  text-shadow: 0 2px 18px rgba(37,99,235,0.07);
+}
+.shadow-pop {
+  box-shadow: 0 2px 14px 0 rgba(0,0,0,0.07), 0 8px 26px 0 rgba(67,56,202,0.04);
+}
+
+/* Modern CTA and Link styles */
+a {
+  color: var(--color-brand);
+  font-weight: 700;
+  text-decoration-skip-ink: auto;
+  transition: color 0.18s;
+}
+a:hover, a:focus {
+  color: var(--color-accent);
+  text-decoration: underline;
+}
+
+/* Extra pretty buttons (optional utility, add to className as needed) */
+.btn-fancy {
+  @apply font-bold rounded-xl px-6 py-2 shadow-lg bg-gradient-to-r from-blue-600 via-indigo-500 to-pink-500 text-white;
+  transition: transform 0.13s, background 0.18s;
+}
+.btn-fancy:hover, .btn-fancy:focus {
+  transform: scale(1.04) translateY(-2px);
+  background: linear-gradient(90deg, #2563eb 30%, #a21caf 100%);
+}
+
+/* Hide scrollbars for a cleaner look */
+::-webkit-scrollbar {
+  width: 0.5em;
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: #e0e7ff;
+  border-radius: 0.75em;
+}
+@media (prefers-color-scheme: dark) {
+  ::-webkit-scrollbar-thumb {
+    background: #232b46;
+  }
+}
+
+/* Subtle transitions for all UI changes */
+* {
+  transition-property: background, color, border, box-shadow, opacity, transform;
+  transition-duration: 180ms;
+  transition-timing-function: cubic-bezier(.44,1.26,.6,1);
+}
+
+/* Card shadow for emphasis */
+.card-shadow {
+  box-shadow: 0 3px 12px 0 #a5b4fc55, 0 2px 8px 0 #f472b655;
+}

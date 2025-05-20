@@ -10,7 +10,7 @@ import {
   query,
   where,
 } from "firebase/firestore";
-import { nanoid } from "nanoid"; // For invite code
+import { nanoid } from "nanoid";
 
 export default function SignupPage(): React.ReactElement {
   const [email, setEmail] = useState<string>("");
@@ -139,14 +139,14 @@ export default function SignupPage(): React.ReactElement {
   // Show code after company creation for admin
   if (generatedCode) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-screen bg-gray-50 px-4">
-        <div className="bg-white p-8 rounded-lg shadow-md w-full max-w-md mt-8">
-          <h2 className="text-2xl font-bold mb-6 text-center text-blue-700">
-            Company Created!
+      <div className="flex flex-col items-center justify-center min-h-screen bg-gradient-to-br from-blue-100 via-white to-pink-100 px-4">
+        <div className="backdrop-blur-lg bg-white/90 p-10 rounded-3xl shadow-2xl w-full max-w-md mt-8 flex flex-col items-center">
+          <h2 className="text-3xl font-extrabold mb-6 text-center text-blue-700">
+            🎉 Company Created!
           </h2>
           <div className="mb-6 text-center">
             <p className="font-semibold mb-2">Your invite code:</p>
-            <div className="text-2xl font-mono bg-gray-100 rounded p-2 inline-block">
+            <div className="text-2xl font-mono bg-gray-100 rounded-lg px-4 py-3 inline-block tracking-widest shadow">
               {generatedCode}
             </div>
             <p className="mt-4 text-gray-700">
@@ -154,7 +154,7 @@ export default function SignupPage(): React.ReactElement {
             </p>
           </div>
           <button
-            className="w-full bg-blue-600 text-white py-2 rounded hover:bg-blue-700 transition-colors"
+            className="w-full bg-blue-600 text-white py-3 rounded-xl font-bold shadow hover:bg-blue-700 transition-colors text-lg"
             onClick={() => router.push("/dashboard")}
           >
             Continue to Dashboard
@@ -165,35 +165,39 @@ export default function SignupPage(): React.ReactElement {
   }
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen bg-gray-50 px-4">
+    <div className="flex flex-col items-center justify-center min-h-screen bg-gradient-to-br from-blue-50 via-pink-50 to-yellow-50 px-4">
       <form
         onSubmit={handleSignup}
-        className="bg-white p-8 rounded-lg shadow-md w-full max-w-md mt-8"
+        className="bg-white/95 p-10 rounded-3xl shadow-2xl w-full max-w-md mt-8 flex flex-col gap-6 animate-fade-in"
       >
-        <h2 className="text-2xl font-bold mb-6 text-center text-blue-700">
+        <h2 className="text-3xl font-extrabold mb-3 text-center text-blue-700">
           Create an Account
         </h2>
-        {error && <div className="text-red-500 mb-4 text-center">{error}</div>}
+        {error && (
+          <div className="text-red-500 mb-2 text-center rounded px-4 py-2 bg-red-100 font-semibold shadow">
+            {error}
+          </div>
+        )}
 
         {/* Company choice */}
-        <div className="mb-4 flex gap-4 justify-center">
-          <label>
+        <div className="mb-2 flex gap-4 justify-center">
+          <label className="flex items-center gap-1 text-sm font-semibold text-blue-700 cursor-pointer">
             <input
               type="radio"
               value="create"
               checked={mode === "create"}
               onChange={() => setMode("create")}
-              className="mr-1"
+              className="accent-blue-600"
             />
             Create New Company
           </label>
-          <label>
+          <label className="flex items-center gap-1 text-sm font-semibold text-pink-700 cursor-pointer">
             <input
               type="radio"
               value="join"
               checked={mode === "join"}
               onChange={() => setMode("join")}
-              className="mr-1"
+              className="accent-pink-600"
             />
             Join Existing (with Invite Code)
           </label>
@@ -204,18 +208,20 @@ export default function SignupPage(): React.ReactElement {
             <input
               type="text"
               placeholder="Company Name"
-              className="mb-4 w-full p-2 border border-gray-300 rounded"
+              className="mb-3 w-full p-3 border-2 border-blue-200 focus:border-blue-500 rounded-lg"
               value={companyName}
               onChange={(e) => setCompanyName(e.target.value)}
               required
+              maxLength={50}
             />
             <input
               type="text"
               placeholder="Your Name"
-              className="mb-4 w-full p-2 border border-gray-300 rounded"
+              className="mb-3 w-full p-3 border-2 border-blue-100 focus:border-blue-400 rounded-lg"
               value={name}
               onChange={(e) => setName(e.target.value)}
               required
+              maxLength={40}
             />
           </>
         ) : (
@@ -223,18 +229,20 @@ export default function SignupPage(): React.ReactElement {
             <input
               type="text"
               placeholder="Enter your company invite code"
-              className="mb-4 w-full p-2 border border-gray-300 rounded"
+              className="mb-3 w-full p-3 border-2 border-pink-200 focus:border-pink-500 rounded-lg"
               value={inviteCode}
               onChange={(e) => setInviteCode(e.target.value)}
               required
+              maxLength={20}
             />
             <input
               type="text"
               placeholder="Your Name"
-              className="mb-4 w-full p-2 border border-gray-300 rounded"
+              className="mb-3 w-full p-3 border-2 border-pink-100 focus:border-pink-400 rounded-lg"
               value={name}
               onChange={(e) => setName(e.target.value)}
               required
+              maxLength={40}
             />
           </>
         )}
@@ -242,7 +250,7 @@ export default function SignupPage(): React.ReactElement {
         <input
           type="email"
           placeholder="Email"
-          className="mb-4 w-full p-2 border border-gray-300 rounded"
+          className="mb-3 w-full p-3 border-2 border-gray-200 focus:border-blue-400 rounded-lg"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
           required
@@ -251,7 +259,7 @@ export default function SignupPage(): React.ReactElement {
         <input
           type="password"
           placeholder="Password"
-          className="mb-4 w-full p-2 border border-gray-300 rounded"
+          className="mb-3 w-full p-3 border-2 border-gray-200 focus:border-blue-400 rounded-lg"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
           required
@@ -260,14 +268,14 @@ export default function SignupPage(): React.ReactElement {
 
         <button
           type="submit"
-          className="w-full bg-blue-600 text-white py-2 rounded hover:bg-blue-700 transition-colors"
+          className="w-full bg-blue-600 text-white py-3 rounded-xl font-bold shadow hover:bg-blue-700 transition-colors text-lg"
           disabled={loading}
         >
           {loading ? "Signing Up..." : "Sign Up"}
         </button>
-        <p className="mt-4 text-center">
+        <p className="mt-2 text-center text-sm">
           Already have an account?{" "}
-          <a href="/login" className="text-blue-600 hover:underline">
+          <a href="/login" className="text-blue-600 font-bold hover:underline">
             Login
           </a>
         </p>

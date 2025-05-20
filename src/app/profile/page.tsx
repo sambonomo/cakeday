@@ -22,7 +22,7 @@ export default function ProfilePage(): React.ReactElement {
       setProfile(profile);
       setLoading(false);
     });
-  }, [user, editing]); // when 'editing' changes, re-fetch
+  }, [user, editing]);
 
   // Callback for the ProfileEditor to pass back result
   function handleEditDone(updated?: boolean, errMsg?: string) {
@@ -32,20 +32,27 @@ export default function ProfilePage(): React.ReactElement {
   }
 
   if (loading) {
-    return <div className="text-gray-600">Loading profile...</div>;
+    return (
+      <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-blue-50 via-pink-50 to-yellow-50">
+        <div className="text-lg text-blue-600 animate-pulse">Loading profile...</div>
+      </div>
+    );
   }
 
   if (!user || !profile) {
-    return <div className="text-red-500">User not found or not logged in.</div>;
+    return (
+      <div className="flex flex-col items-center justify-center min-h-screen bg-gradient-to-br from-blue-100 via-white to-pink-50">
+        <div className="bg-white/90 p-8 rounded-2xl shadow-2xl">
+          <div className="text-red-500 font-bold text-lg">User not found or not logged in.</div>
+        </div>
+      </div>
+    );
   }
 
   if (editing) {
-    // Pass a callback prop to ProfileEditor to show toast on success/error
     return (
-      <div className="flex flex-col items-center mt-8">
-        <ProfileEditor
-          onDone={handleEditDone}
-        />
+      <div className="flex flex-col items-center min-h-screen bg-gradient-to-br from-blue-50 via-pink-50 to-yellow-50 pt-12">
+        <ProfileEditor onDone={handleEditDone} />
         <button
           className="mt-4 text-blue-600 underline text-sm"
           onClick={() => setEditing(false)}
@@ -57,55 +64,70 @@ export default function ProfilePage(): React.ReactElement {
   }
 
   return (
-    <div className="flex flex-col items-center mt-10">
-      <UserAvatar
-        nameOrEmail={profile.fullName || profile.email}
-        photoURL={
-          typeof profile.photoURL === "string" ? profile.photoURL : undefined
-        }
-        size={80}
-        className="mb-4"
-      />
-      <h1 className="text-2xl font-bold mb-1">
-        {profile.fullName || "(No Name)"}
-      </h1>
-      <div className="text-gray-600 mb-2">{profile.email}</div>
-      <div className="text-gray-500 text-sm mb-2">
-        {profile.birthday && (
-          <div>
-            🎂 Birthday: {new Date(profile.birthday).toLocaleDateString()}
+    <div className="flex flex-col items-center min-h-screen bg-gradient-to-br from-blue-50 via-white to-pink-50 px-4 py-12">
+      <main className="bg-white/95 rounded-3xl shadow-2xl p-10 w-full max-w-lg flex flex-col items-center animate-fade-in">
+        <div className="flex flex-col items-center gap-2">
+          <div className="relative mb-4">
+            <UserAvatar
+              nameOrEmail={profile.fullName || profile.email}
+              photoURL={typeof profile.photoURL === "string" ? profile.photoURL : undefined}
+              size={96}
+              className="shadow-lg border-4 border-blue-100"
+            />
+            <span className="absolute -bottom-2 right-1 bg-blue-600 text-white rounded-full px-3 py-1 text-xs font-bold shadow">
+              🎉
+            </span>
           </div>
-        )}
-        {profile.anniversary && (
-          <div>
-            🎉 Work Anniversary:{" "}
-            {new Date(profile.anniversary).toLocaleDateString()}
+          <h1 className="text-3xl font-extrabold text-blue-700 mb-1 text-center">
+            {profile.fullName || "(No Name)"}
+          </h1>
+          <div className="text-gray-500 mb-2 text-center">{profile.email}</div>
+          <div className="flex flex-col items-center gap-1 text-gray-600 text-base mb-3">
+            {profile.birthday && (
+              <div>
+                <span className="mr-1">🎂</span>
+                <span>Birthday:</span>{" "}
+                <span className="font-medium">{new Date(profile.birthday).toLocaleDateString()}</span>
+              </div>
+            )}
+            {profile.anniversary && (
+              <div>
+                <span className="mr-1">🎉</span>
+                <span>Work Anniversary:</span>{" "}
+                <span className="font-medium">{new Date(profile.anniversary).toLocaleDateString()}</span>
+              </div>
+            )}
+            {profile.phone && (
+              <div>
+                <span className="mr-1">📞</span>
+                <span>{profile.phone}</span>
+              </div>
+            )}
           </div>
+          {/* Add stats or kudos info here if you want */}
+          <button
+            className="mt-2 px-8 py-2 bg-blue-600 text-white rounded-xl font-bold shadow hover:bg-blue-700 transition text-lg"
+            onClick={() => setEditing(true)}
+          >
+            Edit Profile
+          </button>
+        </div>
+        {/* Toast feedback */}
+        {success && (
+          <Toast
+            message={success}
+            type="success"
+            onClose={() => setSuccess(null)}
+          />
         )}
-        {profile.phone && <div>📞 Phone: {profile.phone}</div>}
-      </div>
-      {/* Add stats or kudos info here if you want */}
-      <button
-        className="mt-2 px-6 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition"
-        onClick={() => setEditing(true)}
-      >
-        Edit Profile
-      </button>
-      {/* Toast feedback */}
-      {success && (
-        <Toast
-          message={success}
-          type="success"
-          onClose={() => setSuccess(null)}
-        />
-      )}
-      {error && (
-        <Toast
-          message={error}
-          type="error"
-          onClose={() => setError(null)}
-        />
-      )}
+        {error && (
+          <Toast
+            message={error}
+            type="error"
+            onClose={() => setError(null)}
+          />
+        )}
+      </main>
     </div>
   );
 }
