@@ -9,6 +9,7 @@ const ADMIN_LINKS = [
   { label: "Manage Users", href: "/admin/users", icon: "👥" },
   { label: "Integrations", href: "/admin/integrations", icon: "🔌" },
   { label: "Offboarding", href: "/admin/offboarding", icon: "🚪" },
+  { label: "Documents", href: "/admin/documents", icon: "📄" }, // NEW!
   // Add more links as needed
 ];
 

@@ -28,6 +28,7 @@ export type OnboardingTask = {
   sendWhen?: "immediate" | "start_date" | "custom_date"; // When to trigger
   targetEmail?: string;              // If auto-email, who to send (optional)
   enabled?: boolean;                 // Easy way to toggle on/off a step
+  documentId?: string;               // <-- Added! Document attachment support
 };
 
 /**

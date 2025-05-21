@@ -123,10 +123,12 @@ export default function SignupPage(): React.ReactElement {
       }
 
       // Sign up user and add company/role info
+      // Add status: "newHire" for join mode, leave undefined (or set "active") for admin
       await signup(email, password, {
         companyId,
         role: mode === "create" ? "admin" : "user",
         name,
+        status: mode === "join" ? "newHire" : undefined,
       });
 
       if (mode === "create") {
