@@ -5,14 +5,10 @@ import { fetchAllUsers, updateUserProfile, UserProfile } from "../lib/firestoreU
 import { useAuth } from "../context/AuthContext";
 import Toast from "./Toast";
 import UserAvatar from "./UserAvatar";
+import { sendPasswordResetEmail } from "firebase/auth";
+import { auth } from "../lib/firebase";
 
 const ROLES = ["user", "admin", "manager"];
-const GENDERS = ["", "Male", "Female", "Nonbinary", "Other", "Prefer not to say"];
-const STATUS_OPTIONS = [
-  { value: "newHire", label: "New Hire" },
-  { value: "active", label: "Active" },
-  { value: "exiting", label: "Exiting" },
-];
 
 type FormState = {
   fullName: string;
@@ -23,13 +19,13 @@ type FormState = {
   email: string;
   photoURL?: string;
   disabled?: boolean;
-  gender: string;
-  department: string;
-  status: string; // "newHire" | "active" | "exiting"
+  gender?: string;
+  department?: string;
+  status?: string;
 };
 
 export default function AdminUserEditor(): React.ReactElement {
-  const { companyId } = useAuth();
+  const { companyId, user: adminUser } = useAuth();
 
   const [users, setUsers] = useState<UserProfile[]>([]);
   const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
@@ -44,14 +40,18 @@ export default function AdminUserEditor(): React.ReactElement {
     disabled: false,
     gender: "",
     department: "",
-    status: "active",
+    status: "",
   });
   const [loading, setLoading] = useState<boolean>(true);
   const [saving, setSaving] = useState<boolean>(false);
   const [success, setSuccess] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [filter, setFilter] = useState<string>("");
 
-  // Fetch all users once companyId is available
+  // Impersonation state
+  const [impersonateEmail, setImpersonateEmail] = useState<string | null>(null);
+
+  // Fetch all users
   useEffect(() => {
     if (!companyId) return;
     setLoading(true);
@@ -64,9 +64,9 @@ export default function AdminUserEditor(): React.ReactElement {
         setError("Error fetching users.");
         setLoading(false);
       });
-  }, [companyId]);
+  }, [companyId, success]);
 
-  // When a user is selected, populate form
+  // Populate form on user select
   useEffect(() => {
     if (!selectedUserId) return;
     const user = users.find((u) => u.uid === selectedUserId);
@@ -82,7 +82,7 @@ export default function AdminUserEditor(): React.ReactElement {
         disabled: !!user.disabled,
         gender: user.gender || "",
         department: user.department || "",
-        status: user.status || "active",
+        status: user.status || "",
       });
       setSuccess(null);
       setError(null);
@@ -108,7 +108,6 @@ export default function AdminUserEditor(): React.ReactElement {
     setSuccess(null);
     setError(null);
 
-    // Only update editable fields (not email)
     const updates = {
       fullName: form.fullName,
       phone: form.phone,
@@ -159,12 +158,33 @@ export default function AdminUserEditor(): React.ReactElement {
     setSaving(false);
   }
 
+  // Reset password (send email)
+  async function handleResetPassword(email: string) {
+    try {
+      await sendPasswordResetEmail(auth, email);
+      setSuccess("Password reset email sent to " + email);
+    } catch (err: any) {
+      setError("Error sending reset email: " + (err.message || "Error"));
+    }
+  }
+
+  // Impersonate user: Here, just sets a message. You'd implement full "view as" via backend/session logic.
+  function handleImpersonate(email: string) {
+    setImpersonateEmail(email);
+    setTimeout(() => setImpersonateEmail(null), 2500);
+    // Real implementation: use a backend function or context to "switch" user, or open in new incognito window as user.
+  }
+
+  // Filter/search logic
+  const filteredUsers = users.filter(
+    (u) =>
+      u.email.toLowerCase().includes(filter.toLowerCase()) ||
+      (u.fullName && u.fullName.toLowerCase().includes(filter.toLowerCase())) ||
+      (u.role && u.role.toLowerCase().includes(filter.toLowerCase()))
+  );
+
   if (!companyId) {
-    return (
-      <div className="text-gray-500 mt-8">
-        Loading admin info...
-      </div>
-    );
+    return <div className="text-gray-500 mt-8">Loading admin info...</div>;
   }
 
   if (loading) return <div className="text-gray-600">Loading users...</div>;
@@ -174,11 +194,18 @@ export default function AdminUserEditor(): React.ReactElement {
       {/* User List */}
       <div className="w-full md:w-1/2">
         <h2 className="text-xl font-semibold text-blue-700 mb-2">All Users</h2>
+        <input
+          type="text"
+          placeholder="Search by name, email, or role"
+          value={filter}
+          onChange={e => setFilter(e.target.value)}
+          className="mb-3 w-full p-2 border border-gray-300 rounded"
+        />
         <ul className="bg-white rounded shadow divide-y border max-h-[70vh] overflow-y-auto">
-          {users.length === 0 && (
-            <li className="p-3 text-gray-400 italic">No users found in this company.</li>
+          {filteredUsers.length === 0 && (
+            <li className="p-3 text-gray-400 italic">No users found.</li>
           )}
-          {users.map((u) => (
+          {filteredUsers.map((u) => (
             <li
               key={u.uid}
               className={`flex items-center gap-3 p-3 cursor-pointer hover:bg-blue-50 ${selectedUserId === u.uid ? "bg-blue-100 font-semibold" : ""} ${u.disabled ? "opacity-50" : ""}`}
@@ -194,7 +221,7 @@ export default function AdminUserEditor(): React.ReactElement {
                 photoURL={typeof u.photoURL === "string" ? u.photoURL : undefined}
                 size={36}
               />
-              <div>
+              <div className="flex-1">
                 <div>
                   {u.fullName || "(No name)"}{" "}
                   <span className="text-xs text-gray-500">({u.email})</span>
@@ -204,9 +231,39 @@ export default function AdminUserEditor(): React.ReactElement {
                 </div>
                 <div className="text-xs text-gray-400">{u.role || "user"}</div>
               </div>
+              {/* Actions */}
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  className="px-2 py-1 text-xs rounded bg-blue-100 text-blue-700 hover:bg-blue-200"
+                  onClick={e => {
+                    e.stopPropagation();
+                    handleResetPassword(u.email);
+                  }}
+                  title="Send password reset email"
+                >
+                  Reset PW
+                </button>
+                <button
+                  type="button"
+                  className="px-2 py-1 text-xs rounded bg-pink-100 text-pink-700 hover:bg-pink-200"
+                  onClick={e => {
+                    e.stopPropagation();
+                    handleImpersonate(u.email);
+                  }}
+                  title="Impersonate (demo)"
+                >
+                  View As
+                </button>
+              </div>
             </li>
           ))}
         </ul>
+        {impersonateEmail && (
+          <div className="mt-3 text-sm text-pink-700">
+            Impersonation is just a demo: Would open session as <b>{impersonateEmail}</b>
+          </div>
+        )}
       </div>
 
       {/* Editor */}
@@ -301,29 +358,25 @@ export default function AdminUserEditor(): React.ReactElement {
               </select>
             </label>
             <label className="font-medium">
-              Gender
-              <select
-                name="gender"
-                value={form.gender}
-                onChange={handleChange}
-                className="p-2 border border-gray-300 rounded w-full mt-1"
-              >
-                {GENDERS.map((g) => (
-                  <option key={g} value={g}>
-                    {g === "" ? "Select gender..." : g}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <label className="font-medium">
               Department
               <input
                 type="text"
                 name="department"
                 value={form.department}
-                onChange={handleChange}
                 className="p-2 border border-gray-300 rounded w-full mt-1"
+                onChange={handleChange}
                 placeholder="Department"
+              />
+            </label>
+            <label className="font-medium">
+              Gender
+              <input
+                type="text"
+                name="gender"
+                value={form.gender}
+                className="p-2 border border-gray-300 rounded w-full mt-1"
+                onChange={handleChange}
+                placeholder="Gender"
               />
             </label>
             <label className="font-medium">
@@ -333,30 +386,11 @@ export default function AdminUserEditor(): React.ReactElement {
                 value={form.status}
                 onChange={handleChange}
                 className="p-2 border border-gray-300 rounded w-full mt-1"
-                required
               >
-                {STATUS_OPTIONS.map((opt) => (
-                  <option key={opt.value} value={opt.value}>
-                    {opt.label}
-                  </option>
-                ))}
+                <option value="">Active</option>
+                <option value="newHire">New Hire</option>
+                <option value="exiting">Exiting</option>
               </select>
-              <div className="text-xs text-gray-400 mt-1">
-                <span>
-                  {" "}
-                  - New Hire: Employee in onboarding
-                </span>
-                <br />
-                <span>
-                  {" "}
-                  - Active: Current team member
-                </span>
-                <br />
-                <span>
-                  {" "}
-                  - Exiting: Leaving company (offboarding)
-                </span>
-              </div>
             </label>
             {/* Disable/Enable button */}
             <button

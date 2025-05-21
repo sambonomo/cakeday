@@ -31,6 +31,7 @@ export default function AdminDocumentsPage() {
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   const [docs, setDocs] = useState<any[]>([]);
+  const [users, setUsers] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
   const [title, setTitle] = useState("");
@@ -39,6 +40,10 @@ export default function AdminDocumentsPage() {
   const [file, setFile] = useState<File | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
+  const [filter, setFilter] = useState<string>("");
+  const [copiedDocId, setCopiedDocId] = useState<string | null>(null);
+  const [previewDoc, setPreviewDoc] = useState<string | null>(null);
+  const [sendTo, setSendTo] = useState<{ [docId: string]: string }>({}); // {docId: selectedUserUid}
 
   // Load all documents for this company
   useEffect(() => {
@@ -54,9 +59,17 @@ export default function AdminDocumentsPage() {
       setDocs(snap.docs.map((d) => ({ id: d.id, ...d.data() })));
       setLoading(false);
     });
+    // Fetch users for "send to user"
+    getDocs(
+      query(
+        collection(db, "users"),
+        where("companyId", "==", companyId)
+      )
+    ).then((snap) => {
+      setUsers(snap.docs.map((d) => ({ uid: d.id, ...d.data() })));
+    });
   }, [companyId, uploading, success]);
 
-  // Restrict access to admins only
   if (role !== "admin") {
     return (
       <div className="text-red-500 font-bold mt-16 text-center">
@@ -65,7 +78,6 @@ export default function AdminDocumentsPage() {
     );
   }
 
-  // Handle file selection
   function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
     if (e.target.files && e.target.files[0]) {
       setFile(e.target.files[0]);
@@ -85,8 +97,6 @@ export default function AdminDocumentsPage() {
       return;
     }
     try {
-      // Upload file to Firebase Storage
-      const ext = file.name.split(".").pop();
       const safeName = `${Date.now()}_${file.name.replace(/[^a-zA-Z0-9.]/g, "_")}`;
       const storagePath = `documents/${companyId}/${safeName}`;
       const storageRefObj = storageRef(storage, storagePath);
@@ -94,7 +104,6 @@ export default function AdminDocumentsPage() {
       await uploadBytes(storageRefObj, file);
       const url = await getDownloadURL(storageRefObj);
 
-      // Save document metadata to Firestore
       await addDoc(collection(db, "documents"), {
         companyId,
         title: title.trim(),
@@ -126,14 +135,12 @@ export default function AdminDocumentsPage() {
     setError(null);
 
     try {
-      // Delete file from storage
       if (storageUrl) {
         const url = new URL(storageUrl);
         const path = decodeURIComponent(url.pathname.replace(/^\/v0\/b\/[^/]+\/o\//, "")).replaceAll("%2F", "/");
         const storageRefObj = storageRef(storage, path);
         await deleteObject(storageRefObj);
       }
-      // Delete metadata from Firestore
       await deleteDoc(doc(db, "documents", docId));
       setSuccess("Document deleted.");
       setDocs((prev) => prev.filter((d) => d.id !== docId));
@@ -141,6 +148,69 @@ export default function AdminDocumentsPage() {
       setError(err.message || "Delete failed.");
     }
     setLoading(false);
+  }
+
+  // Copy document link to clipboard
+  function handleCopy(url: string, id: string) {
+    navigator.clipboard.writeText(url);
+    setCopiedDocId(id);
+    setTimeout(() => setCopiedDocId(null), 1200);
+  }
+
+  // Send document to user: Creates a notification doc in Firestore
+  async function handleSendToUser(docMeta: any, uid: string) {
+    if (!uid) return;
+    setSuccess(null);
+    setError(null);
+    try {
+      const recipient = users.find(u => u.uid === uid);
+      if (!recipient) throw new Error("User not found");
+      await addDoc(collection(db, "notifications"), {
+        toUid: uid,
+        toEmail: recipient.email,
+        companyId,
+        type: "document",
+        docId: docMeta.id,
+        docTitle: docMeta.title,
+        docUrl: docMeta.url,
+        message: `You have received a document: ${docMeta.title}`,
+        sentAt: new Date(),
+        read: false,
+      });
+      setSuccess(`Sent to ${recipient.fullName || recipient.email}`);
+    } catch (err: any) {
+      setError(err.message || "Could not send document.");
+    }
+  }
+
+  // Filter docs
+  const filteredDocs = docs.filter(
+    (d) =>
+      d.title?.toLowerCase().includes(filter.toLowerCase()) ||
+      d.description?.toLowerCase().includes(filter.toLowerCase()) ||
+      d.category?.toLowerCase().includes(filter.toLowerCase()) ||
+      d.fileName?.toLowerCase().includes(filter.toLowerCase())
+  );
+
+  // Inline PDF preview (for .pdf only)
+  function renderPreview(url: string) {
+    return (
+      <div className="fixed inset-0 z-50 bg-black bg-opacity-60 flex items-center justify-center">
+        <div className="bg-white p-6 rounded-2xl shadow-2xl max-w-3xl w-full relative">
+          <button
+            onClick={() => setPreviewDoc(null)}
+            className="absolute top-2 right-2 bg-gray-200 rounded-full px-3 py-1 text-gray-700 font-bold hover:bg-gray-300"
+          >
+            Close
+          </button>
+          <iframe
+            src={url}
+            className="w-full h-[500px] rounded-lg border"
+            title="Document Preview"
+          />
+        </div>
+      </div>
+    );
   }
 
   return (
@@ -195,30 +265,45 @@ export default function AdminDocumentsPage() {
           </button>
         </div>
       </form>
+      <div className="flex mb-4">
+        <input
+          type="text"
+          className="p-2 border rounded-lg flex-1"
+          placeholder="Search documents (title, desc, file, tag)..."
+          value={filter}
+          onChange={e => setFilter(e.target.value)}
+        />
+      </div>
       {error && <Toast message={error} type="error" onClose={() => setError(null)} />}
       {success && <Toast message={success} type="success" onClose={() => setSuccess(null)} />}
 
       <h2 className="text-xl font-semibold mb-3 mt-6">All Documents</h2>
       {loading ? (
         <div className="text-gray-600">Loading documents...</div>
-      ) : docs.length === 0 ? (
+      ) : filteredDocs.length === 0 ? (
         <div className="text-gray-400 italic">No documents uploaded yet.</div>
       ) : (
         <table className="min-w-full border text-sm">
           <thead>
             <tr className="bg-gray-100">
-              <th className="py-2 px-3">Title</th>
+              <th className="py-2 px-3">Title &amp; Description</th>
               <th className="py-2 px-3">File</th>
               <th className="py-2 px-3">Category</th>
               <th className="py-2 px-3">Uploaded</th>
+              <th className="py-2 px-3">Send To</th>
               <th className="py-2 px-3"></th>
             </tr>
           </thead>
           <tbody>
-            {docs.map((d) => (
+            {filteredDocs.map((d) => (
               <tr key={d.id} className="border-t">
-                <td className="py-2 px-3 font-semibold">{d.title}</td>
-                <td className="py-2 px-3">
+                <td className="py-2 px-3 font-semibold">
+                  {d.title}
+                  {d.description && (
+                    <div className="text-xs text-gray-500">{d.description}</div>
+                  )}
+                </td>
+                <td className="py-2 px-3 flex flex-col gap-1">
                   <a
                     href={d.url}
                     target="_blank"
@@ -227,12 +312,44 @@ export default function AdminDocumentsPage() {
                   >
                     {d.fileName}
                   </a>
-                  {d.description && (
-                    <div className="text-xs text-gray-500">{d.description}</div>
+                  {d.fileName && d.fileName.toLowerCase().endsWith(".pdf") && (
+                    <button
+                      className="text-xs text-blue-500 underline ml-1"
+                      onClick={() => setPreviewDoc(d.url)}
+                    >
+                      Preview
+                    </button>
                   )}
+                  <button
+                    className="text-xs bg-yellow-100 text-yellow-700 px-2 py-1 rounded hover:bg-yellow-200 mt-1"
+                    onClick={() => handleCopy(d.url, d.id)}
+                  >
+                    {copiedDocId === d.id ? "Link Copied!" : "Copy Link"}
+                  </button>
                 </td>
                 <td className="py-2 px-3 capitalize">{d.category}</td>
                 <td className="py-2 px-3 text-xs">{d.createdAt?.toDate ? d.createdAt.toDate().toLocaleString() : ""}</td>
+                <td className="py-2 px-3">
+                  <select
+                    className="p-1 border rounded text-xs"
+                    value={sendTo[d.id] || ""}
+                    onChange={e => setSendTo({ ...sendTo, [d.id]: e.target.value })}
+                  >
+                    <option value="">Send to...</option>
+                    {users.map(u => (
+                      <option key={u.uid} value={u.uid}>
+                        {u.fullName || u.email}
+                      </option>
+                    ))}
+                  </select>
+                  <button
+                    className="text-xs bg-green-100 text-green-700 px-2 py-1 rounded hover:bg-green-200 mt-1"
+                    disabled={!sendTo[d.id]}
+                    onClick={() => handleSendToUser(d, sendTo[d.id])}
+                  >
+                    Send
+                  </button>
+                </td>
                 <td className="py-2 px-3">
                   <button
                     onClick={() => handleDelete(d.id, d.url)}
@@ -246,6 +363,7 @@ export default function AdminDocumentsPage() {
           </tbody>
         </table>
       )}
+      {previewDoc && renderPreview(previewDoc)}
     </div>
   );
 }

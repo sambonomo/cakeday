@@ -10,6 +10,8 @@ import {
   addDoc,
   orderBy,
   serverTimestamp,
+  deleteDoc,
+  doc,
 } from "firebase/firestore";
 import Toast from "../../components/Toast";
 
@@ -46,6 +48,7 @@ export default function RewardsPage() {
   const [success, setSuccess] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [redeemingId, setRedeemingId] = useState<string | null>(null);
+  const [notes, setNotes] = useState<{ [rewardId: string]: string }>({}); // notes per reward
 
   // Fetch all available rewards
   useEffect(() => {
@@ -137,12 +140,25 @@ export default function RewardsPage() {
         status: "pending",
         requestedAt: serverTimestamp(),
         pointsCost: reward.pointsCost,
+        notes: notes[reward.id]?.trim() || "",
       });
       setSuccess("Redemption request sent! You will be contacted by an admin.");
+      setNotes((n) => ({ ...n, [reward.id]: "" })); // Clear notes field for that reward
     } catch (err: any) {
       setError(err.message || "Could not request reward.");
     }
     setRedeemingId(null);
+  }
+
+  // Allow user to cancel their pending redemption
+  async function handleCancelRedemption(redemption: Redemption) {
+    if (!window.confirm("Are you sure you want to cancel this pending redemption?")) return;
+    try {
+      await deleteDoc(doc(db, "redemptions", redemption.id));
+      setSuccess("Redemption cancelled.");
+    } catch (err: any) {
+      setError(err.message || "Could not cancel redemption.");
+    }
   }
 
   if (!user || !companyId)
@@ -212,6 +228,21 @@ export default function RewardsPage() {
                       : `Available: ${r.quantity}`}
                   </div>
                 </div>
+                {/* Optional notes input */}
+                <input
+                  type="text"
+                  placeholder="Notes (optional)"
+                  className="p-2 mt-2 border border-gray-200 rounded w-full text-sm"
+                  value={notes[r.id] || ""}
+                  onChange={e =>
+                    setNotes((prev) => ({
+                      ...prev,
+                      [r.id]: e.target.value,
+                    }))
+                  }
+                  maxLength={120}
+                  disabled={outOfStock || notEnoughPoints}
+                />
                 <button
                   disabled={notEnoughPoints || outOfStock || !!redeemingId}
                   onClick={() => handleRedeem(r)}
@@ -248,6 +279,7 @@ export default function RewardsPage() {
               <th className="py-2 px-3">Requested</th>
               <th className="py-2 px-3">Status</th>
               <th className="py-2 px-3">Notes</th>
+              <th className="py-2 px-3"></th>
             </tr>
           </thead>
           <tbody>
@@ -270,6 +302,16 @@ export default function RewardsPage() {
                   )}
                 </td>
                 <td className="py-2 px-3">{r.notes || ""}</td>
+                <td className="py-2 px-3">
+                  {r.status === "pending" && (
+                    <button
+                      className="text-xs text-red-600 underline"
+                      onClick={() => handleCancelRedemption(r)}
+                    >
+                      Cancel
+                    </button>
+                  )}
+                </td>
               </tr>
             ))}
           </tbody>

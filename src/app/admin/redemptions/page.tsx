@@ -11,7 +11,7 @@ import {
   doc,
   orderBy,
   increment,
-  getDoc,
+  addDoc, // <- NEW: import addDoc for notifications!
 } from "firebase/firestore";
 import Toast from "../../../components/Toast";
 
@@ -73,17 +73,33 @@ export default function AdminRedemptionsPage() {
     ? redemptions
     : redemptions.filter((r) => r.status === statusFilter);
 
-  // Mark as fulfilled
+  // Mark as fulfilled + notify user
   async function markFulfilled(id: string) {
     setProcessingId(id);
     setError(null);
     setSuccess(null);
     try {
+      const redemption = redemptions.find(r => r.id === id);
       await updateDoc(doc(db, "redemptions", id), {
         status: "fulfilled",
         fulfilledAt: new Date(),
         notes: noteEdit[id] || "",
       });
+      // Send notification
+      if (redemption) {
+        await addDoc(collection(db, "notifications"), {
+          toUid: redemption.userId,
+          toEmail: redemption.userEmail,
+          companyId: redemption.companyId,
+          type: "redemption",
+          rewardName: redemption.rewardName,
+          pointsCost: redemption.pointsCost,
+          status: "fulfilled",
+          message: `Your reward "${redemption.rewardName}" has been fulfilled. Enjoy!`,
+          sentAt: new Date(),
+          read: false,
+        });
+      }
       setSuccess("Marked as fulfilled!");
     } catch (err: any) {
       setError(err.message || "Could not mark as fulfilled.");
@@ -91,7 +107,7 @@ export default function AdminRedemptionsPage() {
     setProcessingId(null);
   }
 
-  // Mark as denied (and refund points)
+  // Mark as denied (and refund points) + notify user
   async function markDenied(redemption: Redemption) {
     setProcessingId(redemption.id);
     setError(null);
@@ -102,7 +118,6 @@ export default function AdminRedemptionsPage() {
         notes: noteEdit[redemption.id] || "",
       });
       // Refund points to the user
-      // 1. Find their user doc (in "users", with uid field)
       const usersSnap = await getDocs(
         query(
           collection(db, "users"),
@@ -116,6 +131,19 @@ export default function AdminRedemptionsPage() {
           points: increment(redemption.pointsCost),
         });
       }
+      // Send notification
+      await addDoc(collection(db, "notifications"), {
+        toUid: redemption.userId,
+        toEmail: redemption.userEmail,
+        companyId: redemption.companyId,
+        type: "redemption",
+        rewardName: redemption.rewardName,
+        pointsCost: redemption.pointsCost,
+        status: "denied",
+        message: `Your reward redemption for "${redemption.rewardName}" was denied and your points have been refunded.`,
+        sentAt: new Date(),
+        read: false,
+      });
       setSuccess("Marked as denied and refunded points.");
     } catch (err: any) {
       setError(err.message || "Could not mark as denied.");
@@ -123,16 +151,32 @@ export default function AdminRedemptionsPage() {
     setProcessingId(null);
   }
 
-  // Approve (optional: may skip if you want to go straight from pending to fulfilled/denied)
+  // Approve (optional step) + notify user
   async function markApproved(id: string) {
     setProcessingId(id);
     setError(null);
     setSuccess(null);
     try {
+      const redemption = redemptions.find(r => r.id === id);
       await updateDoc(doc(db, "redemptions", id), {
         status: "approved",
         notes: noteEdit[id] || "",
       });
+      // Send notification
+      if (redemption) {
+        await addDoc(collection(db, "notifications"), {
+          toUid: redemption.userId,
+          toEmail: redemption.userEmail,
+          companyId: redemption.companyId,
+          type: "redemption",
+          rewardName: redemption.rewardName,
+          pointsCost: redemption.pointsCost,
+          status: "approved",
+          message: `Your reward redemption for "${redemption.rewardName}" has been approved!`,
+          sentAt: new Date(),
+          read: false,
+        });
+      }
       setSuccess("Marked as approved!");
     } catch (err: any) {
       setError(err.message || "Could not mark as approved.");

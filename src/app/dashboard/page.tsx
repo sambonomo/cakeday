@@ -3,6 +3,8 @@ import React, { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "../../context/AuthContext";
 import dynamic from "next/dynamic";
+import { doc, getDoc } from "firebase/firestore";
+import { db } from "../../lib/firebase";
 import { fetchAllUsers, getUpcomingEvents, UserEvent } from "../../lib/firestoreUsers";
 import Toast from "../../components/Toast";
 import Leaderboard from "../../components/Leaderboard"; // NEW
@@ -37,28 +39,30 @@ export default function DashboardPage(): React.ReactElement {
   const { user, role, logout, loading, companyId } = useAuth();
   const router = useRouter();
 
-  // 🎉 Today's Event Toast state
-  const [todayEvents, setTodayEvents] = useState<UserEvent[]>([]);
-  const [showTodayToast, setShowTodayToast] = useState<boolean>(true);
+  // Invite Code State (for admins)
+  const [inviteCode, setInviteCode] = useState<string | null>(null);
+  const [copied, setCopied] = useState(false);
 
   useEffect(() => {
-    if (!loading && user && companyId) {
-      fetchAllUsers(companyId).then((users) => {
-        const allEvents = getUpcomingEvents(users);
-        const todays = allEvents.filter((ev) => ev.daysUntil === 0);
-        setTodayEvents(todays);
-        setShowTodayToast(todays.length > 0);
-      });
+    async function fetchInviteCode() {
+      if (role === "admin" && companyId) {
+        const companyDoc = await getDoc(doc(db, "companies", companyId));
+        if (companyDoc.exists()) {
+          setInviteCode(companyDoc.data().inviteCode || null);
+        }
+      }
     }
-  }, [loading, user, companyId]);
+    fetchInviteCode();
+  }, [role, companyId]);
 
+  // Handle authentication & loop prevention
   useEffect(() => {
     if (!loading && (!user || !companyId)) {
       router.replace("/login");
     }
   }, [user, loading, companyId, router]);
 
-  // Loading screen
+  // Show a spinner while loading auth or company
   if (loading || !user || !companyId) {
     return (
       <div
@@ -73,6 +77,21 @@ export default function DashboardPage(): React.ReactElement {
       </div>
     );
   }
+
+  // 🎉 Today's Event Toast state
+  const [todayEvents, setTodayEvents] = useState<UserEvent[]>([]);
+  const [showTodayToast, setShowTodayToast] = useState<boolean>(true);
+
+  useEffect(() => {
+    if (!loading && user && companyId) {
+      fetchAllUsers(companyId).then((users) => {
+        const allEvents = getUpcomingEvents(users);
+        const todays = allEvents.filter((ev) => ev.daysUntil === 0);
+        setTodayEvents(todays);
+        setShowTodayToast(todays.length > 0);
+      });
+    }
+  }, [loading, user, companyId]);
 
   // Today's events banner text
   const todayMsg =
@@ -133,6 +152,29 @@ export default function DashboardPage(): React.ReactElement {
         bg-gradient-to-tr from-white via-brand-50 to-accent-50
       "
     >
+      {/* Invite Code Bar for Admins */}
+      {role === "admin" && inviteCode && (
+        <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-4 mb-4 max-w-2xl mx-auto mt-6 flex flex-col sm:flex-row items-center justify-between gap-3">
+          <div>
+            <span className="font-bold text-yellow-700">Company Invite Code:</span>{" "}
+            <span className="font-mono bg-yellow-100 rounded px-2 py-1 text-yellow-900 text-lg tracking-widest">
+              {inviteCode}
+            </span>
+          </div>
+          <button
+            className="px-4 py-2 rounded bg-yellow-400 text-white font-semibold hover:bg-yellow-500 transition"
+            onClick={() => {
+              navigator.clipboard.writeText(inviteCode || "");
+              setCopied(true);
+              setTimeout(() => setCopied(false), 1500);
+            }}
+            title="Copy code to clipboard"
+          >
+            {copied ? "Copied!" : "Copy"}
+          </button>
+        </div>
+      )}
+
       {/* Dashboard Hero Header */}
       <header
         className="
@@ -192,7 +234,7 @@ export default function DashboardPage(): React.ReactElement {
           max-w-5xl mx-auto w-full
         "
       >
-        {/* New: Leaderboard section */}
+        {/* Leaderboard section */}
         <Leaderboard companyId={companyId} limit={10} />
 
         <section className="w-full grid grid-cols-1 md:grid-cols-2 gap-8">
