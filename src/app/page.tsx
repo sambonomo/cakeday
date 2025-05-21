@@ -108,6 +108,7 @@ export default function Home(): React.ReactElement {
         <div
           className="
             flex flex-col sm:flex-row gap-4 mt-4 w-full
+            justify-center items-center
             animate-fade-in-up
           "
         >

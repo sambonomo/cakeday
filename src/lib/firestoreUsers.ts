@@ -31,6 +31,9 @@ export type UserProfile = {
   disabled?: boolean;     // User disabled (soft delete)
   points?: number;        // Kudos/recognition points
   badges?: string[];      // Array of badge IDs (earned badges)
+  gender?: string;        // "Male", "Female", "Nonbinary", etc.
+  department?: string;    // Department name
+  status?: string;        // "newHire", "active", "exiting"
 };
 
 /**

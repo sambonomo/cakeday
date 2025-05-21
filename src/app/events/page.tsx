@@ -12,8 +12,8 @@ export default function EventsPage(): React.ReactElement {
     if (!companyId) return;
     setFetching(true);
     fetchAllUsers(companyId).then((users) => {
-      // Get all future events (including today)
-      const evts = getUpcomingEvents(users).filter((ev) => ev.daysUntil >= 0);
+      // Only include events within the next 10 days (including today)
+      const evts = getUpcomingEvents(users).filter((ev) => ev.daysUntil >= 0 && ev.daysUntil <= 10);
       setEvents(evts);
       setFetching(false);
     });

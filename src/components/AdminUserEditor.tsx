@@ -7,6 +7,12 @@ import Toast from "./Toast";
 import UserAvatar from "./UserAvatar";
 
 const ROLES = ["user", "admin", "manager"];
+const GENDERS = ["", "Male", "Female", "Nonbinary", "Other", "Prefer not to say"];
+const STATUS_OPTIONS = [
+  { value: "newHire", label: "New Hire" },
+  { value: "active", label: "Active" },
+  { value: "exiting", label: "Exiting" },
+];
 
 type FormState = {
   fullName: string;
@@ -17,6 +23,9 @@ type FormState = {
   email: string;
   photoURL?: string;
   disabled?: boolean;
+  gender: string;
+  department: string;
+  status: string; // "newHire" | "active" | "exiting"
 };
 
 export default function AdminUserEditor(): React.ReactElement {
@@ -33,6 +42,9 @@ export default function AdminUserEditor(): React.ReactElement {
     email: "",
     photoURL: "",
     disabled: false,
+    gender: "",
+    department: "",
+    status: "active",
   });
   const [loading, setLoading] = useState<boolean>(true);
   const [saving, setSaving] = useState<boolean>(false);
@@ -68,6 +80,9 @@ export default function AdminUserEditor(): React.ReactElement {
         email: user.email || "",
         photoURL: typeof user.photoURL === "string" ? user.photoURL : "",
         disabled: !!user.disabled,
+        gender: user.gender || "",
+        department: user.department || "",
+        status: user.status || "active",
       });
       setSuccess(null);
       setError(null);
@@ -102,6 +117,9 @@ export default function AdminUserEditor(): React.ReactElement {
       role: form.role,
       photoURL: form.photoURL,
       disabled: !!form.disabled,
+      gender: form.gender,
+      department: form.department,
+      status: form.status,
     };
     try {
       await updateUserProfile(selectedUserId, updates);
@@ -281,6 +299,64 @@ export default function AdminUserEditor(): React.ReactElement {
                   </option>
                 ))}
               </select>
+            </label>
+            <label className="font-medium">
+              Gender
+              <select
+                name="gender"
+                value={form.gender}
+                onChange={handleChange}
+                className="p-2 border border-gray-300 rounded w-full mt-1"
+              >
+                {GENDERS.map((g) => (
+                  <option key={g} value={g}>
+                    {g === "" ? "Select gender..." : g}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className="font-medium">
+              Department
+              <input
+                type="text"
+                name="department"
+                value={form.department}
+                onChange={handleChange}
+                className="p-2 border border-gray-300 rounded w-full mt-1"
+                placeholder="Department"
+              />
+            </label>
+            <label className="font-medium">
+              Status
+              <select
+                name="status"
+                value={form.status}
+                onChange={handleChange}
+                className="p-2 border border-gray-300 rounded w-full mt-1"
+                required
+              >
+                {STATUS_OPTIONS.map((opt) => (
+                  <option key={opt.value} value={opt.value}>
+                    {opt.label}
+                  </option>
+                ))}
+              </select>
+              <div className="text-xs text-gray-400 mt-1">
+                <span>
+                  {" "}
+                  - New Hire: Employee in onboarding
+                </span>
+                <br />
+                <span>
+                  {" "}
+                  - Active: Current team member
+                </span>
+                <br />
+                <span>
+                  {" "}
+                  - Exiting: Leaving company (offboarding)
+                </span>
+              </div>
             </label>
             {/* Disable/Enable button */}
             <button

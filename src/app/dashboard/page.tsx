@@ -12,6 +12,10 @@ const OnboardingChecklist = dynamic(
   () => import("../../components/OnboardingChecklist"),
   { ssr: false }
 );
+const OffboardingChecklist = dynamic(
+  () => import("../../components/OffboardingChecklist"),
+  { ssr: false }
+);
 const AdminOnboardingTasks = dynamic(
   () => import("../../components/AdminOnboardingTasks"),
   { ssr: false }
@@ -84,6 +88,44 @@ export default function DashboardPage(): React.ReactElement {
           .join("  ")
       : "";
 
+  // Determine which checklist to show
+  let checklistSection = null;
+  if (user.status === "newHire") {
+    checklistSection = (
+      <div
+        className="
+          bg-white/90 rounded-2xl shadow-xl border border-brand-100
+          p-6 flex flex-col mb-4
+        "
+      >
+        <h2 className="text-2xl font-bold mb-2 text-brand-700 flex items-center gap-2">
+          <span role="img" aria-label="Checklist">
+            📋
+          </span>{" "}
+          Onboarding Checklist
+        </h2>
+        <OnboardingChecklist companyId={companyId} />
+      </div>
+    );
+  } else if (user.status === "exiting") {
+    checklistSection = (
+      <div
+        className="
+          bg-white/90 rounded-2xl shadow-xl border border-brand-100
+          p-6 flex flex-col mb-4
+        "
+      >
+        <h2 className="text-2xl font-bold mb-2 text-red-600 flex items-center gap-2">
+          <span role="img" aria-label="Exit">
+            👋
+          </span>{" "}
+          Offboarding Checklist
+        </h2>
+        <OffboardingChecklist companyId={companyId} />
+      </div>
+    );
+  }
+
   return (
     <div
       className="
@@ -154,21 +196,8 @@ export default function DashboardPage(): React.ReactElement {
         <Leaderboard companyId={companyId} limit={10} />
 
         <section className="w-full grid grid-cols-1 md:grid-cols-2 gap-8">
-          {/* Onboarding Checklist */}
-          <div
-            className="
-              bg-white/90 rounded-2xl shadow-xl border border-brand-100
-              p-6 flex flex-col mb-4
-            "
-          >
-            <h2 className="text-2xl font-bold mb-2 text-brand-700 flex items-center gap-2">
-              <span role="img" aria-label="Checklist">
-                📋
-              </span>{" "}
-              Onboarding Checklist
-            </h2>
-            <OnboardingChecklist companyId={companyId} />
-          </div>
+          {/* Onboarding OR Offboarding Checklist (based on status) */}
+          {checklistSection}
 
           {/* Birthdays & Anniversaries */}
           <div

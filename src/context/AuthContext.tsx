@@ -13,14 +13,32 @@ import {
   signInWithEmailAndPassword,
   createUserWithEmailAndPassword,
   signOut,
-  User,
+  User as FirebaseUser,
   UserCredential,
 } from "firebase/auth";
 import { doc, setDoc, getDoc } from "firebase/firestore";
 
+// ----- 1. Your app-wide user profile type (matches firestoreUsers.ts) -----
+export type AuthUser = {
+  uid: string;
+  email: string;
+  fullName?: string;
+  phone?: string;
+  birthday?: string;
+  anniversary?: string;
+  role?: string;
+  photoURL?: string;
+  disabled?: boolean;
+  gender?: string;
+  department?: string;
+  status?: string; // "newHire" | "active" | "exiting"
+  companyId?: string;
+  // Include any other profile fields as needed!
+};
+
 // Type for the context value
 interface AuthContextType {
-  user: User | null;
+  user: AuthUser | null;
   companyId: string | null;
   role: string | null;
   loading: boolean;
@@ -28,7 +46,7 @@ interface AuthContextType {
   signup: (
     email: string,
     password: string,
-    extra: Record<string, any> // Accept any additional user profile fields
+    extra: Record<string, any>
   ) => Promise<UserCredential>;
   logout: () => Promise<void>;
 }
@@ -36,29 +54,42 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [user, setUser] = useState<User | null>(null);
+  const [user, setUser] = useState<AuthUser | null>(null);
   const [role, setRole] = useState<string | null>(null);
   const [companyId, setCompanyId] = useState<string | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async (user) => {
-      setUser(user || null);
+    const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
       setLoading(true);
 
-      // If logged in, fetch role and companyId from Firestore
-      if (user) {
-        const userRef = doc(db, "users", user.uid);
+      if (firebaseUser) {
+        // 1. Always fetch Firestore profile fields (even if already in user obj)
+        const userRef = doc(db, "users", firebaseUser.uid);
         const userSnap = await getDoc(userRef);
+
+        // 2. Start with base Firebase info
+        let mergedUser: AuthUser = {
+          uid: firebaseUser.uid,
+          email: firebaseUser.email || "",
+        };
+
         if (userSnap.exists()) {
-          const data = userSnap.data() as any;
+          const data = userSnap.data();
+          mergedUser = {
+            ...mergedUser,
+            ...data, // All profile fields: status, gender, department, etc.
+          };
           setRole(data.role || "user");
           setCompanyId(data.companyId || null);
         } else {
           setRole("user");
           setCompanyId(null);
         }
+
+        setUser(mergedUser);
       } else {
+        setUser(null);
         setRole(null);
         setCompanyId(null);
       }
