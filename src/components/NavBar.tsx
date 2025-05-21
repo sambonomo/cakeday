@@ -20,7 +20,6 @@ export default function NavBar(): React.ReactElement | null {
 
   const dropdownRef = useRef<HTMLDivElement>(null);
 
-  // Always run the effect, even if we return null below.
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
       if (
@@ -41,11 +40,8 @@ export default function NavBar(): React.ReactElement | null {
   // Only show navbar for authenticated users (but all hooks always run)
   if (!user || loading) return null;
 
-  // Ensures nameOrEmail is always a string
-  const nameOrEmail =
-    (typeof user.displayName === "string" && user.displayName) ||
-    (typeof user.email === "string" ? user.email : "") ||
-    "User";
+  // Get user's name or fallback to email/"User"
+  const nameOrEmail = user.fullName || user.email || "User";
 
   // User dropdown (profile + logout)
   const avatarMenu = (
@@ -56,7 +52,7 @@ export default function NavBar(): React.ReactElement | null {
         aria-label="User menu"
         type="button"
       >
-        <UserAvatar nameOrEmail={nameOrEmail} photoURL={(user as any).photoURL} size={32} />
+        <UserAvatar nameOrEmail={nameOrEmail} photoURL={user.photoURL} size={32} />
         <span className="hidden sm:block font-medium text-sm">{nameOrEmail}</span>
         <svg
           className={`w-4 h-4 ml-1 transition-transform ${dropdownOpen ? "rotate-180" : ""}`}
