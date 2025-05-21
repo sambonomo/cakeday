@@ -2,14 +2,17 @@
 import React, { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "../../context/AuthContext";
-import { db } from "../../lib/firebase";
+import { db, auth } from "../../lib/firebase";
 import {
   collection,
   addDoc,
   getDocs,
   query,
   where,
+  setDoc,
+  doc,
 } from "firebase/firestore";
+import { createUserWithEmailAndPassword, signInWithEmailAndPassword } from "firebase/auth";
 import { nanoid } from "nanoid";
 
 export default function SignupPage(): React.ReactElement {
@@ -27,7 +30,6 @@ export default function SignupPage(): React.ReactElement {
   // After admin creates company, show code
   const [generatedCode, setGeneratedCode] = useState<string | null>(null);
 
-  const { signup } = useAuth();
   const router = useRouter();
 
   const handleSignup = async (e: React.FormEvent<HTMLFormElement>) => {
@@ -40,6 +42,7 @@ export default function SignupPage(): React.ReactElement {
       let code = inviteCode.trim().toUpperCase();
 
       if (mode === "create") {
+        // 1. Basic checks
         if (!companyName.trim()) {
           setError("Please enter a company name.");
           setLoading(false);
@@ -56,7 +59,10 @@ export default function SignupPage(): React.ReactElement {
           return;
         }
 
-        // Extract domain from email (e.g., 'user@acme.com' => 'acme.com')
+        // 2. Register user with Firebase Auth FIRST
+        const userCred = await createUserWithEmailAndPassword(auth, email, password);
+
+        // 3. Now you are authenticated, safe to check for existing company/domain
         const domain = email.split("@")[1]?.toLowerCase().trim();
         if (!domain) {
           setError("Could not extract domain from email.");
@@ -89,9 +95,8 @@ export default function SignupPage(): React.ReactElement {
           return;
         }
 
-        // Generate unique invite code
+        // 4. Generate invite code and create the company doc
         code = nanoid(8).toUpperCase();
-        // Create the company doc with invite code and domain
         const companyRef = await addDoc(collection(db, "companies"), {
           name: companyName.trim(),
           domain,
@@ -99,45 +104,60 @@ export default function SignupPage(): React.ReactElement {
           inviteCode: code,
         });
         companyId = companyRef.id;
+
+        // 5. Create user Firestore profile with admin role
+        await setDoc(doc(db, "users", userCred.user.uid), {
+          email,
+          companyId,
+          role: "admin",
+          name,
+          createdAt: new Date(),
+        });
+
         setGeneratedCode(code);
-      } else {
-        // Join by invite code
-        if (!inviteCode.trim()) {
-          setError("Please enter your company invite code.");
-          setLoading(false);
-          return;
-        }
-        // Lookup company by invite code
-        const q = query(
-          collection(db, "companies"),
-          where("inviteCode", "==", code)
-        );
-        const snap = await getDocs(q);
-        if (snap.empty) {
-          setError("Invite code not found. Please check with your admin.");
-          setLoading(false);
-          return;
-        }
-        const companyDoc = snap.docs[0];
-        companyId = companyDoc.id;
+        setLoading(false);
+        return;
       }
 
-      // Sign up user and add company/role info
-      // Add status: "newHire" for join mode, leave undefined (or set "active") for admin
-      await signup(email, password, {
+      // --- JOIN EXISTING COMPANY FLOW ---
+      if (!inviteCode.trim()) {
+        setError("Please enter your company invite code.");
+        setLoading(false);
+        return;
+      }
+      // Lookup company by invite code
+      const codeQuery = query(
+        collection(db, "companies"),
+        where("inviteCode", "==", code)
+      );
+      const snap = await getDocs(codeQuery);
+      if (snap.empty) {
+        setError("Invite code not found. Please check with your admin.");
+        setLoading(false);
+        return;
+      }
+      const companyDoc = snap.docs[0];
+      companyId = companyDoc.id;
+
+      // Create user with Firebase Auth
+      const userCred = await createUserWithEmailAndPassword(auth, email, password);
+
+      // Create Firestore user profile with user role
+      await setDoc(doc(db, "users", userCred.user.uid), {
+        email,
         companyId,
-        role: mode === "create" ? "admin" : "user",
+        role: "user",
         name,
-        status: mode === "join" ? "newHire" : undefined,
+        status: "newHire",
+        createdAt: new Date(),
       });
 
-      if (mode === "create") {
-        // Show invite code to admin after creating company
-        setLoading(false);
-        return; // Don't push to dashboard yet
-      }
+      // Auto-login (optional: can just rely on AuthContext)
+      await signInWithEmailAndPassword(auth, email, password);
 
       router.push("/dashboard");
+      setLoading(false);
+
     } catch (err: any) {
       setError(err.message || "Signup failed");
       setLoading(false);
