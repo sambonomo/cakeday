@@ -75,9 +75,9 @@ export default function GiveKudosForm({
       return;
     }
 
-    // TypeScript/ESLint safe: direct access, no in checks
-    const fromName = user.fullName ?? user.email ?? "";
-    const fromPhotoURL = user.photoURL ?? "";
+    // Use Firestore profile fields, no displayName
+    const fromName = user.fullName || user.email || "";
+    const fromPhotoURL = user.photoURL || "";
     const toName = recipient.fullName || recipient.email;
     // Safe photoURL: only string or undefined, never object
     const toPhotoURL =
