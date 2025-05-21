@@ -5,6 +5,7 @@ import { useAuth } from "../../context/AuthContext";
 import dynamic from "next/dynamic";
 import { fetchAllUsers, getUpcomingEvents, UserEvent } from "../../lib/firestoreUsers";
 import Toast from "../../components/Toast";
+import Leaderboard from "../../components/Leaderboard"; // NEW
 
 // Dynamic imports (client-side only)
 const OnboardingChecklist = dynamic(() => import("../../components/OnboardingChecklist"), { ssr: false });
@@ -99,6 +100,9 @@ export default function DashboardPage(): React.ReactElement {
       )}
 
       <main className="flex-1 flex flex-col items-center gap-8 px-2 py-8 md:px-8 max-w-5xl mx-auto w-full">
+        {/* New: Leaderboard section */}
+        <Leaderboard companyId={companyId} limit={10} />
+
         <section className="w-full grid grid-cols-1 md:grid-cols-2 gap-8">
           {/* Onboarding Checklist */}
           <div className="bg-white/90 rounded-2xl shadow-xl border border-blue-100 p-6 flex flex-col mb-4">

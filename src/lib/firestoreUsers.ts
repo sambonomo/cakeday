@@ -5,12 +5,15 @@ import {
   doc,
   getDoc,
   updateDoc,
+  setDoc,
   query,
   where,
   DocumentData,
   QueryDocumentSnapshot,
+  arrayUnion,
 } from "firebase/firestore";
 import { diffInDays, nextEventDate } from "./dateUtils";
+import { sendSlackMessage } from "./integrations/slack"; // <-- Slack util
 
 /**
  * User profile type
@@ -26,6 +29,8 @@ export type UserProfile = {
   role?: string;          // "user", "admin", "manager", etc.
   photoURL?: string;      // Profile photo URL
   disabled?: boolean;     // User disabled (soft delete)
+  points?: number;        // Kudos/recognition points
+  badges?: string[];      // Array of badge IDs (earned badges)
 };
 
 /**
@@ -61,6 +66,7 @@ export async function fetchUserProfile(uid: string): Promise<UserProfile | null>
 
 /**
  * Update a user's profile (can update any editable fields)
+ * If the user didn't exist before, trigger a "new hire" Slack announcement.
  * @param uid
  * @param updates - Only include fields to update!
  */
@@ -69,7 +75,79 @@ export async function updateUserProfile(
   updates: Partial<UserProfile>
 ): Promise<void> {
   const userRef = doc(db, "users", uid);
-  await updateDoc(userRef, updates);
+  const userSnap = await getDoc(userRef);
+
+  // If the user doesn't exist (new hire), use setDoc. Otherwise, updateDoc.
+  let isNew = false;
+  if (!userSnap.exists()) {
+    isNew = true;
+    // On new profile, initialize points and badges if not present
+    await setDoc(
+      userRef,
+      {
+        points: updates.points ?? 0,
+        badges: updates.badges ?? [],
+        ...updates,
+      },
+      { merge: true }
+    );
+  } else {
+    // On update, do not overwrite points or badges unless specified
+    await updateDoc(userRef, updates);
+  }
+
+  // === SLACK INTEGRATION for NEW HIRE ===
+  try {
+    if (isNew && updates.companyId) {
+      // Fetch Slack webhook from company doc
+      const companyRef = doc(db, "companies", updates.companyId);
+      const companySnap = await getDoc(companyRef);
+      const companyData = companySnap.exists() ? companySnap.data() : null;
+      const slackWebhookUrl = companyData?.slackWebhookUrl;
+      const postNewHireToSlack = companyData?.postNewHireToSlack !== false; // default true
+
+      if (slackWebhookUrl && postNewHireToSlack) {
+        // Format new hire message
+        const name = updates.fullName || updates.email || "A new team member";
+        const slackMsg = `:tada: *${name}* just joined the company! Welcome aboard!`;
+        await sendSlackMessage({
+          webhookUrl: slackWebhookUrl,
+          text: slackMsg,
+        });
+      }
+    }
+  } catch (err) {
+    // Don't block the flow if Slack fails
+    // console.error("Error posting new hire to Slack:", err);
+  }
+}
+
+/**
+ * Increment points and/or add badge(s) for a user.
+ * Usage: after a kudos event or admin action.
+ */
+export async function addPointsAndBadgesToUser(
+  uid: string,
+  companyId: string,
+  points: number,
+  newBadges: string[] = []
+): Promise<void> {
+  const userRef = doc(db, "users", uid);
+  // Use a transaction or a get-update to avoid race conditions for real apps (advanced)
+  const userSnap = await getDoc(userRef);
+
+  if (!userSnap.exists()) return;
+
+  const user = userSnap.data() as UserProfile;
+  const currentPoints = typeof user.points === "number" ? user.points : 0;
+  const currentBadges = Array.isArray(user.badges) ? user.badges : [];
+
+  const updatedBadges = Array.from(new Set([...currentBadges, ...newBadges]));
+
+  await updateDoc(userRef, {
+    points: currentPoints + points,
+    badges: updatedBadges,
+  });
 }
 
 /**

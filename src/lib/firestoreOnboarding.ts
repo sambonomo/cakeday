@@ -13,20 +13,26 @@ import {
   where,
 } from "firebase/firestore";
 
-// ------------------------------
-// Types
-// ------------------------------
+/**
+ * Onboarding/Offboarding Task type — enhanced for automations!
+ */
 export type OnboardingTask = {
   id: string;
   title: string;
   description?: string;
-  order?: number; // Optional in case not set
+  order?: number;
   companyId: string;
+  // --- Automation fields ---
+  type?: "manual" | "auto-email" | "calendar" | "slack" | "teams" | "offboarding";
+  autoMessageTemplate?: string;      // Message for auto-email, slack, etc.
+  sendWhen?: "immediate" | "start_date" | "custom_date"; // When to trigger
+  targetEmail?: string;              // If auto-email, who to send (optional)
+  enabled?: boolean;                 // Easy way to toggle on/off a step
 };
 
-// ------------------------------
-// Get all onboarding tasks for a company (ordered by 'order')
-// ------------------------------
+/**
+ * Fetch all onboarding tasks for a company (ordered by order, with all new fields).
+ */
 export async function getOnboardingTasks(companyId: string): Promise<OnboardingTask[]> {
   const colRef = collection(db, "onboardingTasks");
   const q = query(colRef, where("companyId", "==", companyId));
@@ -41,9 +47,9 @@ export async function getOnboardingTasks(companyId: string): Promise<OnboardingT
   return tasks;
 }
 
-// ------------------------------
-// Add a new onboarding task for a company
-// ------------------------------
+/**
+ * Add a new onboarding task for a company (with new fields supported)
+ */
 export async function addOnboardingTask(
   task: Omit<OnboardingTask, "id" | "companyId">,
   companyId: string
@@ -52,9 +58,9 @@ export async function addOnboardingTask(
   await addDoc(colRef, { ...task, companyId });
 }
 
-// ------------------------------
-// Edit/update an existing onboarding task (scoped by company for security)
-// ------------------------------
+/**
+ * Update an existing onboarding task (all new fields supported)
+ */
 export async function updateOnboardingTask(
   id: string,
   updates: Partial<Omit<OnboardingTask, "id" | "companyId">>,
@@ -64,20 +70,17 @@ export async function updateOnboardingTask(
   await setDoc(taskRef, { ...updates, companyId }, { merge: true });
 }
 
-// ------------------------------
-// Delete an onboarding task (optionally: check companyId before deleting)
-// ------------------------------
+/**
+ * Delete an onboarding task
+ */
 export async function deleteOnboardingTask(id: string, companyId: string): Promise<void> {
-  // You may optionally verify the companyId matches before deleting.
   const taskRef = doc(db, "onboardingTasks", id);
-  // (Optional: fetch doc and check companyId before delete)
   await deleteDoc(taskRef);
 }
 
-// ------------------------------
-// Get user's checklist progress for a company
-// Returns an object: { [taskId: string]: boolean }
-// ------------------------------
+/**
+ * Get user's checklist progress for a company
+ */
 export async function getUserProgress(
   uid: string,
   companyId: string
@@ -87,9 +90,9 @@ export async function getUserProgress(
   return docSnap.exists() ? (docSnap.data() as Record<string, boolean>) : {};
 }
 
-// ------------------------------
-// Set a single task as complete/incomplete for user and company
-// ------------------------------
+/**
+ * Set a single task as complete/incomplete for user and company
+ */
 export async function setUserTaskProgress(
   uid: string,
   taskId: string,

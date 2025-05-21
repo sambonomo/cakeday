@@ -5,8 +5,10 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 
 const ADMIN_LINKS = [
-  { label: "Onboarding Tasks", href: "/dashboard#admin-tasks", icon: "📋" },
-  { label: "Manage Users", href: "/dashboard#admin-users", icon: "👥" },
+  { label: "Onboarding Tasks", href: "/admin/onboarding", icon: "📋" },
+  { label: "Manage Users", href: "/admin/users", icon: "👥" },
+  { label: "Integrations", href: "/admin/integrations", icon: "🔌" },
+  { label: "Offboarding", href: "/admin/offboarding", icon: "🚪" },
   // Add more links as needed
 ];
 
@@ -45,12 +47,14 @@ export default function AdminSidebar({
           </button>
         </div>
         <ul className="flex-1 flex flex-col gap-2">
-          {ADMIN_LINKS.map(link => (
+          {ADMIN_LINKS.map((link) => (
             <li key={link.href}>
               <Link
                 href={link.href}
                 className={`flex items-center gap-2 px-4 py-3 rounded transition font-medium
-                  ${pathname?.startsWith(link.href.replace("#", "")) ? "bg-blue-100 text-blue-700" : "hover:bg-gray-100"}
+                  ${pathname?.startsWith(link.href)
+                    ? "bg-blue-100 text-blue-700"
+                    : "hover:bg-gray-100"}
                 `}
                 onClick={onClose}
               >
@@ -60,7 +64,6 @@ export default function AdminSidebar({
             </li>
           ))}
         </ul>
-        {/* Add more controls here if needed */}
       </nav>
     </aside>
   );
