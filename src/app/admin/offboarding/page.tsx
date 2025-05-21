@@ -36,11 +36,31 @@ import Toast from "../../../components/Toast";
 
 // Step type options (expand as needed)
 const TASK_TYPE_OPTIONS = [
-  { value: "manual", label: "Manual Task", icon: <Sparkles className="w-4 h-4 mr-1" /> },
-  { value: "auto-email", label: "Auto Email", icon: <Mail className="w-4 h-4 mr-1" /> },
-  { value: "calendar", label: "Calendar Event", icon: <Calendar className="w-4 h-4 mr-1" /> },
-  { value: "slack", label: "Slack Message", icon: <Slack className="w-4 h-4 mr-1" /> },
-  { value: "teams", label: "Teams Message", icon: <Slack className="w-4 h-4 mr-1 rotate-90" /> },
+  {
+    value: "manual",
+    label: "Manual Task",
+    icon: <Sparkles className="w-4 h-4 mr-1" />,
+  },
+  {
+    value: "auto-email",
+    label: "Auto Email",
+    icon: <Mail className="w-4 h-4 mr-1" />,
+  },
+  {
+    value: "calendar",
+    label: "Calendar Event",
+    icon: <Calendar className="w-4 h-4 mr-1" />,
+  },
+  {
+    value: "slack",
+    label: "Slack Message",
+    icon: <Slack className="w-4 h-4 mr-1" />,
+  },
+  {
+    value: "teams",
+    label: "Teams Message",
+    icon: <Slack className="w-4 h-4 mr-1 rotate-90" />,
+  },
 ];
 
 const SEND_WHEN_OPTIONS = [
@@ -90,17 +110,19 @@ export default function AdminOffboardingPage() {
       where("companyId", "==", companyId)
     );
     const unsubscribe = onSnapshot(q, (snapshot) => {
-      const loaded = snapshot.docs.map(doc => ({
+      const loaded = snapshot.docs.map((doc) => ({
         id: doc.id,
         ...doc.data(),
       })) as OffboardingTask[];
-      setTasks(loaded.sort((a, b) => (a.order ?? 0) - (b.order ?? 0)));
+      setTasks(
+        loaded.sort((a, b) => (a.order ?? 0) - (b.order ?? 0))
+      );
       setLoading(false);
     });
     return () => unsubscribe();
   }, [companyId]);
 
-  // Edit/cancel
+  // Edit / cancel
   const startEdit = (task: OffboardingTask) => {
     setEditId(task.id);
     setTitle(task.title);
@@ -126,7 +148,7 @@ export default function AdminOffboardingPage() {
     setSuccess(null);
   };
 
-  // Add/update
+  // Add / update
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
@@ -200,7 +222,11 @@ export default function AdminOffboardingPage() {
     try {
       await Promise.all(
         newTasks.map((task, idx) =>
-          setDoc(doc(db, "offboardingTasks", task.id), { order: idx + 1 }, { merge: true })
+          setDoc(
+            doc(db, "offboardingTasks", task.id),
+            { order: idx + 1 },
+            { merge: true }
+          )
         )
       );
       setSuccess("Order updated!");
@@ -215,59 +241,92 @@ export default function AdminOffboardingPage() {
     return (
       <div className="flex flex-col items-center justify-center min-h-[60vh]">
         <div className="bg-white rounded-xl p-8 shadow text-center max-w-lg">
-          <h2 className="text-2xl font-bold text-blue-700 mb-3">Offboarding Steps</h2>
-          <p className="text-gray-500">Only admins can view and edit offboarding steps.</p>
+          <h2 className="text-2xl font-bold text-brand-700 mb-3">
+            Offboarding Steps
+          </h2>
+          <p className="text-gray-500">
+            Only admins can view and edit offboarding steps.
+          </p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="bg-gradient-to-tr from-white via-blue-50 to-pink-50 rounded-3xl shadow-2xl p-8 w-full max-w-2xl mt-10 mx-auto">
+    <div
+      className="
+        bg-gradient-to-tr from-white via-brand-50 to-accent-50
+        rounded-3xl shadow-2xl p-8 w-full max-w-2xl mt-10 mx-auto
+      "
+    >
       <div className="mb-6 flex flex-col items-center gap-2">
-        <h2 className="text-3xl font-bold text-pink-800">Offboarding Builder</h2>
+        <h2 className="text-3xl font-bold text-accent-800">Offboarding Builder</h2>
         <p className="text-gray-600 text-sm">
           Farewell checklist, asset return, IT, messaging, and more. Automate your offboarding!
         </p>
       </div>
+
       <form
         onSubmit={handleSubmit}
-        className="flex flex-col gap-4 bg-white/90 border border-pink-100 rounded-xl p-5 shadow mb-8"
+        className="flex flex-col gap-4 bg-white/90 border border-accent-100 rounded-xl p-5 shadow mb-8"
         aria-label="Offboarding step editor"
       >
         <div className="flex flex-col md:flex-row items-start md:items-center gap-4">
+          {/* Step Title */}
           <input
             type="text"
             placeholder="Step Title"
             value={title}
-            className="flex-1 p-3 border-2 border-pink-200 focus:border-pink-500 rounded-lg text-base transition"
-            onChange={e => setTitle(e.target.value)}
+            className="
+              flex-1 p-3 border-2 border-accent-200
+              focus:border-accent-500 rounded-lg text-base transition
+            "
+            onChange={(e) => setTitle(e.target.value)}
             required
             maxLength={60}
           />
+
+          {/* Step Type */}
           <select
             value={type}
-            onChange={e => setType(e.target.value as any)}
-            className="border border-pink-200 rounded-lg p-2 bg-pink-50 font-semibold text-pink-700"
+            onChange={(e) => setType(e.target.value as any)}
+            className="
+              border border-accent-200 rounded-lg p-2
+              bg-accent-50 font-semibold text-accent-700
+            "
           >
-            {TASK_TYPE_OPTIONS.map(opt => (
+            {TASK_TYPE_OPTIONS.map((opt) => (
               <option key={opt.value} value={opt.value}>
                 {opt.label}
               </option>
             ))}
           </select>
+
+          {/* Add/Update Button */}
           <button
             type="submit"
-            className="bg-pink-600 text-white rounded-lg px-4 py-2 flex items-center gap-2 font-semibold shadow hover:bg-pink-700 transition disabled:opacity-50"
             disabled={loading}
+            className="btn btn-secondary flex items-center gap-2 disabled:opacity-50"
           >
-            {loading ? <Loader2 className="animate-spin w-5 h-5" /> : editId ? <Edit className="w-5 h-5" /> : <Plus className="w-5 h-5" />}
+            {loading ? (
+              <Loader2 className="animate-spin w-5 h-5" />
+            ) : editId ? (
+              <Edit className="w-5 h-5" />
+            ) : (
+              <Plus className="w-5 h-5" />
+            )}
             {editId ? "Update" : "Add"}
           </button>
+
+          {/* Cancel Edit Button (if editing) */}
           {editId && (
             <button
               type="button"
-              className="bg-gray-100 border border-gray-300 text-gray-700 rounded-lg px-4 py-2 font-semibold ml-1 hover:bg-gray-200 transition"
+              className="
+                bg-gray-100 border border-gray-300 text-gray-700
+                rounded-lg px-4 py-2 font-semibold ml-1 hover:bg-gray-200
+                transition
+              "
               onClick={cancelEdit}
               aria-label="Cancel Edit"
             >
@@ -276,25 +335,32 @@ export default function AdminOffboardingPage() {
           )}
         </div>
 
+        {/* Description */}
         <textarea
           placeholder="Description (optional)"
           value={description}
-          className="p-3 border-2 border-gray-200 focus:border-pink-400 rounded-lg text-base transition"
-          onChange={e => setDescription(e.target.value)}
+          className="
+            p-3 border-2 border-gray-200 focus:border-accent-400
+            rounded-lg text-base transition
+          "
+          onChange={(e) => setDescription(e.target.value)}
           rows={2}
           maxLength={120}
         />
 
         {/* Automation fields */}
         {type !== "manual" && (
-          <div className="bg-pink-50 border border-pink-100 p-3 rounded-xl mt-2 flex flex-col gap-2">
+          <div className="bg-accent-50 border border-accent-100 p-3 rounded-xl mt-2 flex flex-col gap-2">
             <label className="font-medium">
               Message Template
               <textarea
                 placeholder="What message/email should be sent for this step? You can use {name}, {lastDay}, etc."
                 value={autoMessageTemplate}
-                className="p-2 border border-pink-200 rounded mt-1 w-full text-sm"
-                onChange={e => setAutoMessageTemplate(e.target.value)}
+                className="
+                  p-2 border border-accent-200 rounded mt-1
+                  w-full text-sm
+                "
+                onChange={(e) => setAutoMessageTemplate(e.target.value)}
                 rows={2}
                 maxLength={200}
               />
@@ -304,11 +370,16 @@ export default function AdminOffboardingPage() {
                 Send When:
                 <select
                   value={sendWhen}
-                  onChange={e => setSendWhen(e.target.value as any)}
-                  className="p-2 border border-pink-200 rounded ml-2 bg-white"
+                  onChange={(e) => setSendWhen(e.target.value as any)}
+                  className="
+                    p-2 border border-accent-200 rounded ml-2
+                    bg-white
+                  "
                 >
-                  {SEND_WHEN_OPTIONS.map(opt => (
-                    <option key={opt.value} value={opt.value}>{opt.label}</option>
+                  {SEND_WHEN_OPTIONS.map((opt) => (
+                    <option key={opt.value} value={opt.value}>
+                      {opt.label}
+                    </option>
                   ))}
                 </select>
               </label>
@@ -319,8 +390,11 @@ export default function AdminOffboardingPage() {
                     type="email"
                     placeholder="e.g. it@company.com"
                     value={targetEmail}
-                    className="p-2 border border-pink-200 rounded ml-2"
-                    onChange={e => setTargetEmail(e.target.value)}
+                    className="
+                      p-2 border border-accent-200 rounded ml-2
+                      w-full
+                    "
+                    onChange={(e) => setTargetEmail(e.target.value)}
                   />
                 </label>
               )}
@@ -328,24 +402,42 @@ export default function AdminOffboardingPage() {
           </div>
         )}
 
+        {/* Enabled Checkbox */}
         <div className="flex items-center gap-3 mt-2">
           <label className="flex items-center gap-2 font-medium">
             <input
               type="checkbox"
               checked={enabled}
-              onChange={() => setEnabled(v => !v)}
-              className="accent-pink-600"
+              onChange={() => setEnabled((v) => !v)}
+              className="accent-accent-600 h-4 w-4"
             />
             <span className="text-sm">Step Enabled</span>
           </label>
         </div>
-        {error && <Toast message={error} type="error" onClose={() => setError(null)} />}
-        {success && <Toast message={success} type="success" onClose={() => setSuccess(null)} />}
+
+        {/* Toasts */}
+        {error && (
+          <Toast
+            message={error}
+            type="error"
+            onClose={() => setError(null)}
+          />
+        )}
+        {success && (
+          <Toast
+            message={success}
+            type="success"
+            onClose={() => setSuccess(null)}
+          />
+        )}
       </form>
-      <hr className="mb-6 border-pink-100" />
+
+      <hr className="mb-6 border-accent-100" />
+
+      {/* Reorderable List */}
       <div>
-        <h3 className="font-semibold mb-3 text-pink-700 flex items-center gap-1 text-lg">
-          <GripVertical className="inline w-6 h-6 text-pink-300" />
+        <h3 className="font-semibold mb-3 text-accent-700 flex items-center gap-1 text-lg">
+          <GripVertical className="inline w-6 h-6 text-accent-300" />
           Drag to Reorder Steps
         </h3>
         <DragDropContext onDragEnd={handleDragEnd}>
@@ -359,90 +451,140 @@ export default function AdminOffboardingPage() {
                 {tasks.length === 0 && (
                   <div className="text-center text-gray-400 py-10 flex flex-col items-center">
                     <span className="text-5xl mb-3">👋</span>
-                    <div className="text-lg font-semibold">No offboarding steps yet.</div>
-                    <div className="text-xs text-gray-500 mt-1">Add your first step above!</div>
+                    <div className="text-lg font-semibold">
+                      No offboarding steps yet.
+                    </div>
+                    <div className="text-xs text-gray-500 mt-1">
+                      Add your first step above!
+                    </div>
                   </div>
                 )}
                 {tasks
                   .slice()
                   .sort((a, b) => (a.order ?? 0) - (b.order ?? 0))
                   .map((task, idx) => (
-                  <Draggable draggableId={task.id} index={idx} key={task.id}>
-                    {(provided, snapshot) => (
-                      <li
-                        ref={provided.innerRef}
-                        {...provided.draggableProps}
-                        className={`transition-all duration-200 p-4 border-2 rounded-2xl bg-white shadow-lg flex flex-col group
-                          ${
-                            snapshot.isDragging
-                              ? "border-pink-400 shadow-2xl scale-[1.03] bg-pink-50"
-                              : "border-gray-200"
-                          }`}
-                        style={{
-                          boxShadow: snapshot.isDragging
-                            ? "0 4px 24px 0 #fbcfe888"
-                            : undefined,
-                          ...provided.draggableProps.style,
-                        }}
-                      >
-                        <div className="flex items-center justify-between gap-4">
-                          <span
-                            {...provided.dragHandleProps}
-                            className="cursor-grab active:cursor-grabbing"
-                            title="Drag to reorder"
+                    <Draggable
+                      draggableId={task.id}
+                      index={idx}
+                      key={task.id}
+                    >
+                      {(provided, snapshot) => {
+                        const isDragging = snapshot.isDragging;
+                        return (
+                          <li
+                            ref={provided.innerRef}
+                            {...provided.draggableProps}
+                            className={`
+                              transition-all duration-200 p-4 border-2 rounded-2xl bg-white
+                              shadow-lg flex flex-col group
+                              ${
+                                isDragging
+                                  ? "border-accent-400 shadow-2xl scale-[1.03] bg-accent-50"
+                                  : "border-gray-200"
+                              }
+                            `}
+                            style={{
+                              boxShadow: isDragging
+                                ? "0 4px 24px 0 #fbcfe888"
+                                : undefined,
+                              ...provided.draggableProps.style,
+                            }}
                           >
-                            <GripVertical className="w-6 h-6 text-pink-300" />
-                          </span>
-                          <div className="flex-1 min-w-0">
-                            <div className="font-bold text-pink-900 truncate text-lg">{task.title}</div>
-                            <div className="text-xs text-pink-500 font-medium capitalize mb-1">
-                              {TASK_TYPE_OPTIONS.find(o => o.value === task.type)?.label || "Manual"}
-                            </div>
-                            {task.description && (
-                              <div className="text-gray-500 text-sm mt-1">{task.description}</div>
-                            )}
-                            {task.type && task.type !== "manual" && (
-                              <div className="mt-1 text-xs text-pink-600 bg-pink-50 border border-pink-100 rounded p-2">
-                                <div>
-                                  <b>Message:</b> {task.autoMessageTemplate || <span className="text-gray-400">None set</span>}
+                            <div className="flex items-center justify-between gap-4">
+                              <span
+                                {...provided.dragHandleProps}
+                                className="cursor-grab active:cursor-grabbing"
+                                title="Drag to reorder"
+                              >
+                                <GripVertical className="w-6 h-6 text-accent-300" />
+                              </span>
+                              <div className="flex-1 min-w-0">
+                                <div className="font-bold text-accent-900 truncate text-lg">
+                                  {task.title}
                                 </div>
-                                <div>
-                                  <b>When:</b> {SEND_WHEN_OPTIONS.find(s => s.value === task.sendWhen)?.label || "Immediately"}
+                                <div className="text-xs text-accent-500 font-medium capitalize mb-1">
+                                  {TASK_TYPE_OPTIONS.find(
+                                    (o) => o.value === task.type
+                                  )?.label || "Manual"}
                                 </div>
-                                {task.type === "auto-email" && task.targetEmail && (
-                                  <div>
-                                    <b>Recipient:</b> {task.targetEmail}
+                                {task.description && (
+                                  <div className="text-gray-500 text-sm mt-1">
+                                    {task.description}
                                   </div>
                                 )}
+                                {/* Automation info */}
+                                {task.type && task.type !== "manual" && (
+                                  <div
+                                    className="
+                                      mt-1 text-xs text-accent-600
+                                      bg-accent-50 border border-accent-100
+                                      rounded p-2
+                                    "
+                                  >
+                                    <div>
+                                      <b>Message:</b>{" "}
+                                      {task.autoMessageTemplate || (
+                                        <span className="text-gray-400">
+                                          None set
+                                        </span>
+                                      )}
+                                    </div>
+                                    <div>
+                                      <b>When:</b>{" "}
+                                      {
+                                        SEND_WHEN_OPTIONS.find(
+                                          (s) =>
+                                            s.value === task.sendWhen
+                                        )?.label || "Immediately"
+                                      }
+                                    </div>
+                                    {task.type === "auto-email" &&
+                                      task.targetEmail && (
+                                        <div>
+                                          <b>Recipient:</b>{" "}
+                                          {task.targetEmail}
+                                        </div>
+                                      )}
+                                  </div>
+                                )}
+                                {/* Disabled label */}
+                                {!task.enabled && (
+                                  <span className="inline-block mt-1 text-xs font-bold text-red-500">
+                                    Disabled
+                                  </span>
+                                )}
                               </div>
-                            )}
-                            {!task.enabled && (
-                              <span className="inline-block mt-1 text-xs font-bold text-red-500">Disabled</span>
-                            )}
-                          </div>
-                          <div className="flex gap-2">
-                            <button
-                              className="p-2 rounded-lg text-pink-600 hover:bg-pink-50 transition"
-                              onClick={() => startEdit(task)}
-                              type="button"
-                              aria-label="Edit"
-                            >
-                              <Edit className="w-5 h-5" />
-                            </button>
-                            <button
-                              className="p-2 rounded-lg text-red-600 hover:bg-red-50 transition"
-                              onClick={() => handleDelete(task.id)}
-                              type="button"
-                              aria-label="Delete"
-                            >
-                              <Trash2 className="w-5 h-5" />
-                            </button>
-                          </div>
-                        </div>
-                      </li>
-                    )}
-                  </Draggable>
-                ))}
+                              {/* Edit / Delete buttons */}
+                              <div className="flex gap-2">
+                                <button
+                                  className="
+                                    p-2 rounded-lg text-accent-600
+                                    hover:bg-accent-50 transition
+                                  "
+                                  onClick={() => startEdit(task)}
+                                  type="button"
+                                  aria-label="Edit"
+                                >
+                                  <Edit className="w-5 h-5" />
+                                </button>
+                                <button
+                                  className="
+                                    p-2 rounded-lg text-red-600
+                                    hover:bg-red-50 transition
+                                  "
+                                  onClick={() => handleDelete(task.id)}
+                                  type="button"
+                                  aria-label="Delete"
+                                >
+                                  <Trash2 className="w-5 h-5" />
+                                </button>
+                              </div>
+                            </div>
+                          </li>
+                        );
+                      }}
+                    </Draggable>
+                  ))}
                 {provided.placeholder}
               </ul>
             )}

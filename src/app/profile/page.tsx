@@ -18,8 +18,8 @@ export default function ProfilePage(): React.ReactElement {
   useEffect(() => {
     if (!user) return;
     setLoading(true);
-    fetchUserProfile(user.uid).then((profile) => {
-      setProfile(profile);
+    fetchUserProfile(user.uid).then((pf) => {
+      setProfile(pf);
       setLoading(false);
     });
   }, [user, editing]);
@@ -31,30 +31,53 @@ export default function ProfilePage(): React.ReactElement {
     if (errMsg) setError(errMsg);
   }
 
+  // Loading state
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-blue-50 via-pink-50 to-yellow-50">
-        <div className="text-lg text-blue-600 animate-pulse">Loading profile...</div>
-      </div>
-    );
-  }
-
-  if (!user || !profile) {
-    return (
-      <div className="flex flex-col items-center justify-center min-h-screen bg-gradient-to-br from-blue-100 via-white to-pink-50">
-        <div className="bg-white/90 p-8 rounded-2xl shadow-2xl">
-          <div className="text-red-500 font-bold text-lg">User not found or not logged in.</div>
+      <div
+        className="
+          flex items-center justify-center min-h-screen
+          bg-gradient-to-br from-white via-brand-50 to-accent-50
+        "
+      >
+        <div className="text-lg text-brand-600 animate-pulse">
+          Loading profile...
         </div>
       </div>
     );
   }
 
+  // If not logged in or no profile found
+  if (!user || !profile) {
+    return (
+      <div
+        className="
+          flex flex-col items-center justify-center min-h-screen
+          bg-gradient-to-br from-white via-brand-50 to-accent-50
+        "
+      >
+        <div className="bg-white/90 p-8 rounded-2xl shadow-2xl">
+          <div className="text-red-500 font-bold text-lg">
+            User not found or not logged in.
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Editing mode: show the ProfileEditor
   if (editing) {
     return (
-      <div className="flex flex-col items-center min-h-screen bg-gradient-to-br from-blue-50 via-pink-50 to-yellow-50 pt-12">
+      <div
+        className="
+          flex flex-col items-center min-h-screen
+          bg-gradient-to-br from-white via-brand-50 to-accent-50
+          pt-12
+        "
+      >
         <ProfileEditor onDone={handleEditDone} />
         <button
-          className="mt-4 text-blue-600 underline text-sm"
+          className="mt-4 text-brand-600 underline text-sm"
           onClick={() => setEditing(false)}
         >
           Cancel
@@ -63,38 +86,67 @@ export default function ProfilePage(): React.ReactElement {
     );
   }
 
+  // Profile view mode
   return (
-    <div className="flex flex-col items-center min-h-screen bg-gradient-to-br from-blue-50 via-white to-pink-50 px-4 py-12">
-      <main className="bg-white/95 rounded-3xl shadow-2xl p-10 w-full max-w-lg flex flex-col items-center animate-fade-in">
+    <div
+      className="
+        flex flex-col items-center min-h-screen
+        bg-gradient-to-br from-white via-brand-50 to-accent-50
+        px-4 py-12
+      "
+    >
+      <main
+        className="
+          bg-white/95 rounded-3xl shadow-2xl p-10
+          w-full max-w-lg flex flex-col items-center
+          animate-fade-in
+        "
+      >
         <div className="flex flex-col items-center gap-2">
           <div className="relative mb-4">
             <UserAvatar
               nameOrEmail={profile.fullName || profile.email}
-              photoURL={typeof profile.photoURL === "string" ? profile.photoURL : undefined}
+              photoURL={
+                typeof profile.photoURL === "string"
+                  ? profile.photoURL
+                  : undefined
+              }
               size={96}
-              className="shadow-lg border-4 border-blue-100"
+              className="shadow-lg border-4 border-brand-100"
             />
-            <span className="absolute -bottom-2 right-1 bg-blue-600 text-white rounded-full px-3 py-1 text-xs font-bold shadow">
+            <span
+              className="
+                absolute -bottom-2 right-1
+                bg-brand-600 text-white
+                rounded-full px-3 py-1 text-xs font-bold
+                shadow
+              "
+            >
               🎉
             </span>
           </div>
-          <h1 className="text-3xl font-extrabold text-blue-700 mb-1 text-center">
+          <h1 className="text-3xl font-extrabold text-brand-700 mb-1 text-center">
             {profile.fullName || "(No Name)"}
           </h1>
           <div className="text-gray-500 mb-2 text-center">{profile.email}</div>
+
           <div className="flex flex-col items-center gap-1 text-gray-600 text-base mb-3">
             {profile.birthday && (
               <div>
                 <span className="mr-1">🎂</span>
                 <span>Birthday:</span>{" "}
-                <span className="font-medium">{new Date(profile.birthday).toLocaleDateString()}</span>
+                <span className="font-medium">
+                  {new Date(profile.birthday).toLocaleDateString()}
+                </span>
               </div>
             )}
             {profile.anniversary && (
               <div>
                 <span className="mr-1">🎉</span>
                 <span>Work Anniversary:</span>{" "}
-                <span className="font-medium">{new Date(profile.anniversary).toLocaleDateString()}</span>
+                <span className="font-medium">
+                  {new Date(profile.anniversary).toLocaleDateString()}
+                </span>
               </div>
             )}
             {profile.phone && (
@@ -104,14 +156,21 @@ export default function ProfilePage(): React.ReactElement {
               </div>
             )}
           </div>
-          {/* Add stats or kudos info here if you want */}
+
+          {/* Edit Profile Button */}
           <button
-            className="mt-2 px-8 py-2 bg-blue-600 text-white rounded-xl font-bold shadow hover:bg-blue-700 transition text-lg"
+            className="
+              mt-2 px-8 py-2
+              bg-brand-600 text-white
+              rounded-xl font-bold shadow
+              hover:bg-brand-700 transition text-lg
+            "
             onClick={() => setEditing(true)}
           >
             Edit Profile
           </button>
         </div>
+
         {/* Toast feedback */}
         {success && (
           <Toast

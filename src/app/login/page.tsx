@@ -33,12 +33,16 @@ export default function LoginPage(): React.ReactElement {
     setLoading(true);
     try {
       await login(email, password);
-      // router.push("/dashboard"); // Now handled by useEffect
+      // Router redirect is handled by the useEffect if logged in
     } catch (err: any) {
       const msg = err?.message || "Login failed";
-      if (msg.includes("auth/wrong-password")) setError("Incorrect password.");
-      else if (msg.includes("auth/user-not-found")) setError("No account found for that email.");
-      else setError(msg);
+      if (msg.includes("auth/wrong-password")) {
+        setError("Incorrect password.");
+      } else if (msg.includes("auth/user-not-found")) {
+        setError("No account found for that email.");
+      } else {
+        setError(msg);
+      }
     }
     setLoading(false);
   };
@@ -62,39 +66,64 @@ export default function LoginPage(): React.ReactElement {
     }
   };
 
+  // Loading auth state
   if (authLoading) {
     return (
-      <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-blue-50 via-pink-50 to-yellow-50">
-        <div className="text-lg text-blue-600 animate-pulse">Loading...</div>
+      <div
+        className="
+          flex items-center justify-center min-h-screen
+          bg-gradient-to-br from-white via-brand-50 to-accent-50
+        "
+      >
+        <div className="text-lg text-brand-600 animate-pulse">Loading...</div>
       </div>
     );
   }
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen bg-gradient-to-br from-blue-50 via-white to-yellow-50 px-4">
+    <div
+      className="
+        flex flex-col items-center justify-center min-h-screen
+        bg-gradient-to-br from-white via-brand-50 to-accent-50
+        px-4
+      "
+    >
       <main className="w-full max-w-md">
         <div className="flex flex-col items-center mb-4">
           <span className="text-5xl mb-2 animate-bounce">🎂</span>
-          <h1 className="text-3xl font-extrabold text-blue-700 text-center drop-shadow">
+          <h1 className="text-3xl font-extrabold text-brand-700 text-center drop-shadow">
             Welcome to Cakeday
           </h1>
-          <p className="text-blue-600 text-base text-center mt-1 mb-3">
+          <p className="text-brand-600 text-base text-center mt-1 mb-3">
             Log in to celebrate, recognize, and thrive.
           </p>
         </div>
+
+        {/* Login Form */}
         {!resetMode ? (
           <form
             onSubmit={handleLogin}
-            className="bg-white/95 p-8 rounded-2xl shadow-xl w-full animate-fade-in"
+            className="
+              bg-white/95 p-8 rounded-2xl shadow-xl w-full
+              animate-fade-in
+            "
           >
-            <h2 className="text-xl font-semibold mb-5 text-center text-blue-700">Sign In</h2>
+            <h2 className="text-xl font-semibold mb-5 text-center text-brand-700">
+              Sign In
+            </h2>
             {error && (
-              <div className="text-red-600 mb-4 text-center font-medium">{error}</div>
+              <div className="text-red-600 mb-4 text-center font-medium">
+                {error}
+              </div>
             )}
             <input
               type="email"
               placeholder="Email"
-              className="mb-4 w-full p-3 border-2 border-blue-100 focus:border-blue-500 rounded-xl outline-none transition"
+              className="
+                mb-4 w-full p-3 border-2 border-brand-100
+                focus:border-brand-500 rounded-xl
+                transition
+              "
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
@@ -103,7 +132,11 @@ export default function LoginPage(): React.ReactElement {
             <input
               type="password"
               placeholder="Password"
-              className="mb-4 w-full p-3 border-2 border-blue-100 focus:border-blue-500 rounded-xl outline-none transition"
+              className="
+                mb-4 w-full p-3 border-2 border-brand-100
+                focus:border-brand-500 rounded-xl
+                transition
+              "
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
@@ -111,7 +144,10 @@ export default function LoginPage(): React.ReactElement {
             />
             <button
               type="submit"
-              className="w-full bg-blue-600 text-white py-2 rounded-xl font-semibold text-lg hover:bg-blue-700 transition"
+              className="
+                btn btn-primary w-full text-lg
+                disabled:opacity-50
+              "
               disabled={loading}
             >
               {loading ? "Logging In..." : "Log In"}
@@ -119,7 +155,7 @@ export default function LoginPage(): React.ReactElement {
             <div className="mt-4 flex flex-col items-center gap-2">
               <button
                 type="button"
-                className="text-blue-600 hover:underline text-sm"
+                className="text-brand-600 hover:underline text-sm"
                 onClick={() => {
                   setResetMode(true);
                   setResetEmail("");
@@ -131,25 +167,39 @@ export default function LoginPage(): React.ReactElement {
               </button>
               <p className="text-center text-sm">
                 Don&apos;t have an account?{" "}
-                <a href="/signup" className="text-blue-600 hover:underline font-semibold">
+                <a
+                  href="/signup"
+                  className="text-brand-600 hover:underline font-semibold"
+                >
                   Sign Up
                 </a>
               </p>
             </div>
           </form>
         ) : (
+          /* Password Reset Form */
           <form
             onSubmit={handlePasswordReset}
-            className="bg-white/95 p-8 rounded-2xl shadow-xl w-full animate-fade-in"
+            className="
+              bg-white/95 p-8 rounded-2xl shadow-xl w-full
+              animate-fade-in
+            "
           >
-            <h2 className="text-xl font-semibold mb-4 text-center text-blue-700">Reset Password</h2>
+            <h2 className="text-xl font-semibold mb-4 text-center text-brand-700">
+              Reset Password
+            </h2>
             <p className="mb-4 text-center text-gray-700 text-sm">
-              Enter your account email and we&apos;ll send you a password reset link.
+              Enter your account email and we&apos;ll send you a password reset
+              link.
             </p>
             <input
               type="email"
               placeholder="Your email"
-              className="mb-4 w-full p-3 border-2 border-blue-100 focus:border-blue-500 rounded-xl outline-none transition"
+              className="
+                mb-4 w-full p-3 border-2 border-brand-100
+                focus:border-brand-500 rounded-xl
+                transition
+              "
               value={resetEmail}
               onChange={(e) => setResetEmail(e.target.value)}
               required
@@ -157,14 +207,21 @@ export default function LoginPage(): React.ReactElement {
             />
             <button
               type="submit"
-              className="w-full bg-blue-600 text-white py-2 rounded-xl font-semibold text-lg hover:bg-blue-700 transition"
+              className="
+                btn btn-primary w-full text-lg
+                disabled:opacity-50
+              "
               disabled={!resetEmail}
             >
               Send Reset Email
             </button>
             <button
               type="button"
-              className="w-full mt-3 bg-gray-100 text-blue-700 py-2 rounded-xl font-semibold hover:bg-gray-200 transition"
+              className="
+                w-full mt-3 bg-gray-100 text-brand-700
+                py-2 rounded-xl font-semibold
+                hover:bg-gray-200 transition
+              "
               onClick={() => setResetMode(false)}
             >
               Back to Login
@@ -175,13 +232,22 @@ export default function LoginPage(): React.ReactElement {
               </div>
             )}
             {resetError && (
-              <div className="text-red-600 mt-4 text-center font-medium">{resetError}</div>
+              <div className="text-red-600 mt-4 text-center font-medium">
+                {resetError}
+              </div>
             )}
           </form>
         )}
       </main>
-      <footer className="py-6 text-center text-xs text-gray-500 bg-gradient-to-br from-blue-100 via-yellow-50 to-white border-t border-blue-100 mt-10 w-full">
-        &copy; {new Date().getFullYear()} Cakeday HR Onboarding & Recognition
+
+      <footer
+        className="
+          py-6 text-center text-xs text-gray-500
+          bg-gradient-to-br from-brand-100 via-accent-50 to-white
+          border-t border-brand-100 mt-10 w-full
+        "
+      >
+        &copy; {new Date().getFullYear()} Cakeday HR Onboarding &amp; Recognition
       </footer>
     </div>
   );

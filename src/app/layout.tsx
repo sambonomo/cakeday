@@ -24,9 +24,9 @@ export const metadata: Metadata = {
 
 export default function RootLayout({
   children,
-}: Readonly<{
+}: {
   children: React.ReactNode;
-}>) {
+}) {
   return (
     <html lang="en" suppressHydrationWarning>
       <head>
@@ -37,10 +37,10 @@ export default function RootLayout({
       </head>
       <body
         className={`
-          ${geistSans.variable} ${geistMono.variable} antialiased min-h-screen
-          bg-gradient-to-tr from-blue-50 via-rose-50 to-yellow-50
+          ${geistSans.variable} ${geistMono.variable}
+          antialiased min-h-screen text-base
+          bg-gradient-to-tr from-white via-brand-50 to-accent-50
           dark:from-slate-900 dark:via-indigo-950 dark:to-blue-900
-          text-base
         `}
         style={{
           background: "var(--color-background)",

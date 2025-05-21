@@ -38,6 +38,7 @@ export default function IntegrationsAdminPage() {
           setPostKudosToSlack(data.postKudosToSlack !== false);
           setPostBirthdaysToSlack(data.postBirthdaysToSlack !== false);
           setPostNewHireToSlack(data.postNewHireToSlack !== false);
+
           setTeamsWebhookUrl(data.teamsWebhookUrl || "");
           setPostKudosToTeams(data.postKudosToTeams === true);
           setPostBirthdaysToTeams(data.postBirthdaysToTeams === true);
@@ -61,6 +62,7 @@ export default function IntegrationsAdminPage() {
           postKudosToSlack,
           postBirthdaysToSlack,
           postNewHireToSlack,
+
           teamsWebhookUrl: teamsWebhookUrl.trim(),
           postKudosToTeams,
           postBirthdaysToTeams,
@@ -75,11 +77,12 @@ export default function IntegrationsAdminPage() {
     setSaving(false);
   };
 
+  // Guard for non-admin users
   if (role !== "admin") {
     return (
-      <div className="flex flex-col items-center justify-center min-h-[60vh]">
+      <div className="flex flex-col items-center justify-center min-h-[60vh] px-4">
         <div className="bg-white rounded-xl p-8 shadow text-center max-w-lg">
-          <h2 className="text-2xl font-bold text-blue-700 mb-3">Integrations</h2>
+          <h2 className="text-2xl font-bold text-brand-700 mb-3">Integrations</h2>
           <p className="text-gray-500">Only admins can view and edit integration settings.</p>
         </div>
       </div>
@@ -87,32 +90,40 @@ export default function IntegrationsAdminPage() {
   }
 
   return (
-    <div className="flex flex-col items-center min-h-[60vh] px-2 sm:px-4 py-8">
+    <div className="flex flex-col items-center min-h-[60vh] px-4 py-8">
       <form
         onSubmit={handleSave}
-        className="w-full max-w-xl bg-white rounded-3xl shadow-2xl glass-card p-8 border border-blue-100 animate-fade-in"
         aria-label="Integration settings"
+        className="
+          w-full max-w-xl glass-card rounded-3xl shadow-2xl p-8 
+          border border-brand-100 animate-fade-in
+        "
       >
-        <h1 className="text-3xl font-extrabold text-blue-700 mb-3 flex items-center gap-2">
-          <span>🔌</span> Integrations
+        <h1 className="text-3xl font-extrabold text-brand-700 mb-3 flex items-center gap-2">
+          <span role="img" aria-label="plugin">🔌</span> Integrations
         </h1>
         <p className="mb-6 text-gray-600 text-sm">
-          Connect Slack or Teams to broadcast Kudos, birthdays, and new hire announcements automatically to your team's channel.
+          Connect Slack or Teams to broadcast Kudos, birthdays, and new hire announcements
+          automatically to your team's channel.
         </p>
 
         {/* Loading spinner */}
         {loading && (
-          <div className="mb-6 flex items-center gap-2 text-blue-500 animate-pulse">
-            <span className="h-4 w-4 rounded-full border-2 border-blue-200 border-t-blue-700 animate-spin" />
+          <div className="mb-6 flex items-center gap-2 text-brand-600 animate-pulse">
+            <span className="h-4 w-4 rounded-full border-2 border-brand-200 border-t-brand-600 animate-spin" />
             Loading integration settings...
           </div>
         )}
 
         {/* Slack Integration */}
-        <fieldset className="mb-7" aria-labelledby="slack-int">
-          <legend id="slack-int" className="block text-base font-semibold mb-2 text-blue-800">
+        <fieldset className="mb-7" aria-labelledby="slack-integration-heading">
+          <legend
+            id="slack-integration-heading"
+            className="block text-base font-semibold mb-2 text-brand-700"
+          >
             Slack Integration
           </legend>
+
           <label className="block font-medium mb-1" htmlFor="slack-webhook">
             Slack Webhook URL
           </label>
@@ -122,35 +133,38 @@ export default function IntegrationsAdminPage() {
             placeholder="Paste your Slack Webhook URL here"
             value={slackWebhookUrl}
             onChange={(e) => setSlackWebhookUrl(e.target.value)}
-            className="w-full p-2 border border-blue-200 rounded mb-3"
+            className="
+              w-full p-2 border border-brand-200 rounded mb-3
+              focus:ring-2 focus:ring-brand-400
+            "
             autoComplete="off"
           />
 
           <div className="flex flex-col gap-2 mb-2">
-            <label className="flex items-center gap-2">
+            <label className="flex items-center gap-2 text-sm">
               <input
                 type="checkbox"
                 checked={postKudosToSlack}
                 onChange={() => setPostKudosToSlack((v) => !v)}
-                className="accent-blue-600"
+                className="accent-brand-600 h-4 w-4"
               />
               Post Kudos to Slack
             </label>
-            <label className="flex items-center gap-2">
+            <label className="flex items-center gap-2 text-sm">
               <input
                 type="checkbox"
                 checked={postBirthdaysToSlack}
                 onChange={() => setPostBirthdaysToSlack((v) => !v)}
-                className="accent-blue-600"
+                className="accent-brand-600 h-4 w-4"
               />
               Post Birthdays & Anniversaries
             </label>
-            <label className="flex items-center gap-2">
+            <label className="flex items-center gap-2 text-sm">
               <input
                 type="checkbox"
                 checked={postNewHireToSlack}
                 onChange={() => setPostNewHireToSlack((v) => !v)}
-                className="accent-blue-600"
+                className="accent-brand-600 h-4 w-4"
               />
               Post New Hire Announcements
             </label>
@@ -158,10 +172,14 @@ export default function IntegrationsAdminPage() {
         </fieldset>
 
         {/* Teams Integration */}
-        <fieldset className="mb-8" aria-labelledby="teams-int">
-          <legend id="teams-int" className="block text-base font-semibold mb-2 text-blue-800">
+        <fieldset className="mb-8" aria-labelledby="teams-integration-heading">
+          <legend
+            id="teams-integration-heading"
+            className="block text-base font-semibold mb-2 text-brand-700"
+          >
             Microsoft Teams Integration
           </legend>
+
           <label className="block font-medium mb-1" htmlFor="teams-webhook">
             Teams Webhook URL
           </label>
@@ -171,50 +189,68 @@ export default function IntegrationsAdminPage() {
             placeholder="Paste your Teams Webhook URL here"
             value={teamsWebhookUrl}
             onChange={(e) => setTeamsWebhookUrl(e.target.value)}
-            className="w-full p-2 border border-blue-200 rounded mb-3"
+            className="
+              w-full p-2 border border-brand-200 rounded mb-3
+              focus:ring-2 focus:ring-brand-400
+            "
             autoComplete="off"
           />
+
           <div className="flex flex-col gap-2 mb-2">
-            <label className="flex items-center gap-2">
+            <label className="flex items-center gap-2 text-sm">
               <input
                 type="checkbox"
                 checked={postKudosToTeams}
                 onChange={() => setPostKudosToTeams((v) => !v)}
-                className="accent-blue-600"
+                className="accent-brand-600 h-4 w-4"
               />
               Post Kudos to Teams
             </label>
-            <label className="flex items-center gap-2">
+            <label className="flex items-center gap-2 text-sm">
               <input
                 type="checkbox"
                 checked={postBirthdaysToTeams}
                 onChange={() => setPostBirthdaysToTeams((v) => !v)}
-                className="accent-blue-600"
+                className="accent-brand-600 h-4 w-4"
               />
               Post Birthdays & Anniversaries
             </label>
-            <label className="flex items-center gap-2">
+            <label className="flex items-center gap-2 text-sm">
               <input
                 type="checkbox"
                 checked={postNewHireToTeams}
                 onChange={() => setPostNewHireToTeams((v) => !v)}
-                className="accent-blue-600"
+                className="accent-brand-600 h-4 w-4"
               />
               Post New Hire Announcements
             </label>
           </div>
         </fieldset>
 
+        {/* Submit Button */}
         <button
           type="submit"
-          className="bg-blue-700 text-white px-6 py-2 rounded-lg font-semibold hover:bg-blue-800 transition disabled:opacity-50"
           disabled={saving || loading}
+          className="btn btn-primary disabled:opacity-50"
         >
           {saving ? "Saving..." : "Save Settings"}
         </button>
 
-        {success && <Toast message={success} type="success" onClose={() => setSuccess(null)} />}
-        {error && <Toast message={error} type="error" onClose={() => setError(null)} />}
+        {/* Toast notifications */}
+        {success && (
+          <Toast
+            message={success}
+            type="success"
+            onClose={() => setSuccess(null)}
+          />
+        )}
+        {error && (
+          <Toast
+            message={error}
+            type="error"
+            onClose={() => setError(null)}
+          />
+        )}
       </form>
     </div>
   );
