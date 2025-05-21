@@ -2,7 +2,7 @@
 import React, { useEffect, useState } from "react";
 import { useAuth } from "../../context/AuthContext";
 import { db } from "../../lib/firebase";
-import { collection, query, where, orderBy, getDocs, updateDoc, doc } from "firebase/firestore";
+import { collection, query, where, orderBy, onSnapshot, updateDoc, doc } from "firebase/firestore";
 
 type Notification = {
   id: string;
@@ -28,13 +28,13 @@ export default function NotificationsPage() {
   useEffect(() => {
     if (!user?.uid) return;
     setNotifLoading(true);
-    getDocs(
-      query(
-        collection(db, "notifications"),
-        where("toUid", "==", user.uid),
-        orderBy("sentAt", "desc")
-      )
-    ).then((snap) => {
+    // REAL-TIME SNAPSHOT!
+    const q = query(
+      collection(db, "notifications"),
+      where("toUid", "==", user.uid),
+      orderBy("sentAt", "desc")
+    );
+    const unsub = onSnapshot(q, (snap) => {
       setNotifs(
         snap.docs.map((d) => ({
           id: d.id,
@@ -43,6 +43,7 @@ export default function NotificationsPage() {
       );
       setNotifLoading(false);
     });
+    return () => unsub();
   }, [user?.uid]);
 
   // Mark as read
