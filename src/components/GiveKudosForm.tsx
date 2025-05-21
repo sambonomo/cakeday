@@ -76,7 +76,7 @@ export default function GiveKudosForm({
     }
 
     // TypeScript/ESLint safe: direct access, no in checks
-    const fromName = user.displayName ?? user.email ?? "";
+    const fromName = user.fullName ?? user.email ?? "";
     const fromPhotoURL = user.photoURL ?? "";
     const toName = recipient.fullName || recipient.email;
     // Safe photoURL: only string or undefined, never object
