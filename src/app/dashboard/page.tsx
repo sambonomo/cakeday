@@ -18,8 +18,9 @@ const OffboardingChecklist = dynamic(
   () => import("../../components/OffboardingChecklist"),
   { ssr: false }
 );
-const AssignedTasksList = dynamic(
-  () => import("../../components/AssignedTasksList"),
+// <-- NEW: Import the dashboard -->
+const AssignedTasksDashboard = dynamic(
+  () => import("../../components/AssignedTasksDashboard"),
   { ssr: false }
 );
 const AdminOnboardingTasks = dynamic(
@@ -43,7 +44,6 @@ export default function DashboardPage(): React.ReactElement {
   const { user, role, logout, loading, companyId } = useAuth();
   const router = useRouter();
 
-  // All hooks MUST be here!
   // Invite Code State (for admins)
   const [inviteCode, setInviteCode] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
@@ -111,10 +111,11 @@ export default function DashboardPage(): React.ReactElement {
           .join("  ")
       : "";
 
-  // Checklist logic
+  // -- MAIN LAYOUT LOGIC --
+
+  // Onboarding/Offboarding Section Logic
   let onboardingSection = null;
   let offboardingSection = null;
-  let assignedSection = null;
 
   if (user.status === "newHire") {
     onboardingSection = (
@@ -152,19 +153,9 @@ export default function DashboardPage(): React.ReactElement {
     );
   }
 
-  // Always show assigned tasks for any logged-in user (including new hires, managers, etc.)
-  assignedSection = (
-    <div
-      className="
-        bg-white/90 rounded-2xl shadow-xl border border-blue-100
-        p-6 flex flex-col mb-4
-      "
-    >
-      <h2 className="text-2xl font-bold mb-2 text-blue-700 flex items-center gap-2">
-        <span role="img" aria-label="Tasks">🗂️</span> My Assigned Tasks
-      </h2>
-      <AssignedTasksList companyId={companyId} />
-    </div>
+  // Assigned tasks for EVERY user (new hire, manager, IT, etc.)
+  const assignedSection = (
+    <AssignedTasksDashboard />
   );
 
   return (
@@ -260,23 +251,23 @@ export default function DashboardPage(): React.ReactElement {
         <Leaderboard companyId={companyId} limit={10} />
 
         <section className="w-full grid grid-cols-1 md:grid-cols-2 gap-8">
-          {/* Onboarding, Offboarding, or Assigned Checklist */}
-          {/* Order: Onboarding for new hires, then Assigned, then Offboarding for exiting, else Assigned */}
-          {user.status === "newHire"
-            ? (
-              <>
-                {onboardingSection}
-                {assignedSection}
-              </>
-            )
-            : user.status === "exiting"
-            ? (
-              <>
-                {offboardingSection}
-                {assignedSection}
-              </>
-            )
-            : assignedSection}
+          {/* Smart logic: always show assignedSection.
+            If newHire: show onboarding and assigned.
+            If exiting: show offboarding and assigned.
+            Otherwise: just assigned tasks. */}
+          {user.status === "newHire" ? (
+            <>
+              {onboardingSection}
+              {assignedSection}
+            </>
+          ) : user.status === "exiting" ? (
+            <>
+              {offboardingSection}
+              {assignedSection}
+            </>
+          ) : (
+            assignedSection
+          )}
 
           {/* Birthdays & Anniversaries */}
           <div
@@ -342,7 +333,6 @@ export default function DashboardPage(): React.ReactElement {
         "
       >
         &copy; {new Date().getFullYear()} Cakeday HR Onboarding &amp; Recognition •
-        Made with ❤️ and Next.js
       </footer>
     </div>
   );

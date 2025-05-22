@@ -1,13 +1,28 @@
 "use client";
 
 import React, { useState, useEffect, ChangeEvent, FormEvent } from "react";
-import { fetchAllUsers, updateUserProfile, UserProfile } from "../lib/firestoreUsers";
+import {
+  fetchAllUsers,
+  updateUserProfile,
+  UserProfile,
+} from "../lib/firestoreUsers";
+import {
+  getOnboardingTemplates,
+  assignTemplateToNewHire,
+} from "../lib/firestoreOnboarding";
 import { useAuth } from "../context/AuthContext";
 import Toast from "./Toast";
 import UserAvatar from "./UserAvatar";
+import InviteNewHireModal from "./InviteNewHireModal";
 import { sendPasswordResetEmail } from "firebase/auth";
 import { auth, db } from "../lib/firebase";
-import { doc, runTransaction, collection, addDoc } from "firebase/firestore";
+import {
+  doc,
+  runTransaction,
+  collection,
+  addDoc,
+  updateDoc,
+} from "firebase/firestore";
 
 const ROLES = ["user", "admin", "manager"];
 
@@ -24,6 +39,8 @@ type FormState = {
   department?: string;
   status?: string;
   points?: number;
+  onboardingTemplateId?: string;
+  hireStartDate?: string;
 };
 
 export default function AdminUserEditor(): React.ReactElement {
@@ -44,6 +61,8 @@ export default function AdminUserEditor(): React.ReactElement {
     department: "",
     status: "",
     points: 0,
+    onboardingTemplateId: "",
+    hireStartDate: "",
   });
   const [loading, setLoading] = useState<boolean>(true);
   const [saving, setSaving] = useState<boolean>(false);
@@ -51,6 +70,14 @@ export default function AdminUserEditor(): React.ReactElement {
   const [error, setError] = useState<string | null>(null);
   const [filter, setFilter] = useState<string>("");
   const [pointsEdit, setPointsEdit] = useState<string>("");
+
+  // Onboarding template state
+  const [templates, setTemplates] = useState<any[]>([]);
+  const [templateLoading, setTemplateLoading] = useState<boolean>(false);
+  const [assigned, setAssigned] = useState<boolean>(false);
+
+  // New Hire Modal state
+  const [inviteOpen, setInviteOpen] = useState<boolean>(false);
 
   // Impersonation state
   const [impersonateEmail, setImpersonateEmail] = useState<string | null>(null);
@@ -68,7 +95,16 @@ export default function AdminUserEditor(): React.ReactElement {
         setError("Error fetching users.");
         setLoading(false);
       });
-  }, [companyId, success]);
+  }, [companyId, success, inviteOpen]); // refresh users on invite
+
+  // Fetch templates for onboarding assignment
+  useEffect(() => {
+    if (!companyId) return;
+    setTemplateLoading(true);
+    getOnboardingTemplates(companyId)
+      .then((t) => setTemplates(t))
+      .finally(() => setTemplateLoading(false));
+  }, [companyId]);
 
   // Populate form on user select
   useEffect(() => {
@@ -88,10 +124,13 @@ export default function AdminUserEditor(): React.ReactElement {
         department: user.department || "",
         status: user.status || "",
         points: user.points || 0,
+        onboardingTemplateId: (user as any).onboardingTemplateId || "",
+        hireStartDate: (user as any).hireStartDate || "",
       });
       setPointsEdit((user.points ?? 0).toString());
       setSuccess(null);
       setError(null);
+      setAssigned(!!(user as any).onboardingTemplateId);
     }
   }, [selectedUserId, users]);
 
@@ -104,6 +143,10 @@ export default function AdminUserEditor(): React.ReactElement {
       ...prev,
       [name]: type === "checkbox" ? checked : value,
     }));
+    // If admin selects template or date, clear "assigned" so the button appears
+    if (["onboardingTemplateId", "hireStartDate"].includes(name)) {
+      setAssigned(false);
+    }
   }
 
   // Save handler
@@ -114,7 +157,7 @@ export default function AdminUserEditor(): React.ReactElement {
     setSuccess(null);
     setError(null);
 
-    const updates = {
+    const updates: any = {
       fullName: form.fullName,
       phone: form.phone,
       birthday: form.birthday,
@@ -125,6 +168,8 @@ export default function AdminUserEditor(): React.ReactElement {
       gender: form.gender,
       department: form.department,
       status: form.status,
+      onboardingTemplateId: form.onboardingTemplateId || "",
+      hireStartDate: form.hireStartDate || "",
     };
     try {
       await updateUserProfile(selectedUserId, updates);
@@ -136,6 +181,43 @@ export default function AdminUserEditor(): React.ReactElement {
       );
     } catch (err) {
       setError(err instanceof Error ? err.message : "Error updating user.");
+    }
+    setSaving(false);
+  }
+
+  // Assign onboarding tasks to new hire (+ relevant assignees)
+  async function handleAssignOnboarding() {
+    if (!selectedUserId || !companyId) return;
+    if (!form.onboardingTemplateId) {
+      setError("Please select an onboarding template.");
+      return;
+    }
+    if (!form.hireStartDate) {
+      setError("Please enter a start date.");
+      return;
+    }
+    setSaving(true);
+    setError(null);
+    setSuccess(null);
+
+    try {
+      await assignTemplateToNewHire(
+        selectedUserId,
+        form.onboardingTemplateId,
+        companyId,
+        new Date(form.hireStartDate),
+        form.department || undefined
+      );
+      // Also update the user doc for quick reference
+      await updateDoc(doc(db, "users", selectedUserId), {
+        onboardingTemplateId: form.onboardingTemplateId,
+        hireStartDate: form.hireStartDate,
+        status: "newHire",
+      });
+      setSuccess("Onboarding checklist assigned!");
+      setAssigned(true);
+    } catch (err: any) {
+      setError(err.message || "Could not assign onboarding.");
     }
     setSaving(false);
   }
@@ -155,7 +237,8 @@ export default function AdminUserEditor(): React.ReactElement {
         if (!userSnap.exists()) throw new Error("User does not exist.");
         const oldPoints = userSnap.data().points || 0;
         const newPoints = Number(pointsEdit);
-        if (isNaN(newPoints) || newPoints < 0) throw new Error("Invalid points value.");
+        if (isNaN(newPoints) || newPoints < 0)
+          throw new Error("Invalid points value.");
 
         transaction.update(userRef, { points: newPoints });
 
@@ -173,7 +256,9 @@ export default function AdminUserEditor(): React.ReactElement {
 
       setUsers((prev) =>
         prev.map((u) =>
-          u.uid === selectedUserId ? { ...u, points: Number(pointsEdit) } : u
+          u.uid === selectedUserId
+            ? { ...u, points: Number(pointsEdit) }
+            : u
         )
       );
       setForm((prev) => ({ ...prev, points: Number(pointsEdit) }));
@@ -195,7 +280,9 @@ export default function AdminUserEditor(): React.ReactElement {
       await updateUserProfile(selectedUserId, { disabled: newDisabled });
       setForm((prev) => ({ ...prev, disabled: newDisabled }));
       setSuccess(
-        newDisabled ? "User disabled. They will not be able to log in." : "User re-enabled."
+        newDisabled
+          ? "User disabled. They will not be able to log in."
+          : "User re-enabled."
       );
       setUsers((prev) =>
         prev.map((u) =>
@@ -203,7 +290,9 @@ export default function AdminUserEditor(): React.ReactElement {
         )
       );
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Error updating user status.");
+      setError(
+        err instanceof Error ? err.message : "Error updating user status."
+      );
     }
     setSaving(false);
   }
@@ -240,14 +329,29 @@ export default function AdminUserEditor(): React.ReactElement {
 
   return (
     <div className="flex flex-col md:flex-row gap-8">
+      {/* Invite New Hire Button and Modal */}
+      <InviteNewHireModal
+        open={inviteOpen}
+        onClose={() => setInviteOpen(false)}
+        onSuccess={() => setInviteOpen(false)}
+      />
+      <div className="w-full mb-4 flex justify-between items-end">
+        <h2 className="text-xl font-semibold text-blue-700">All Users</h2>
+        <button
+          className="bg-green-600 text-white font-bold px-4 py-2 rounded-xl shadow hover:bg-green-700 transition"
+          onClick={() => setInviteOpen(true)}
+        >
+          + Invite New Hire
+        </button>
+      </div>
+
       {/* User List */}
       <div className="w-full md:w-1/2">
-        <h2 className="text-xl font-semibold text-blue-700 mb-2">All Users</h2>
         <input
           type="text"
           placeholder="Search by name, email, or role"
           value={filter}
-          onChange={e => setFilter(e.target.value)}
+          onChange={(e) => setFilter(e.target.value)}
           className="mb-3 w-full p-2 border border-gray-300 rounded"
         />
         <ul className="bg-white rounded shadow divide-y border max-h-[70vh] overflow-y-auto">
@@ -257,17 +361,22 @@ export default function AdminUserEditor(): React.ReactElement {
           {filteredUsers.map((u) => (
             <li
               key={u.uid}
-              className={`flex items-center gap-3 p-3 cursor-pointer hover:bg-blue-50 ${selectedUserId === u.uid ? "bg-blue-100 font-semibold" : ""} ${u.disabled ? "opacity-50" : ""}`}
+              className={`flex items-center gap-3 p-3 cursor-pointer hover:bg-blue-50 ${
+                selectedUserId === u.uid ? "bg-blue-100 font-semibold" : ""
+              } ${u.disabled ? "opacity-50" : ""}`}
               onClick={() => setSelectedUserId(u.uid)}
               aria-selected={selectedUserId === u.uid}
               tabIndex={0}
-              onKeyDown={e => {
-                if (e.key === "Enter" || e.key === " ") setSelectedUserId(u.uid);
+              onKeyDown={(e) => {
+                if (e.key === "Enter" || e.key === " ")
+                  setSelectedUserId(u.uid);
               }}
             >
               <UserAvatar
                 nameOrEmail={u.fullName || u.email}
-                photoURL={typeof u.photoURL === "string" ? u.photoURL : undefined}
+                photoURL={
+                  typeof u.photoURL === "string" ? u.photoURL : undefined
+                }
                 size={36}
               />
               <div className="flex-1">
@@ -275,7 +384,9 @@ export default function AdminUserEditor(): React.ReactElement {
                   {u.fullName || "(No name)"}{" "}
                   <span className="text-xs text-gray-500">({u.email})</span>
                   {u.disabled && (
-                    <span className="ml-2 text-xs font-bold text-red-500">(Disabled)</span>
+                    <span className="ml-2 text-xs font-bold text-red-500">
+                      (Disabled)
+                    </span>
                   )}
                 </div>
                 <div className="text-xs text-gray-400">{u.role || "user"}</div>
@@ -285,7 +396,7 @@ export default function AdminUserEditor(): React.ReactElement {
                 <button
                   type="button"
                   className="px-2 py-1 text-xs rounded bg-blue-100 text-blue-700 hover:bg-blue-200"
-                  onClick={e => {
+                  onClick={(e) => {
                     e.stopPropagation();
                     handleResetPassword(u.email);
                   }}
@@ -296,7 +407,7 @@ export default function AdminUserEditor(): React.ReactElement {
                 <button
                   type="button"
                   className="px-2 py-1 text-xs rounded bg-pink-100 text-pink-700 hover:bg-pink-200"
-                  onClick={e => {
+                  onClick={(e) => {
                     e.stopPropagation();
                     handleImpersonate(u.email);
                   }}
@@ -310,7 +421,8 @@ export default function AdminUserEditor(): React.ReactElement {
         </ul>
         {impersonateEmail && (
           <div className="mt-3 text-sm text-pink-700">
-            Impersonation is just a demo: Would open session as <b>{impersonateEmail}</b>
+            Impersonation is just a demo: Would open session as{" "}
+            <b>{impersonateEmail}</b>
           </div>
         )}
       </div>
@@ -323,7 +435,9 @@ export default function AdminUserEditor(): React.ReactElement {
             className="flex flex-col gap-4 bg-white border rounded-lg p-4 w-full max-w-md shadow"
             autoComplete="off"
           >
-            <h3 className="text-lg font-medium text-blue-700 mb-2">Edit User Profile</h3>
+            <h3 className="text-lg font-medium text-blue-700 mb-2">
+              Edit User Profile
+            </h3>
             {form.photoURL && (
               <div className="flex justify-center">
                 <UserAvatar
@@ -442,38 +556,95 @@ export default function AdminUserEditor(): React.ReactElement {
               </select>
             </label>
 
-            {/* Points assign (only for admin/manager, not to self) */}
-            {adminUser?.uid !== selectedUserId && (adminRole === "admin" || adminRole === "manager") && (
-              <form onSubmit={handleAssignPoints} className="mt-3 bg-blue-50 rounded-xl p-3 flex flex-col gap-2">
+            {/* Assign Onboarding Template & Start Date */}
+            {form.status === "newHire" && (
+              <>
                 <label className="font-medium">
-                  Points
-                  <input
-                    type="number"
-                    min={0}
-                    step={1}
-                    value={pointsEdit}
-                    onChange={e => setPointsEdit(e.target.value)}
-                    className="p-2 border border-gray-300 rounded w-full mt-1"
-                  />
-                  <span className="text-xs text-gray-500 ml-2">
-                    Old: <b>{form.points ?? 0}</b>
-                  </span>
+                  Onboarding Template
+                  <select
+                    name="onboardingTemplateId"
+                    value={form.onboardingTemplateId || ""}
+                    onChange={handleChange}
+                    className="p-2 border border-blue-300 rounded w-full mt-1"
+                    required
+                  >
+                    <option value="">-- Select Template --</option>
+                    {templates.map((t) => (
+                      <option value={t.id} key={t.id}>
+                        {t.name}
+                        {t.department ? ` (${t.department})` : ""}
+                        {t.role ? ` (${t.role})` : ""}
+                      </option>
+                    ))}
+                  </select>
                 </label>
-                <button
-                  type="submit"
-                  className="bg-green-600 text-white px-4 py-2 rounded mt-1 font-bold hover:bg-green-700"
-                  disabled={saving || pointsEdit === String(form.points ?? 0)}
-                >
-                  {saving ? "Saving..." : "Set Points"}
-                </button>
-              </form>
+                <label className="font-medium">
+                  Start Date
+                  <input
+                    type="date"
+                    name="hireStartDate"
+                    value={form.hireStartDate || ""}
+                    onChange={handleChange}
+                    className="p-2 border border-blue-300 rounded w-full mt-1"
+                    required
+                  />
+                </label>
+                {!assigned && (
+                  <button
+                    type="button"
+                    onClick={handleAssignOnboarding}
+                    className="bg-green-600 text-white rounded px-4 py-2 mt-2 font-bold hover:bg-green-700"
+                    disabled={saving || !form.onboardingTemplateId || !form.hireStartDate}
+                  >
+                    {saving ? "Assigning..." : "Assign Onboarding Checklist"}
+                  </button>
+                )}
+                {assigned && (
+                  <div className="mt-2 text-green-700 text-sm font-semibold">
+                    Onboarding checklist assigned!
+                  </div>
+                )}
+              </>
             )}
+
+            {/* Points assign (only for admin/manager, not to self) */}
+            {adminUser?.uid !== selectedUserId &&
+              (adminRole === "admin" || adminRole === "manager") && (
+                <form
+                  onSubmit={handleAssignPoints}
+                  className="mt-3 bg-blue-50 rounded-xl p-3 flex flex-col gap-2"
+                >
+                  <label className="font-medium">
+                    Points
+                    <input
+                      type="number"
+                      min={0}
+                      step={1}
+                      value={pointsEdit}
+                      onChange={(e) => setPointsEdit(e.target.value)}
+                      className="p-2 border border-gray-300 rounded w-full mt-1"
+                    />
+                    <span className="text-xs text-gray-500 ml-2">
+                      Old: <b>{form.points ?? 0}</b>
+                    </span>
+                  </label>
+                  <button
+                    type="submit"
+                    className="bg-green-600 text-white px-4 py-2 rounded mt-1 font-bold hover:bg-green-700"
+                    disabled={saving || pointsEdit === String(form.points ?? 0)}
+                  >
+                    {saving ? "Saving..." : "Set Points"}
+                  </button>
+                </form>
+              )}
 
             {/* Disable/Enable button */}
             <button
               type="button"
               className={`mt-2 px-4 py-2 rounded ${
-                form.disabled ? "bg-green-500 hover:bg-green-600" : "bg-gray-500 hover:bg-gray-700"
+                form.disabled
+                  ? "bg-green-500 hover:bg-green-600"
+                  : "bg-gray-500 hover:bg-gray-700"
               } text-white transition`}
               onClick={handleToggleDisable}
               disabled={saving}
@@ -503,7 +674,9 @@ export default function AdminUserEditor(): React.ReactElement {
             )}
           </form>
         ) : (
-          <div className="text-gray-500 mt-8">Select a user to edit their profile.</div>
+          <div className="text-gray-500 mt-8">
+            Select a user to edit their profile.
+          </div>
         )}
       </div>
     </div>

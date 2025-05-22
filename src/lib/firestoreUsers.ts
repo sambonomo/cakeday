@@ -34,6 +34,9 @@ export type UserProfile = {
   gender?: string;        // "Male", "Female", "Nonbinary", etc.
   department?: string;    // Department name
   status?: string;        // "newHire", "active", "exiting"
+  // --- New for onboarding ---
+  onboardingTemplateId?: string; // Assigned onboarding template
+  hireStartDate?: string;        // ISO "YYYY-MM-DD" (can use as Date in logic)
 };
 
 /**
