@@ -6,12 +6,12 @@ import { useAuth } from "../context/AuthContext";
 import UserAvatar from "./UserAvatar";
 import AdminSidebar from "./AdminSidebar";
 
-// --- Add Rewards/Notifications links ---
+// --- Nav links: Adjust or add as needed ---
 const NAV_LINKS = [
   { label: "Dashboard", href: "/dashboard" },
   { label: "Directory", href: "/directory" },
   { label: "Events", href: "/events" },
-  { label: "Rewards", href: "/rewards" }, // new!
+  { label: "Rewards", href: "/rewards" }, // newly added link
 ];
 
 export default function NavBar(): React.ReactElement | null {
@@ -23,6 +23,7 @@ export default function NavBar(): React.ReactElement | null {
   // --- Notifications state ---
   const [notifCount, setNotifCount] = useState(0);
 
+  // For closing the avatar dropdown when clicking outside
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -42,7 +43,7 @@ export default function NavBar(): React.ReactElement | null {
     };
   }, [dropdownOpen]);
 
-  // Fetch unread notifications count (simple polling; switch to onSnapshot for live)
+  // Example: Fetch unread notifications count
   useEffect(() => {
     let unsub: (() => void) | null = null;
     async function loadNotifs() {
@@ -65,13 +66,13 @@ export default function NavBar(): React.ReactElement | null {
     };
   }, [user?.uid]);
 
-  // Only show navbar for authenticated users (but all hooks always run)
+  // Hide navbar if not authenticated or still loading
   if (!user || loading) return null;
 
-  // Get user's name or fallback to email/"User"
+  // Fallback for user name
   const nameOrEmail = user.fullName || user.email || "User";
 
-  // User dropdown (profile + logout)
+  // Avatar + Dropdown (Profile/Logout)
   const avatarMenu = (
     <div className="relative" ref={dropdownRef}>
       <button
@@ -116,12 +117,42 @@ export default function NavBar(): React.ReactElement | null {
 
   return (
     <nav className="fixed top-0 left-0 w-full bg-white shadow z-40">
+      {/*
+        1) Skip link for accessibility:
+        - Appears when focused via keyboard (Tab)
+        - Make sure your main content container has id="main-content"
+      */}
+      <a
+        href="#main-content"
+        className="
+          sr-only
+          focus:not-sr-only
+          absolute
+          left-4
+          top-3
+          bg-blue-700
+          text-white
+          px-4
+          py-2
+          rounded
+          z-50
+          transition
+        "
+      >
+        Skip to Main Content
+      </a>
+
       <div className="max-w-6xl mx-auto flex items-center justify-between px-4 sm:px-6 py-3">
-        {/* Branding */}
-        <Link href="/dashboard" className="flex items-center gap-2 font-bold text-blue-700 text-lg">
+        {/* Branding / Logo */}
+        <Link
+          href="/dashboard"
+          className="flex items-center gap-2 font-bold text-blue-700 text-lg"
+          aria-label="Cakeday Home"
+        >
           🎂 Cakeday
         </Link>
-        {/* Desktop Links */}
+
+        {/* Desktop Navigation Links */}
         <div className="hidden md:flex gap-6 items-center">
           {NAV_LINKS.map((link) => (
             <Link
@@ -132,8 +163,13 @@ export default function NavBar(): React.ReactElement | null {
               {link.label}
             </Link>
           ))}
-          {/* Notifications bell */}
-          <Link href="/notifications" className="relative group ml-2 mr-1" aria-label="Notifications">
+
+          {/* Notifications */}
+          <Link
+            href="/notifications"
+            className="relative group ml-2 mr-1"
+            aria-label="Notifications"
+          >
             <span className="inline-block">
               <svg
                 className="w-7 h-7 text-blue-600 hover:text-blue-800 transition"
@@ -156,6 +192,8 @@ export default function NavBar(): React.ReactElement | null {
               )}
             </span>
           </Link>
+
+          {/* Admin button (Only if admin) */}
           {role === "admin" && (
             <button
               onClick={() => setSidebarOpen(true)}
@@ -166,22 +204,33 @@ export default function NavBar(): React.ReactElement | null {
             </button>
           )}
         </div>
+
         {/* Mobile Hamburger */}
         <button
           className="md:hidden flex items-center p-2"
           onClick={() => setMenuOpen((m) => !m)}
-          aria-label="Open navigation"
+          aria-label="Open navigation menu"
           type="button"
         >
           <svg className="w-7 h-7 text-blue-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
-              d={menuOpen ? "M6 18L18 6M6 6l12 12" : "M4 8h16M4 16h16"} />
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d={
+                menuOpen
+                  ? "M6 18L18 6M6 6l12 12"
+                  : "M4 8h16M4 16h16"
+              }
+            />
           </svg>
         </button>
+
         {/* User Avatar + Dropdown */}
         <div className="ml-3">{avatarMenu}</div>
       </div>
-      {/* Mobile Menu */}
+
+      {/* Mobile Menu (slide-down) */}
       {menuOpen && (
         <div className="md:hidden bg-white border-t flex flex-col py-2 animate-fade-in">
           {NAV_LINKS.map((link) => (
@@ -194,7 +243,8 @@ export default function NavBar(): React.ReactElement | null {
               {link.label}
             </Link>
           ))}
-          {/* Notifications bell for mobile */}
+
+          {/* Notifications (Mobile) */}
           <Link
             href="/notifications"
             className="flex items-center px-6 py-3 text-blue-700 font-medium hover:bg-gray-100 relative"
@@ -221,6 +271,8 @@ export default function NavBar(): React.ReactElement | null {
               </span>
             )}
           </Link>
+
+          {/* Admin mode (Mobile) */}
           {role === "admin" && (
             <button
               onClick={() => {
@@ -235,7 +287,8 @@ export default function NavBar(): React.ReactElement | null {
           )}
         </div>
       )}
-      {/* Admin Sidebar */}
+
+      {/* Admin Sidebar Drawer */}
       {role === "admin" && (
         <AdminSidebar open={sidebarOpen} onClose={() => setSidebarOpen(false)} />
       )}

@@ -11,6 +11,29 @@ export default function Home(): React.ReactElement {
         transition-all px-4
       "
     >
+      {/*
+        Optional Skip Link: Helps keyboard users jump to main content.
+        If you have a global nav on other pages, you can reuse that approach here.
+      */}
+      <a
+        href="#home-content"
+        className="
+          sr-only
+          focus:not-sr-only
+          absolute
+          top-4
+          left-4
+          bg-blue-700
+          text-white
+          px-4
+          py-2
+          rounded
+          z-50
+        "
+      >
+        Skip to main content
+      </a>
+
       {/* Hero SVG or Illustration */}
       <div className="absolute inset-x-0 top-0 z-0 flex justify-center pointer-events-none select-none">
         <img
@@ -22,16 +45,15 @@ export default function Home(): React.ReactElement {
       </div>
 
       <main
+        id="home-content"
         className="
           z-10 flex flex-col items-center gap-8 w-full max-w-lg
-          glass-card bg-white/80 dark:bg-gray-900/80
-          rounded-3xl shadow-2xl p-10 mt-20
+          glass-card
+          bg-white/80 dark:bg-gray-900/80
+          rounded-3xl hero-shadow p-10 mt-20
           backdrop-blur-lg border border-brand-100 dark:border-slate-800
           animate-fade-in
         "
-        style={{
-          boxShadow: "0 8px 40px 0 #c7d2fe88, 0 1.5px 4px 0 #2563eb22",
-        }}
       >
         <h1
           className="
@@ -40,9 +62,13 @@ export default function Home(): React.ReactElement {
             animate-fade-in-up
           "
         >
-          🎉 Cakeday{" "}
+          <span role="img" aria-label="Party Popper">
+            🎉
+          </span>{" "}
+          Cakeday{" "}
           <span className="text-accent-500">HR</span>
         </h1>
+
         <p
           className="
             text-lg text-gray-700 dark:text-gray-200 text-center
@@ -50,23 +76,37 @@ export default function Home(): React.ReactElement {
           "
         >
           Build a thriving culture!{" "}
-          <span className="text-brand-500 font-semibold">Onboarding, celebrations, peer recognition, and rewards</span>
+          <span className="text-brand-500 font-semibold">
+            Onboarding, celebrations, peer recognition, and rewards
+          </span>{" "}
           — all in one playful, easy-to-use hub.
         </p>
 
         {/* Features Mini Grid */}
         <div className="grid grid-cols-2 gap-3 w-full max-w-xs mt-2 animate-fade-in-up">
           <div className="bg-green-50 dark:bg-green-950/60 rounded-xl flex items-center gap-2 p-2 shadow text-green-700 dark:text-green-200">
-            ✔️ <span className="font-semibold">Checklists</span>
+            <span role="img" aria-label="Checkmark">
+              ✔️
+            </span>
+            <span className="font-semibold">Checklists</span>
           </div>
           <div className="bg-yellow-50 dark:bg-yellow-900/60 rounded-xl flex items-center gap-2 p-2 shadow text-yellow-700 dark:text-yellow-200">
-            🎂 <span className="font-semibold">Auto Birthdays</span>
+            <span role="img" aria-label="Birthday cake">
+              🎂
+            </span>
+            <span className="font-semibold">Auto Birthdays</span>
           </div>
           <div className="bg-pink-50 dark:bg-pink-900/60 rounded-xl flex items-center gap-2 p-2 shadow text-pink-700 dark:text-pink-200">
-            🤝 <span className="font-semibold">Kudos</span>
+            <span role="img" aria-label="Handshake">
+              🤝
+            </span>
+            <span className="font-semibold">Kudos</span>
           </div>
           <div className="bg-blue-50 dark:bg-blue-900/60 rounded-xl flex items-center gap-2 p-2 shadow text-blue-700 dark:text-blue-200">
-            🏆 <span className="font-semibold">Rewards</span>
+            <span role="img" aria-label="Trophy">
+              🏆
+            </span>
+            <span className="font-semibold">Rewards</span>
           </div>
         </div>
 
@@ -120,7 +160,7 @@ export default function Home(): React.ReactElement {
         {/* Why Cakeday / Social Proof */}
         <div className="mt-8 mb-1 px-4">
           <div className="text-accent-700 text-base font-semibold text-center mb-2">
-            ❤️ Loved by modern teams & small businesses!
+            ❤️ Loved by modern teams &amp; small businesses!
           </div>
           <div className="flex gap-2 justify-center flex-wrap text-sm text-gray-500">
             <span>✓ 10x more engagement</span>
@@ -135,27 +175,37 @@ export default function Home(): React.ReactElement {
         <div className="w-full mt-5 border-t border-accent-100 pt-6 hidden md:block">
           <div className="flex items-center justify-center gap-8">
             <div className="flex flex-col items-center text-center">
-              <span className="text-2xl">📝</span>
-              <span className="text-xs mt-1 text-brand-700 font-bold">Add Employees</span>
+              <span className="text-2xl" role="img" aria-label="Notepad">
+                📝
+              </span>
+              <span className="text-xs mt-1 text-brand-700 font-bold">
+                Add Employees
+              </span>
             </div>
             <div className="text-2xl">➡️</div>
             <div className="flex flex-col items-center text-center">
-              <span className="text-2xl">🎉</span>
-              <span className="text-xs mt-1 text-accent-700 font-bold">Auto Celebrations</span>
+              <span className="text-2xl" role="img" aria-label="Confetti">
+                🎉
+              </span>
+              <span className="text-xs mt-1 text-accent-700 font-bold">
+                Auto Celebrations
+              </span>
             </div>
             <div className="text-2xl">➡️</div>
             <div className="flex flex-col items-center text-center">
-              <span className="text-2xl">👏</span>
-              <span className="text-xs mt-1 text-pink-700 font-bold">Kudos & Rewards</span>
+              <span className="text-2xl" role="img" aria-label="Clapping Hands">
+                👏
+              </span>
+              <span className="text-xs mt-1 text-pink-700 font-bold">
+                Kudos &amp; Rewards
+              </span>
             </div>
           </div>
         </div>
 
         <p className="mt-8 text-gray-400 text-xs text-center">
           Built with{" "}
-          <span className="font-semibold">
-            Next.js, Firebase &amp; Tailwind CSS
-          </span>{" "}
+          <span className="font-semibold">Next.js, Firebase &amp; Tailwind CSS</span>{" "}
           • {new Date().getFullYear()}
         </p>
       </main>
@@ -176,7 +226,7 @@ export default function Home(): React.ReactElement {
             animate-float-slower
           "
         />
-        {/* Add more bubbles for extra fun! */}
+        {/* Add more bubbles if you like! */}
       </div>
     </div>
   );

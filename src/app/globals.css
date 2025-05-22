@@ -11,7 +11,7 @@
   /* 
     You can keep these if you still want custom CSS variables. 
     But now that we have brand/accent colors in tailwind.config.js, 
-    you can rely less on these.
+    you can rely less on these if you want. 
   */
   --background: #f7faff;
   --foreground: #18192b;
@@ -19,7 +19,7 @@
   --color-foreground: var(--foreground);
 
   --font-sans: var(--font-geist-sans), Arial, Helvetica, sans-serif;
-  --font-mono: var(--font-geist-mono), ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+  --font-mono: var(--font-geist-mono), ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
 
   --glass-blur: 22px;
 }
@@ -50,6 +50,7 @@ body {
   min-height: 100vh;
   transition: background 0.3s, color 0.3s;
 }
+
 @media (prefers-color-scheme: dark) {
   body {
     /* Adjust the gradient for dark mode if you like */
@@ -71,6 +72,7 @@ body {
   border: 1.5px solid rgba(255,255,255,0.3);
   transition: background 0.2s, box-shadow 0.2s;
 }
+
 @media (prefers-color-scheme: dark) {
   .glass-card {
     background: rgba(23,27,41,0.4);
@@ -84,24 +86,40 @@ body {
   ==========================
 */
 @keyframes fade-in {
-  from { opacity: 0; transform: translateY(32px);}
-  to { opacity: 1; transform: none;}
+  from {
+    opacity: 0;
+    transform: translateY(32px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
 }
 .animate-fade-in {
   animation: fade-in 0.7s cubic-bezier(.44,1.26,.6,1) both;
 }
 
 @keyframes fade-in-up {
-  from { opacity: 0; transform: translateY(48px);}
-  to { opacity: 1; transform: none;}
+  from {
+    opacity: 0;
+    transform: translateY(48px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
 }
 .animate-fade-in-up {
   animation: fade-in-up 0.9s cubic-bezier(.44,1.26,.6,1) both;
 }
 
 @keyframes float-bubbles {
-  0% { transform: translateY(0);}
-  100% { transform: translateY(-18px);}
+  0% {
+    transform: translateY(0);
+  }
+  100% {
+    transform: translateY(-18px);
+  }
 }
 .animate-float-bubbles {
   animation: float-bubbles 6s ease-in-out infinite alternate;
@@ -112,10 +130,14 @@ body {
   Focus States & Disabled
   ==========================
 */
-input, button, textarea, select {
+input,
+button,
+textarea,
+select {
   @apply transition focus:ring-2 focus:ring-brand-400 focus:outline-none;
 }
-input:disabled, button:disabled {
+input:disabled,
+button:disabled {
   @apply opacity-60 cursor-not-allowed;
 }
 
@@ -124,9 +146,22 @@ input:disabled, button:disabled {
   Utility Classes
   ==========================
 */
+
+/* 
+  Reusable "card panel" utility for your dashboard sections, 
+  replacing repetitive classes in page.tsx
+*/
+.card-panel {
+  @apply bg-white/80 backdrop-blur-sm rounded-2xl shadow-xl border p-7 mb-6
+    flex flex-col gap-4 transition;
+}
+
+/* Optional: Glass rounding */
 .rounded-glass {
   border-radius: 2.3rem;
 }
+
+/* Extra text and shadow styles */
 .text-pop {
   font-family: var(--font-sans);
   font-weight: 900;
@@ -148,7 +183,8 @@ a {
   text-decoration-skip-ink: auto;
   transition: color 0.18s;
 }
-a:hover, a:focus {
+a:hover,
+a:focus {
   color: #f472b6; /* accent-400 on hover */
   text-decoration: underline;
 }
@@ -212,7 +248,16 @@ a:hover, a:focus {
   transition-timing-function: cubic-bezier(.44,1.26,.6,1);
 }
 
-/* Example simple card shadow utility */
+/* 
+  ==========================
+  Additional Shadow Utilities
+  ==========================
+*/
 .card-shadow {
   box-shadow: 0 3px 12px #a5b4fc55, 0 2px 8px #f472b655;
+}
+
+/* New hero-shadow utility */
+.hero-shadow {
+  box-shadow: 0 8px 40px 0 #c7d2fe88, 0 1.5px 4px 0 #2563eb22;
 }
