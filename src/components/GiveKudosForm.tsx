@@ -1,12 +1,15 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
+import { Combobox } from "@headlessui/react";
 import { giveKudos } from "../lib/firestoreRecognition";
 import { useAuth } from "../context/AuthContext";
 import { collection, getDocs, query, where } from "firebase/firestore";
 import { db } from "../lib/firebase";
 import type { UserProfile } from "../lib/firestoreUsers";
 import UserAvatar from "./UserAvatar";
+import Toast from "./Toast";
+import { Sparkles } from "lucide-react";
 
 const BADGES = [
   { label: "Team Player", emoji: "🤝" },
@@ -25,19 +28,21 @@ interface GiveKudosFormProps {
   companyId?: string;
 }
 
-export default function GiveKudosForm({
-  companyId: propCompanyId,
-}: GiveKudosFormProps): React.ReactElement {
+export default function GiveKudosForm({ companyId: propCompanyId }: GiveKudosFormProps): React.ReactElement {
   const { user, companyId: contextCompanyId } = useAuth();
   const companyId = propCompanyId || contextCompanyId;
 
   const [employees, setEmployees] = useState<UserProfile[]>([]);
-  const [toUid, setToUid] = useState<string>("");
+  const [queryValue, setQueryValue] = useState<string>("");
+  const [toUid, setToUid] = useState<string | null>(null);
   const [message, setMessage] = useState<string>("");
   const [badge, setBadge] = useState<string>(BADGES[0].emoji);
   const [success, setSuccess] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState<boolean>(false);
+  const [showToast, setShowToast] = useState<boolean>(false);
+
+  const toastTimer = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
     if (!companyId || !user) return;
@@ -56,10 +61,19 @@ export default function GiveKudosForm({
     fetchEmployees();
   }, [user?.uid, companyId, user]);
 
+  const filteredEmployees = queryValue
+    ? employees.filter((e) =>
+        (e.fullName || e.email)
+          .toLowerCase()
+          .includes(queryValue.toLowerCase())
+      )
+    : employees;
+
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setSuccess(null);
     setError(null);
+    setShowToast(false);
     setLoading(true);
 
     if (!companyId || !user) {
@@ -75,13 +89,10 @@ export default function GiveKudosForm({
       return;
     }
 
-    // Use Firestore profile fields, no displayName
     const fromName = user.fullName || user.email || "";
     const fromPhotoURL = user.photoURL || "";
     const toName = recipient.fullName || recipient.email;
-    // Safe photoURL: only string or undefined, never object
-    const toPhotoURL =
-      typeof recipient.photoURL === "string" ? recipient.photoURL : undefined;
+    const toPhotoURL = typeof recipient.photoURL === "string" ? recipient.photoURL : undefined;
 
     try {
       await giveKudos({
@@ -98,112 +109,162 @@ export default function GiveKudosForm({
         toPhotoURL,
       });
       setSuccess("Kudos sent!");
-      setToUid("");
+      setShowToast(true);
+      setToUid(null);
+      setQueryValue("");
       setMessage("");
       setBadge(BADGES[0].emoji);
+
+      if (toastTimer.current) clearTimeout(toastTimer.current);
+      toastTimer.current = setTimeout(() => setShowToast(false), 2500);
     } catch (err) {
       if (err instanceof Error) {
         setError(err.message || "Error sending kudos.");
       } else {
         setError("Error sending kudos.");
       }
+      setShowToast(true);
     }
     setLoading(false);
   };
 
-  // Get recipient profile for avatar
+  // --- Minor fix: TS-friendly, no need for ?? "" here
   const selectedEmployee = employees.find((e) => e.uid === toUid);
 
   return (
-    <form onSubmit={handleSubmit} className="flex flex-col gap-4 mb-6">
-      <h3 className="font-semibold text-blue-700">Give Kudos</h3>
+    <form
+      onSubmit={handleSubmit}
+      className="
+        flex flex-col gap-6 mb-8 bg-white/90 rounded-2xl shadow-lg p-6
+        border border-green-100 backdrop-blur-sm
+        max-w-xl w-full
+        animate-fade-in
+      "
+    >
+      <h3 className="font-extrabold text-xl flex items-center gap-2 text-green-700 mb-1">
+        <Sparkles className="w-6 h-6 text-yellow-400" />
+        Give Kudos
+      </h3>
 
-      {/* Badge/Emoji Picker */}
+      {/* Badge Picker */}
       <div>
         <label className="block font-medium mb-1">Badge</label>
-        <div className="flex flex-wrap gap-2 mb-2">
+        <div className="grid grid-cols-5 gap-2 mb-1">
           {BADGES.map((b) => (
             <button
               key={b.emoji}
               type="button"
-              className={`px-2 py-1 rounded border text-lg transition ${
-                badge === b.emoji
-                  ? "bg-green-200 border-green-500"
-                  : "bg-gray-100 border-gray-300"
-              }`}
+              className={`flex flex-col items-center justify-center rounded-xl text-2xl px-0.5 py-2 border-2 cursor-pointer transition-all duration-150 focus:outline-none
+                ${
+                  badge === b.emoji
+                    ? "bg-green-100 border-green-600 scale-105 shadow"
+                    : "bg-gray-50 border-gray-200 hover:scale-105 hover:border-green-400"
+                }`}
               aria-label={b.label}
+              tabIndex={0}
+              title={b.label}
               onClick={() => setBadge(b.emoji)}
             >
-              <span role="img" aria-label={b.label}>
-                {b.emoji}
-              </span>
+              <span>{b.emoji}</span>
+              <span className="text-xs mt-1 text-gray-600">{b.label}</span>
             </button>
           ))}
         </div>
-        <div className="text-xs text-gray-600 mb-2">
-          Selected:{" "}
-          <span className="font-semibold">
-            {BADGES.find((b) => b.emoji === badge)?.label}
-          </span>
-        </div>
       </div>
 
-      {/* Recipient selection */}
-      <label className="font-medium">
-        Recipient
-        <select
-          value={toUid}
-          onChange={(e) => setToUid(e.target.value)}
-          className="p-2 border border-gray-300 rounded w-full mt-1"
-          required
-        >
-          <option value="">Select colleague</option>
-          {employees.map((e) => (
-            <option key={e.uid} value={e.uid}>
-              {e.fullName || e.email}
-            </option>
-          ))}
-        </select>
+      {/* Recipient Selection (Modern Combobox) */}
+      <div>
+        <label className="block font-medium mb-1">Recipient</label>
+        <Combobox value={toUid} onChange={setToUid} nullable>
+          <div className="relative">
+            <Combobox.Input
+              className="p-3 border-2 border-gray-200 rounded-xl w-full focus:outline-none focus:border-green-400 transition"
+              displayValue={(uid: string | null) => {
+                const e = employees.find((e) => e.uid === uid);
+                return e ? e.fullName || e.email : "";
+              }}
+              placeholder="Search by name or email..."
+              onChange={(e) => setQueryValue(e.target.value)}
+              required
+              autoComplete="off"
+            />
+            <Combobox.Options className="absolute z-10 mt-1 bg-white rounded-xl shadow-lg w-full border border-gray-100 max-h-56 overflow-auto animate-fade-in-up">
+              {filteredEmployees.length === 0 && (
+                <div className="text-gray-400 px-4 py-2">No matches found.</div>
+              )}
+              {filteredEmployees.map((e) => (
+                <Combobox.Option
+                  key={e.uid}
+                  value={e.uid}
+                  className={({ active }) =>
+                    `flex items-center gap-3 px-4 py-2 cursor-pointer
+                    ${active ? "bg-green-100 text-green-900" : ""}
+                    `
+                  }
+                >
+                  <UserAvatar
+                    nameOrEmail={e.fullName || e.email}
+                    photoURL={typeof e.photoURL === "string" ? e.photoURL : undefined}
+                    size={28}
+                  />
+                  <span>{e.fullName || e.email}</span>
+                  <span className="ml-2 text-xs text-gray-500">{e.email}</span>
+                </Combobox.Option>
+              ))}
+            </Combobox.Options>
+          </div>
+        </Combobox>
+        {/* Preview below for selected recipient */}
         {toUid && selectedEmployee && (
           <div className="flex items-center gap-2 mt-2">
             <UserAvatar
               nameOrEmail={selectedEmployee.fullName || selectedEmployee.email}
-              photoURL={
-                typeof selectedEmployee.photoURL === "string"
-                  ? selectedEmployee.photoURL
-                  : undefined
-              }
+              photoURL={typeof selectedEmployee.photoURL === "string" ? selectedEmployee.photoURL : undefined}
               size={32}
             />
-            <span className="text-sm">
-              {selectedEmployee.fullName || selectedEmployee.email}
-            </span>
+            <span className="text-sm font-medium">{selectedEmployee.fullName || selectedEmployee.email}</span>
+            <span className="ml-2 text-xs text-gray-500">{selectedEmployee.email}</span>
           </div>
         )}
-      </label>
+      </div>
 
       {/* Message */}
-      <label className="font-medium">
-        Message
+      <div>
+        <label className="block font-medium mb-1">Message</label>
         <textarea
-          placeholder="Message"
+          placeholder="Say something awesome..."
           value={message}
-          className="p-2 border border-gray-300 rounded w-full mt-1"
+          className="p-3 border-2 border-gray-200 rounded-xl w-full focus:outline-none focus:border-green-400 transition resize-none"
           onChange={(e) => setMessage(e.target.value)}
-          rows={2}
+          rows={3}
           required
+          maxLength={200}
         />
-      </label>
+      </div>
 
       <button
         type="submit"
-        className="bg-green-600 text-white rounded px-4 py-2 hover:bg-green-700 transition"
+        className="bg-gradient-to-r from-green-600 via-green-500 to-green-700 text-white rounded-xl px-5 py-2 font-bold shadow-md hover:from-green-700 hover:to-green-800 transition-transform hover:scale-105 disabled:opacity-60"
         disabled={loading}
       >
         {loading ? "Sending..." : "Send Kudos"}
       </button>
-      {error && <div className="text-red-600">{error}</div>}
-      {success && <div className="text-green-600">{success}</div>}
+
+      {/* Success/Error Toast */}
+      {showToast && success && (
+        <Toast
+          message={success}
+          type="success"
+          onClose={() => setShowToast(false)}
+        />
+      )}
+      {showToast && error && (
+        <Toast
+          message={error}
+          type="error"
+          onClose={() => setShowToast(false)}
+        />
+      )}
     </form>
   );
 }

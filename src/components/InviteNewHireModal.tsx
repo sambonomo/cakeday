@@ -13,6 +13,7 @@ import {
 import { useAuth } from "../context/AuthContext";
 import { getOnboardingTemplates, assignTemplateToNewHire } from "../lib/firestoreOnboarding";
 import Toast from "./Toast";
+import { UserPlus, Sparkles } from "lucide-react";
 
 type ModalProps = {
   open: boolean;
@@ -68,7 +69,6 @@ export default function InviteNewHireModal({ open, onClose, onSuccess }: ModalPr
         )
       )
       .catch(() => setManagers([]));
-    // Autofocus first input
     setTimeout(() => firstInputRef.current?.focus(), 100);
   }, [open, companyId]);
 
@@ -131,11 +131,11 @@ export default function InviteNewHireModal({ open, onClose, onSuccess }: ModalPr
         companyId,
         role: "user",
         department: "",
-        status: "invited", // Use 'invited' to track until activation
+        status: "invited",
         onboardingTemplateId: templateId,
         hireStartDate: startDate,
         managerId: managerId || null,
-        disabled: true, // User must activate via invite link
+        disabled: true,
         createdAt: serverTimestamp(),
       });
 
@@ -147,9 +147,7 @@ export default function InviteNewHireModal({ open, onClose, onSuccess }: ModalPr
         new Date(startDate)
       );
 
-      // --- 🔥 TO-DO: Send an activation/invite email via Firebase Function or external API
-      // await sendActivationEmail(trimmedEmail, ...);
-      // Example: Use Firebase Function with a custom "inviteUser" endpoint
+      // --- TO-DO: Send activation email via Cloud Function
 
       setToast("Invite sent & onboarding checklist assigned!");
       onSuccess?.(trimmedEmail);
@@ -165,10 +163,15 @@ export default function InviteNewHireModal({ open, onClose, onSuccess }: ModalPr
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm animate-fade-in"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-md animate-fade-in"
       tabIndex={-1}
+      aria-modal="true"
+      role="dialog"
     >
-      <div className="bg-white rounded-3xl shadow-2xl p-8 w-full max-w-md relative animate-fade-in-up">
+      <div className="
+        bg-white/95 rounded-3xl shadow-2xl p-8 w-full max-w-md relative animate-fade-in-up border border-blue-100
+        transition-all duration-300
+      ">
         <button
           className="absolute top-3 right-3 text-gray-400 hover:text-red-600 text-2xl"
           onClick={onClose}
@@ -176,81 +179,103 @@ export default function InviteNewHireModal({ open, onClose, onSuccess }: ModalPr
         >
           &times;
         </button>
-        <h2 className="text-2xl font-bold text-blue-700 mb-5 flex items-center gap-2">
-          <span>🎉</span> Invite New Hire
-        </h2>
-        <form className="flex flex-col gap-4" onSubmit={handleInvite} autoComplete="off">
-          <input
-            ref={firstInputRef}
-            type="email"
-            placeholder="Work Email"
-            className="p-3 border rounded-lg"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            required
-            autoFocus
-            maxLength={80}
-            spellCheck={false}
-          />
-          <input
-            type="text"
-            placeholder="Full Name (optional)"
-            className="p-3 border rounded-lg"
-            value={fullName}
-            onChange={(e) => setFullName(e.target.value)}
-            maxLength={60}
-            spellCheck={false}
-          />
-          <select
-            value={templateId}
-            onChange={(e) => setTemplateId(e.target.value)}
-            className="p-3 border rounded-lg"
-            required
-          >
-            <option value="">-- Select Onboarding Template --</option>
-            {templates.map((t) => (
-              <option key={t.id} value={t.id}>
-                {t.name}
-                {t.department ? ` (${t.department})` : ""}
-                {t.role ? ` (${t.role})` : ""}
-              </option>
-            ))}
-          </select>
-          <input
-            type="date"
-            value={startDate}
-            onChange={(e) => setStartDate(e.target.value)}
-            className="p-3 border rounded-lg"
-            required
-            min={new Date().toISOString().split("T")[0]}
-          />
-          <select
-            value={managerId}
-            onChange={(e) => setManagerId(e.target.value)}
-            className="p-3 border rounded-lg"
-          >
-            <option value="">-- Optional: Assign Manager --</option>
-            {managers.map((m) => (
-              <option key={m.uid} value={m.uid}>
-                {m.fullName || m.email} ({m.role})
-              </option>
-            ))}
-          </select>
+        <div className="flex items-center gap-3 mb-2">
+          <UserPlus className="w-8 h-8 text-blue-500" />
+          <h2 className="text-2xl font-extrabold text-blue-800 flex items-center gap-2 tracking-tight">
+            Invite New Hire
+          </h2>
+        </div>
+        <form className="flex flex-col gap-4 mt-3" onSubmit={handleInvite} autoComplete="off">
+          {/* Email */}
+          <div>
+            <label className="block text-sm font-semibold text-blue-700 mb-1">Work Email <span className="text-red-500">*</span></label>
+            <input
+              ref={firstInputRef}
+              type="email"
+              placeholder="e.g. sam@yourco.com"
+              className="p-3 border-2 border-blue-100 rounded-xl w-full focus:outline-none focus:border-blue-400 bg-blue-50 transition"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              required
+              autoFocus
+              maxLength={80}
+              spellCheck={false}
+            />
+          </div>
+          {/* Name */}
+          <div>
+            <label className="block text-sm font-semibold text-blue-700 mb-1">Full Name</label>
+            <input
+              type="text"
+              placeholder="Full Name (optional)"
+              className="p-3 border-2 border-gray-100 rounded-xl w-full focus:outline-none focus:border-blue-300 transition"
+              value={fullName}
+              onChange={(e) => setFullName(e.target.value)}
+              maxLength={60}
+              spellCheck={false}
+            />
+          </div>
+          {/* Onboarding Template */}
+          <div>
+            <label className="block text-sm font-semibold text-blue-700 mb-1">Onboarding Template <span className="text-red-500">*</span></label>
+            <select
+              value={templateId}
+              onChange={(e) => setTemplateId(e.target.value)}
+              className="p-3 border-2 border-blue-100 rounded-xl w-full bg-blue-50 focus:outline-none focus:border-blue-400"
+              required
+            >
+              <option value="">-- Select Onboarding Template --</option>
+              {templates.map((t) => (
+                <option key={t.id} value={t.id}>
+                  {t.name}
+                  {t.department ? ` (${t.department})` : ""}
+                  {t.role ? ` (${t.role})` : ""}
+                </option>
+              ))}
+            </select>
+          </div>
+          {/* Start Date */}
+          <div>
+            <label className="block text-sm font-semibold text-blue-700 mb-1">Start Date <span className="text-red-500">*</span></label>
+            <input
+              type="date"
+              value={startDate}
+              onChange={(e) => setStartDate(e.target.value)}
+              className="p-3 border-2 border-blue-100 rounded-xl w-full bg-blue-50 focus:outline-none focus:border-blue-400"
+              required
+              min={new Date().toISOString().split("T")[0]}
+            />
+          </div>
+          {/* Optional Manager */}
+          <div>
+            <label className="block text-sm font-semibold text-blue-700 mb-1">Assign Manager (optional)</label>
+            <select
+              value={managerId}
+              onChange={(e) => setManagerId(e.target.value)}
+              className="p-3 border-2 border-gray-100 rounded-xl w-full bg-gray-50 focus:outline-none focus:border-blue-300"
+            >
+              <option value="">-- No Manager --</option>
+              {managers.map((m) => (
+                <option key={m.uid} value={m.uid}>
+                  {m.fullName || m.email} ({m.role})
+                </option>
+              ))}
+            </select>
+          </div>
           <button
             type="submit"
-            className="bg-blue-600 text-white rounded-xl px-4 py-3 font-bold shadow hover:bg-blue-700 transition disabled:opacity-60"
+            className="bg-gradient-to-r from-blue-600 via-blue-500 to-accent-500 text-white rounded-xl px-4 py-3 font-bold shadow hover:from-blue-700 hover:to-accent-700 transition-transform hover:scale-105 disabled:opacity-60"
             disabled={loading}
           >
             {loading ? "Sending..." : "Send Invite"}
           </button>
-          {/* Placeholder for next-step: Resend Invite */}
-          {/* <button type="button" ...>Resend Activation Email</button> */}
         </form>
+        {/* Success/Error Toast */}
         {toast && (
           <Toast message={toast} type="success" onClose={() => setToast(null)} />
         )}
-        <div className="mt-4 text-xs text-gray-400">
-          New hires are invited as <b>inactive users</b>. They’ll receive an onboarding checklist after activation.
+        <div className="mt-6 text-xs text-blue-400 text-center">
+          New hires are invited as <b>inactive users</b>. They’ll get their onboarding checklist after activation.
         </div>
       </div>
     </div>

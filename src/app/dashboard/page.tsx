@@ -10,35 +10,13 @@ import Toast from "../../components/Toast";
 import Leaderboard from "../../components/Leaderboard";
 
 // Dynamic imports (client-side only)
-const OnboardingChecklist = dynamic(
-  () => import("../../components/OnboardingChecklist"),
-  { ssr: false }
-);
-const OffboardingChecklist = dynamic(
-  () => import("../../components/OffboardingChecklist"),
-  { ssr: false }
-);
-// <-- NEW: Import the dashboard -->
-const AssignedTasksDashboard = dynamic(
-  () => import("../../components/AssignedTasksDashboard"),
-  { ssr: false }
-);
-const AdminOnboardingTasks = dynamic(
-  () => import("../../components/AdminOnboardingTasks"),
-  { ssr: false }
-);
-const GiveKudosForm = dynamic(
-  () => import("../../components/GiveKudosForm"),
-  { ssr: false }
-);
-const RecognitionFeed = dynamic(
-  () => import("../../components/RecognitionFeed"),
-  { ssr: false }
-);
-const BirthdayAnniversaryFeed = dynamic(
-  () => import("../../components/BirthdayAnniversaryFeed"),
-  { ssr: false }
-);
+const OnboardingChecklist = dynamic(() => import("../../components/OnboardingChecklist"), { ssr: false });
+const OffboardingChecklist = dynamic(() => import("../../components/OffboardingChecklist"), { ssr: false });
+const AssignedTasksDashboard = dynamic(() => import("../../components/AssignedTasksDashboard"), { ssr: false });
+const AdminOnboardingTasks = dynamic(() => import("../../components/AdminOnboardingTasks"), { ssr: false });
+const GiveKudosForm = dynamic(() => import("../../components/GiveKudosForm"), { ssr: false });
+const RecognitionFeed = dynamic(() => import("../../components/RecognitionFeed"), { ssr: false });
+const BirthdayAnniversaryFeed = dynamic(() => import("../../components/BirthdayAnniversaryFeed"), { ssr: false });
 
 export default function DashboardPage(): React.ReactElement {
   const { user, role, logout, loading, companyId } = useAuth();
@@ -84,12 +62,7 @@ export default function DashboardPage(): React.ReactElement {
   // Show a spinner while loading auth or company
   if (loading || !user || !companyId) {
     return (
-      <div
-        className="
-          flex items-center justify-center min-h-screen
-          bg-gradient-to-tr from-white via-brand-50 to-accent-50
-        "
-      >
+      <div className="flex items-center justify-center min-h-screen bg-gradient-to-tr from-white via-brand-50 to-accent-50">
         <div className="text-lg text-brand-600 animate-pulse">
           Loading your dashboard...
         </div>
@@ -111,63 +84,68 @@ export default function DashboardPage(): React.ReactElement {
           .join("  ")
       : "";
 
-  // -- MAIN LAYOUT LOGIC --
+  // --- Responsive Sections ---
+  const isNewHire = user.status === "newHire";
+  const isExiting = user.status === "exiting";
+  const displayName = user.fullName || user.email || "User";
 
-  // Onboarding/Offboarding Section Logic
-  let onboardingSection = null;
-  let offboardingSection = null;
-
-  if (user.status === "newHire") {
-    onboardingSection = (
-      <div
-        className="
-          bg-white/90 rounded-2xl shadow-xl border border-brand-100
-          p-6 flex flex-col mb-4
-        "
-      >
-        <h2 className="text-2xl font-bold mb-2 text-brand-700 flex items-center gap-2">
-          <span role="img" aria-label="Checklist">
-            📋
-          </span>{" "}
-          Onboarding Checklist
+  // Left column: Onboarding/Offboarding/Assigned Tasks
+  let leftPanel = null;
+  if (isNewHire) {
+    leftPanel = (
+      <section className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-xl border border-brand-100 p-7 mb-6 flex flex-col gap-4 transition">
+        <h2 className="text-2xl font-bold flex items-center gap-2 text-brand-700">
+          <span className="text-2xl">📋</span> Onboarding Checklist
         </h2>
         <OnboardingChecklist companyId={companyId} />
-      </div>
+      </section>
     );
-  } else if (user.status === "exiting") {
-    offboardingSection = (
-      <div
-        className="
-          bg-white/90 rounded-2xl shadow-xl border border-brand-100
-          p-6 flex flex-col mb-4
-        "
-      >
-        <h2 className="text-2xl font-bold mb-2 text-red-600 flex items-center gap-2">
-          <span role="img" aria-label="Exit">
-            👋
-          </span>{" "}
-          Offboarding Checklist
+  } else if (isExiting) {
+    leftPanel = (
+      <section className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-xl border border-red-100 p-7 mb-6 flex flex-col gap-4 transition">
+        <h2 className="text-2xl font-bold flex items-center gap-2 text-red-600">
+          <span className="text-2xl">👋</span> Offboarding Checklist
         </h2>
         <OffboardingChecklist companyId={companyId} />
-      </div>
+      </section>
     );
   }
 
   // Assigned tasks for EVERY user (new hire, manager, IT, etc.)
   const assignedSection = (
-    <AssignedTasksDashboard />
+    <section className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-xl border border-blue-100 p-7 mb-6 flex flex-col gap-4 transition">
+      <h2 className="text-2xl font-bold flex items-center gap-2 text-blue-700">
+        <span className="text-xl">🗂️</span> My Assigned Tasks
+      </h2>
+      <AssignedTasksDashboard />
+    </section>
+  );
+
+  // Events/celebrations right panel
+  const eventsSection = (
+    <section className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-xl border border-accent-100 p-7 mb-6 flex flex-col gap-4 transition">
+      <h2 className="text-2xl font-bold flex items-center gap-2 text-accent-700">
+        <span className="text-xl">🎉</span> Birthdays & Anniversaries
+      </h2>
+      <BirthdayAnniversaryFeed companyId={companyId} />
+    </section>
+  );
+
+  // Admin Onboarding Tasks panel (moved out of main grid for clarity)
+  const adminPanel = (
+    <section className="w-full bg-white/95 rounded-2xl shadow-2xl border border-brand-200 p-7 flex flex-col items-center mt-8 backdrop-blur-sm">
+      <h2 className="text-xl font-semibold mb-3 text-brand-800 flex items-center gap-2">
+        <span role="img" aria-label="Admin">🛠️</span> Admin Onboarding Tasks
+      </h2>
+      <AdminOnboardingTasks companyId={companyId} />
+    </section>
   );
 
   return (
-    <div
-      className="
-        flex flex-col min-h-screen
-        bg-gradient-to-tr from-white via-brand-50 to-accent-50
-      "
-    >
+    <div className="flex flex-col min-h-screen bg-gradient-to-tr from-white via-brand-50 to-accent-50">
       {/* Invite Code Bar for Admins */}
       {role === "admin" && inviteCode && (
-        <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-4 mb-4 max-w-2xl mx-auto mt-6 flex flex-col sm:flex-row items-center justify-between gap-3">
+        <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-4 mb-5 max-w-2xl mx-auto mt-6 flex flex-col sm:flex-row items-center justify-between gap-3 shadow">
           <div>
             <span className="font-bold text-yellow-700">Company Invite Code:</span>{" "}
             <span className="font-mono bg-yellow-100 rounded px-2 py-1 text-yellow-900 text-lg tracking-widest">
@@ -188,43 +166,29 @@ export default function DashboardPage(): React.ReactElement {
         </div>
       )}
 
-      {/* Dashboard Hero Header */}
-      <header
-        className="
-          w-full flex flex-col items-center justify-center
-          px-4 pt-10 pb-6
-          bg-gradient-to-br from-brand-100 via-accent-50 to-accent-100
-          shadow-md
-        "
-      >
-        <div className="flex items-center gap-4">
-          <span className="text-4xl md:text-5xl animate-bounce">🎂</span>
+      {/* Hero Header */}
+      <header className="w-full flex flex-col items-center justify-center px-4 pt-12 pb-8 bg-gradient-to-br from-brand-100 via-accent-50 to-accent-100 shadow-lg mb-4">
+        <div className="flex items-center gap-6 mb-4">
+          <span className="text-6xl animate-bounce select-none">🎂</span>
           <div>
-            <h1 className="text-3xl md:text-4xl font-bold text-brand-800 drop-shadow">
-              Welcome, <span className="text-accent-500">{user.email}</span>
+            <h1 className="text-4xl md:text-5xl font-extrabold text-brand-800 drop-shadow text-center mb-1">
+              Welcome, <span className="text-accent-500">{displayName}</span>
             </h1>
-            <div className="text-brand-600 text-base md:text-lg font-medium mt-2">
+            <div className="text-brand-600 text-lg font-medium mt-2 text-center">
               Build a thriving, celebrated team!
             </div>
           </div>
         </div>
-        {/* Nav links */}
         <div className="flex gap-4 items-center mt-4">
           <a
             href="/directory"
-            className="
-              text-brand-600 underline text-sm font-medium
-              hover:text-brand-800 transition
-            "
+            className="text-brand-600 underline text-base font-medium hover:text-brand-800 transition"
           >
             Directory
           </a>
           <button
             onClick={logout}
-            className="
-              bg-red-500 hover:bg-red-600 text-white
-              px-4 py-2 rounded transition
-            "
+            className="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded transition"
           >
             Log Out
           </button>
@@ -240,66 +204,29 @@ export default function DashboardPage(): React.ReactElement {
         />
       )}
 
-      <main
-        className="
-          flex-1 flex flex-col items-center gap-8
-          px-2 py-8 md:px-8
-          max-w-5xl mx-auto w-full
-        "
-      >
-        {/* Leaderboard section */}
-        <Leaderboard companyId={companyId} limit={10} />
+      {/* Main Grid: Task panels & Events */}
+      <main className="flex-1 w-full max-w-6xl mx-auto px-2 md:px-8 flex flex-col gap-10">
+        {/* Leaderboard */}
+        <section className="mb-6">
+          <Leaderboard companyId={companyId} limit={10} />
+        </section>
 
-        <section className="w-full grid grid-cols-1 md:grid-cols-2 gap-8">
-          {/* Smart logic: always show assignedSection.
-            If newHire: show onboarding and assigned.
-            If exiting: show offboarding and assigned.
-            Otherwise: just assigned tasks. */}
-          {user.status === "newHire" ? (
-            <>
-              {onboardingSection}
-              {assignedSection}
-            </>
-          ) : user.status === "exiting" ? (
-            <>
-              {offboardingSection}
-              {assignedSection}
-            </>
-          ) : (
-            assignedSection
-          )}
-
-          {/* Birthdays & Anniversaries */}
-          <div
-            className="
-              bg-white/90 rounded-2xl shadow-xl
-              border border-accent-100
-              p-6 flex flex-col mb-4
-            "
-          >
-            <h2 className="text-2xl font-bold mb-2 text-accent-700 flex items-center gap-2">
-              <span role="img" aria-label="Celebration">
-                🎉
-              </span>{" "}
-              Birthdays &amp; Anniversaries
-            </h2>
-            <BirthdayAnniversaryFeed companyId={companyId} />
+        {/* Main content grid */}
+        <section className="grid grid-cols-1 md:grid-cols-2 gap-10">
+          <div>
+            {isNewHire && leftPanel}
+            {isExiting && leftPanel}
+            {assignedSection}
+          </div>
+          <div>
+            {eventsSection}
           </div>
         </section>
 
         {/* Employee Recognition Feed */}
-        <section
-          className="
-            w-full bg-white/90 rounded-2xl shadow-xl
-            border border-accent-100
-            p-6 flex flex-col mt-2
-          "
-        >
+        <section className="w-full bg-white/90 rounded-2xl shadow-xl border border-accent-100 p-8 flex flex-col mt-2 backdrop-blur-sm">
           <h2 className="text-2xl font-bold mb-2 text-accent-600 flex items-center gap-2">
-            <span role="img" aria-label="Kudos">
-              👏
-            </span>{" "}
-            Employee Recognition Feed
+            <span role="img" aria-label="Kudos">👏</span> Employee Recognition Feed
           </h2>
           <div className="mb-4">
             <GiveKudosForm companyId={companyId} />
@@ -308,30 +235,9 @@ export default function DashboardPage(): React.ReactElement {
         </section>
 
         {/* Admin panel only visible to admins */}
-        {role === "admin" && (
-          <section
-            className="
-              w-full bg-white/95 rounded-2xl shadow-2xl
-              border border-brand-200 p-6 flex flex-col items-center mt-8
-            "
-          >
-            <h2 className="text-xl font-semibold mb-3 text-brand-800 flex items-center gap-2">
-              <span role="img" aria-label="Admin">
-                🛠️
-              </span>{" "}
-              Admin Onboarding Tasks
-            </h2>
-            <AdminOnboardingTasks companyId={companyId} />
-          </section>
-        )}
+        {role === "admin" && adminPanel}
       </main>
-      <footer
-        className="
-          py-6 text-center text-xs text-gray-500
-          bg-gradient-to-br from-brand-100 via-accent-50 to-white
-          border-t border-brand-100 mt-10
-        "
-      >
+      <footer className="py-6 text-center text-xs text-gray-500 bg-gradient-to-br from-brand-100 via-accent-50 to-white border-t border-brand-100 mt-10 w-full">
         &copy; {new Date().getFullYear()} Cakeday HR Onboarding &amp; Recognition •
       </footer>
     </div>
