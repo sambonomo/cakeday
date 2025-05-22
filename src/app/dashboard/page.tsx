@@ -7,7 +7,7 @@ import { doc, getDoc } from "firebase/firestore";
 import { db } from "../../lib/firebase";
 import { fetchAllUsers, getUpcomingEvents, UserEvent } from "../../lib/firestoreUsers";
 import Toast from "../../components/Toast";
-import Leaderboard from "../../components/Leaderboard"; // NEW
+import Leaderboard from "../../components/Leaderboard";
 
 // Dynamic imports (client-side only)
 const OnboardingChecklist = dynamic(
@@ -16,6 +16,10 @@ const OnboardingChecklist = dynamic(
 );
 const OffboardingChecklist = dynamic(
   () => import("../../components/OffboardingChecklist"),
+  { ssr: false }
+);
+const AssignedTasksList = dynamic(
+  () => import("../../components/AssignedTasksList"),
   { ssr: false }
 );
 const AdminOnboardingTasks = dynamic(
@@ -48,7 +52,6 @@ export default function DashboardPage(): React.ReactElement {
   const [todayEvents, setTodayEvents] = useState<UserEvent[]>([]);
   const [showTodayToast, setShowTodayToast] = useState<boolean>(true);
 
-  // --- EFFECTS ---
   useEffect(() => {
     async function fetchInviteCode() {
       if (role === "admin" && companyId) {
@@ -108,10 +111,13 @@ export default function DashboardPage(): React.ReactElement {
           .join("  ")
       : "";
 
-  // Determine which checklist to show
-  let checklistSection = null;
+  // Checklist logic
+  let onboardingSection = null;
+  let offboardingSection = null;
+  let assignedSection = null;
+
   if (user.status === "newHire") {
-    checklistSection = (
+    onboardingSection = (
       <div
         className="
           bg-white/90 rounded-2xl shadow-xl border border-brand-100
@@ -128,7 +134,7 @@ export default function DashboardPage(): React.ReactElement {
       </div>
     );
   } else if (user.status === "exiting") {
-    checklistSection = (
+    offboardingSection = (
       <div
         className="
           bg-white/90 rounded-2xl shadow-xl border border-brand-100
@@ -145,6 +151,21 @@ export default function DashboardPage(): React.ReactElement {
       </div>
     );
   }
+
+  // Always show assigned tasks for any logged-in user (including new hires, managers, etc.)
+  assignedSection = (
+    <div
+      className="
+        bg-white/90 rounded-2xl shadow-xl border border-blue-100
+        p-6 flex flex-col mb-4
+      "
+    >
+      <h2 className="text-2xl font-bold mb-2 text-blue-700 flex items-center gap-2">
+        <span role="img" aria-label="Tasks">🗂️</span> My Assigned Tasks
+      </h2>
+      <AssignedTasksList companyId={companyId} />
+    </div>
+  );
 
   return (
     <div
@@ -239,8 +260,23 @@ export default function DashboardPage(): React.ReactElement {
         <Leaderboard companyId={companyId} limit={10} />
 
         <section className="w-full grid grid-cols-1 md:grid-cols-2 gap-8">
-          {/* Onboarding OR Offboarding Checklist (based on status) */}
-          {checklistSection}
+          {/* Onboarding, Offboarding, or Assigned Checklist */}
+          {/* Order: Onboarding for new hires, then Assigned, then Offboarding for exiting, else Assigned */}
+          {user.status === "newHire"
+            ? (
+              <>
+                {onboardingSection}
+                {assignedSection}
+              </>
+            )
+            : user.status === "exiting"
+            ? (
+              <>
+                {offboardingSection}
+                {assignedSection}
+              </>
+            )
+            : assignedSection}
 
           {/* Birthdays & Anniversaries */}
           <div

@@ -13,12 +13,11 @@ import {
   signInWithEmailAndPassword,
   createUserWithEmailAndPassword,
   signOut,
-  User as FirebaseUser,
   UserCredential,
 } from "firebase/auth";
 import { doc, setDoc, getDoc } from "firebase/firestore";
 
-// ----- 1. Your app-wide user profile type (matches firestoreUsers.ts) -----
+// ----- User profile type, now includes onboardingTemplateId and more -----
 export type AuthUser = {
   uid: string;
   email: string;
@@ -33,7 +32,8 @@ export type AuthUser = {
   department?: string;
   status?: string; // "newHire" | "active" | "exiting"
   companyId?: string;
-  // Include any other profile fields as needed!
+  onboardingTemplateId?: string; // <-- Added!
+  // You can add: managerId, reportsTo, custom fields, etc.
 };
 
 // Type for the context value
@@ -64,11 +64,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setLoading(true);
 
       if (firebaseUser) {
-        // 1. Always fetch Firestore profile fields (even if already in user obj)
+        // Always fetch Firestore profile fields (even if already in user obj)
         const userRef = doc(db, "users", firebaseUser.uid);
         const userSnap = await getDoc(userRef);
 
-        // 2. Start with base Firebase info
+        // Start with base Firebase info
         let mergedUser: AuthUser = {
           uid: firebaseUser.uid,
           email: firebaseUser.email || "",
@@ -78,7 +78,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           const data = userSnap.data();
           mergedUser = {
             ...mergedUser,
-            ...data, // All profile fields: status, gender, department, etc.
+            ...data, // All fields: onboardingTemplateId, status, gender, etc.
           };
           setRole(data.role || "user");
           setCompanyId(data.companyId || null);
@@ -108,7 +108,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // Add Firestore user doc with extra fields
     await setDoc(doc(db, "users", userCred.user.uid), {
       email,
-      ...extra, // includes companyId, role, name, etc.
+      ...extra, // includes companyId, role, onboardingTemplateId, etc.
       createdAt: new Date(),
     });
     setRole(extra.role);
