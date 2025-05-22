@@ -11,9 +11,8 @@ export default function Home(): React.ReactElement {
         transition-all px-4
       "
     >
-      {/* Animated Hero SVG Illustration */}
+      {/* Hero SVG or Illustration */}
       <div className="absolute inset-x-0 top-0 z-0 flex justify-center pointer-events-none select-none">
-        {/* Put your SVG/illustration here or use a fun emoji */}
         <img
           src="/cakeday-hero.svg"
           alt="Celebration illustration"
@@ -42,9 +41,7 @@ export default function Home(): React.ReactElement {
           "
         >
           🎉 Cakeday{" "}
-          <span className="text-accent-500">
-            HR
-          </span>
+          <span className="text-accent-500">HR</span>
         </h1>
         <p
           className="
@@ -52,62 +49,31 @@ export default function Home(): React.ReactElement {
             font-medium animate-fade-in-up
           "
         >
-          Supercharge your team’s experience with beautiful onboarding checklists,
-          automated celebrations, and{" "}
-          <span className="text-brand-500 font-semibold">peer recognition</span>
-          —all in one playful, easy-to-use hub.
+          Build a thriving culture!{" "}
+          <span className="text-brand-500 font-semibold">Onboarding, celebrations, peer recognition, and rewards</span>
+          — all in one playful, easy-to-use hub.
         </p>
 
-        {/* Features Section */}
-        <ul
-          className="
-            w-full max-w-xs text-gray-700 dark:text-gray-100
-            text-base glass-card bg-brand-50/60 dark:bg-brand-900/60
-            rounded-xl shadow p-4 mt-2 space-y-2 animate-fade-in-up
-          "
-        >
-          <li className="flex items-center gap-2">
-            <span
-              className="text-green-500 text-lg"
-              aria-label="Checklists"
-            >
-              ✔️
-            </span>
-            <span className="font-semibold">Onboarding Checklists</span>
-          </li>
-          <li className="flex items-center gap-2">
-            <span
-              className="text-yellow-400 text-lg"
-              aria-label="Birthday"
-            >
-              🎂
-            </span>
-            <span className="font-semibold">Auto Birthdays & Anniversaries</span>
-          </li>
-          <li className="flex items-center gap-2">
-            <span
-              className="text-accent-400 text-lg"
-              aria-label="Kudos"
-            >
-              🤝
-            </span>
-            <span className="font-semibold">Peer Kudos</span>
-          </li>
-          <li className="flex items-center gap-2">
-            <span
-              className="text-brand-600 text-lg"
-              aria-label="Security"
-            >
-              🔒
-            </span>
-            <span className="font-semibold">Company-Only Access</span>
-          </li>
-        </ul>
+        {/* Features Mini Grid */}
+        <div className="grid grid-cols-2 gap-3 w-full max-w-xs mt-2 animate-fade-in-up">
+          <div className="bg-green-50 dark:bg-green-950/60 rounded-xl flex items-center gap-2 p-2 shadow text-green-700 dark:text-green-200">
+            ✔️ <span className="font-semibold">Checklists</span>
+          </div>
+          <div className="bg-yellow-50 dark:bg-yellow-900/60 rounded-xl flex items-center gap-2 p-2 shadow text-yellow-700 dark:text-yellow-200">
+            🎂 <span className="font-semibold">Auto Birthdays</span>
+          </div>
+          <div className="bg-pink-50 dark:bg-pink-900/60 rounded-xl flex items-center gap-2 p-2 shadow text-pink-700 dark:text-pink-200">
+            🤝 <span className="font-semibold">Kudos</span>
+          </div>
+          <div className="bg-blue-50 dark:bg-blue-900/60 rounded-xl flex items-center gap-2 p-2 shadow text-blue-700 dark:text-blue-200">
+            🏆 <span className="font-semibold">Rewards</span>
+          </div>
+        </div>
 
         {/* CTA Buttons */}
         <div
           className="
-            flex flex-col sm:flex-row gap-4 mt-4 w-full
+            flex flex-col sm:flex-row gap-4 mt-6 w-full
             justify-center items-center
             animate-fade-in-up
           "
@@ -119,6 +85,7 @@ export default function Home(): React.ReactElement {
               text-white px-8 py-2 rounded-xl font-bold shadow-md
               hover:scale-105 hover:from-brand-700 hover:to-accent-700
               transition-transform duration-150 text-center
+              focus:outline focus:ring-2 focus:ring-accent-400
             "
           >
             Get Started
@@ -132,11 +99,58 @@ export default function Home(): React.ReactElement {
               hover:bg-brand-50 dark:hover:bg-brand-950
               hover:scale-105 transition-transform
               duration-150 text-center
+              focus:outline focus:ring-2 focus:ring-accent-400
             "
           >
             Log In
           </Link>
         </div>
+        <div className="flex justify-center w-full mt-2">
+          <span className="text-xs text-accent-600 italic">
+            Want a demo?{" "}
+            <Link
+              href="/login"
+              className="underline hover:text-accent-800 font-semibold"
+            >
+              Try the Demo
+            </Link>
+          </span>
+        </div>
+
+        {/* Why Cakeday / Social Proof */}
+        <div className="mt-8 mb-1 px-4">
+          <div className="text-accent-700 text-base font-semibold text-center mb-2">
+            ❤️ Loved by modern teams & small businesses!
+          </div>
+          <div className="flex gap-2 justify-center flex-wrap text-sm text-gray-500">
+            <span>✓ 10x more engagement</span>
+            <span>•</span>
+            <span>✓ Effortless onboarding</span>
+            <span>•</span>
+            <span>✓ Real-time celebrations</span>
+          </div>
+        </div>
+
+        {/* How It Works (Optional) */}
+        <div className="w-full mt-5 border-t border-accent-100 pt-6 hidden md:block">
+          <div className="flex items-center justify-center gap-8">
+            <div className="flex flex-col items-center text-center">
+              <span className="text-2xl">📝</span>
+              <span className="text-xs mt-1 text-brand-700 font-bold">Add Employees</span>
+            </div>
+            <div className="text-2xl">➡️</div>
+            <div className="flex flex-col items-center text-center">
+              <span className="text-2xl">🎉</span>
+              <span className="text-xs mt-1 text-accent-700 font-bold">Auto Celebrations</span>
+            </div>
+            <div className="text-2xl">➡️</div>
+            <div className="flex flex-col items-center text-center">
+              <span className="text-2xl">👏</span>
+              <span className="text-xs mt-1 text-pink-700 font-bold">Kudos & Rewards</span>
+            </div>
+          </div>
+        </div>
+
         <p className="mt-8 text-gray-400 text-xs text-center">
           Built with{" "}
           <span className="font-semibold">
@@ -148,7 +162,6 @@ export default function Home(): React.ReactElement {
 
       {/* Floating bubbles for fun! */}
       <div className="absolute inset-0 -z-10 pointer-events-none animate-float-bubbles">
-        {/* You can add SVGs or colored <span> circles for bubbles */}
         <span
           className="
             absolute top-10 left-10 w-8 h-8
@@ -163,7 +176,7 @@ export default function Home(): React.ReactElement {
             animate-float-slower
           "
         />
-        {/* More bubbles? Go wild! */}
+        {/* Add more bubbles for extra fun! */}
       </div>
     </div>
   );

@@ -81,7 +81,7 @@ export default function AdminRewardsPage() {
       ...prev,
       [name]:
         name === "pointsCost"
-          ? Number(value)
+          ? value === "" ? 0 : Number(value)
           : name === "quantity"
           ? value === "" ? undefined : Number(value)
           : value,
@@ -121,7 +121,12 @@ export default function AdminRewardsPage() {
     setSaving(true);
 
     // Basic validation
-    if (!form.name || !companyId || typeof form.pointsCost !== "number" || form.pointsCost <= 0) {
+    if (
+      !form.name ||
+      !companyId ||
+      typeof form.pointsCost !== "number" ||
+      form.pointsCost <= 0
+    ) {
       setError("Name and point cost (must be > 0) are required.");
       setSaving(false);
       return;
@@ -215,7 +220,7 @@ export default function AdminRewardsPage() {
             min={0}
             placeholder="Quantity (leave blank = unlimited)"
             className="p-3 border rounded-lg"
-            value={form.quantity === null ? "" : form.quantity}
+            value={form.quantity === undefined || form.quantity === null ? "" : form.quantity}
             onChange={handleFormChange}
           />
           <button
@@ -271,7 +276,7 @@ export default function AdminRewardsPage() {
                 </td>
                 <td className="py-2 px-3 font-bold text-blue-700">{r.pointsCost}</td>
                 <td className="py-2 px-3">
-                  {r.quantity === undefined || r.quantity === null ? (
+                  {r.quantity === undefined || r.quantity === null || r.quantity === 0 ? (
                     <span className="text-gray-500">Unlimited</span>
                   ) : r.quantity}
                 </td>

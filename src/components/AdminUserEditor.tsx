@@ -6,7 +6,8 @@ import { useAuth } from "../context/AuthContext";
 import Toast from "./Toast";
 import UserAvatar from "./UserAvatar";
 import { sendPasswordResetEmail } from "firebase/auth";
-import { auth } from "../lib/firebase";
+import { auth, db } from "../lib/firebase";
+import { doc, runTransaction, collection, addDoc } from "firebase/firestore";
 
 const ROLES = ["user", "admin", "manager"];
 
@@ -22,10 +23,11 @@ type FormState = {
   gender?: string;
   department?: string;
   status?: string;
+  points?: number;
 };
 
 export default function AdminUserEditor(): React.ReactElement {
-  const { companyId, user: adminUser } = useAuth();
+  const { companyId, user: adminUser, role: adminRole } = useAuth();
 
   const [users, setUsers] = useState<UserProfile[]>([]);
   const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
@@ -41,12 +43,14 @@ export default function AdminUserEditor(): React.ReactElement {
     gender: "",
     department: "",
     status: "",
+    points: 0,
   });
   const [loading, setLoading] = useState<boolean>(true);
   const [saving, setSaving] = useState<boolean>(false);
   const [success, setSuccess] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [filter, setFilter] = useState<string>("");
+  const [pointsEdit, setPointsEdit] = useState<string>("");
 
   // Impersonation state
   const [impersonateEmail, setImpersonateEmail] = useState<string | null>(null);
@@ -83,7 +87,9 @@ export default function AdminUserEditor(): React.ReactElement {
         gender: user.gender || "",
         department: user.department || "",
         status: user.status || "",
+        points: user.points || 0,
       });
+      setPointsEdit((user.points ?? 0).toString());
       setSuccess(null);
       setError(null);
     }
@@ -134,6 +140,50 @@ export default function AdminUserEditor(): React.ReactElement {
     setSaving(false);
   }
 
+  // Points assignment logic (for admin/manager, can't assign to self)
+  async function handleAssignPoints(e: React.FormEvent) {
+    e.preventDefault();
+    if (!selectedUserId || adminUser?.uid === selectedUserId) return;
+    setSaving(true);
+    setSuccess(null);
+    setError(null);
+
+    try {
+      await runTransaction(db, async (transaction) => {
+        const userRef = doc(db, "users", selectedUserId);
+        const userSnap = await transaction.get(userRef);
+        if (!userSnap.exists()) throw new Error("User does not exist.");
+        const oldPoints = userSnap.data().points || 0;
+        const newPoints = Number(pointsEdit);
+        if (isNaN(newPoints) || newPoints < 0) throw new Error("Invalid points value.");
+
+        transaction.update(userRef, { points: newPoints });
+
+        // Optionally log to notifications/points log
+        await addDoc(collection(db, "notifications"), {
+          toUid: selectedUserId,
+          toEmail: form.email,
+          companyId,
+          type: "points",
+          message: `Your points were updated: ${oldPoints} → ${newPoints} by ${adminUser?.email}`,
+          sentAt: new Date(),
+          read: false,
+        });
+      });
+
+      setUsers((prev) =>
+        prev.map((u) =>
+          u.uid === selectedUserId ? { ...u, points: Number(pointsEdit) } : u
+        )
+      );
+      setForm((prev) => ({ ...prev, points: Number(pointsEdit) }));
+      setSuccess("Points updated!");
+    } catch (err: any) {
+      setError(err.message || "Could not update points.");
+    }
+    setSaving(false);
+  }
+
   // Disable/enable user handler
   async function handleToggleDisable() {
     if (!selectedUserId) return;
@@ -168,11 +218,10 @@ export default function AdminUserEditor(): React.ReactElement {
     }
   }
 
-  // Impersonate user: Here, just sets a message. You'd implement full "view as" via backend/session logic.
+  // Impersonate user: Demo only
   function handleImpersonate(email: string) {
     setImpersonateEmail(email);
     setTimeout(() => setImpersonateEmail(null), 2500);
-    // Real implementation: use a backend function or context to "switch" user, or open in new incognito window as user.
   }
 
   // Filter/search logic
@@ -392,6 +441,34 @@ export default function AdminUserEditor(): React.ReactElement {
                 <option value="exiting">Exiting</option>
               </select>
             </label>
+
+            {/* Points assign (only for admin/manager, not to self) */}
+            {adminUser?.uid !== selectedUserId && (adminRole === "admin" || adminRole === "manager") && (
+              <form onSubmit={handleAssignPoints} className="mt-3 bg-blue-50 rounded-xl p-3 flex flex-col gap-2">
+                <label className="font-medium">
+                  Points
+                  <input
+                    type="number"
+                    min={0}
+                    step={1}
+                    value={pointsEdit}
+                    onChange={e => setPointsEdit(e.target.value)}
+                    className="p-2 border border-gray-300 rounded w-full mt-1"
+                  />
+                  <span className="text-xs text-gray-500 ml-2">
+                    Old: <b>{form.points ?? 0}</b>
+                  </span>
+                </label>
+                <button
+                  type="submit"
+                  className="bg-green-600 text-white px-4 py-2 rounded mt-1 font-bold hover:bg-green-700"
+                  disabled={saving || pointsEdit === String(form.points ?? 0)}
+                >
+                  {saving ? "Saving..." : "Set Points"}
+                </button>
+              </form>
+            )}
+
             {/* Disable/Enable button */}
             <button
               type="button"

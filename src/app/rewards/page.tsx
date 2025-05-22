@@ -113,6 +113,18 @@ export default function RewardsPage() {
     setSuccess(null);
     setRedeemingId(reward.id);
 
+    // Block if already pending or approved for this reward
+    const existing = redemptions.find(
+      (r) =>
+        r.rewardId === reward.id &&
+        (r.status === "pending" || r.status === "approved")
+    );
+    if (existing) {
+      setError("You already have a pending or approved request for this reward.");
+      setRedeemingId(null);
+      return;
+    }
+
     // Double-check points and quantity
     if (points < reward.pointsCost) {
       setError("You do not have enough points.");
@@ -194,6 +206,12 @@ export default function RewardsPage() {
             const outOfStock =
               r.quantity !== undefined && r.quantity !== null && r.quantity < 1;
             const notEnoughPoints = points < r.pointsCost;
+            // Block if user has a pending/approved redemption for this reward
+            const alreadyRequested = redemptions.some(
+              (red) =>
+                red.rewardId === r.id &&
+                (red.status === "pending" || red.status === "approved")
+            );
             return (
               <div
                 key={r.id}
@@ -241,19 +259,26 @@ export default function RewardsPage() {
                     }))
                   }
                   maxLength={120}
-                  disabled={outOfStock || notEnoughPoints}
+                  disabled={outOfStock || notEnoughPoints || alreadyRequested}
                 />
                 <button
-                  disabled={notEnoughPoints || outOfStock || !!redeemingId}
+                  disabled={
+                    notEnoughPoints ||
+                    outOfStock ||
+                    !!redeemingId ||
+                    alreadyRequested
+                  }
                   onClick={() => handleRedeem(r)}
                   className={`mt-2 px-4 py-2 rounded-xl font-bold text-white shadow transition
                     ${
-                      notEnoughPoints || outOfStock || !!redeemingId
+                      notEnoughPoints || outOfStock || !!redeemingId || alreadyRequested
                         ? "bg-gray-300 cursor-not-allowed"
                         : "bg-blue-600 hover:bg-blue-700"
                     }`}
                 >
-                  {outOfStock
+                  {alreadyRequested
+                    ? "Request Pending"
+                    : outOfStock
                     ? "Out of Stock"
                     : notEnoughPoints
                     ? "Not Enough Points"

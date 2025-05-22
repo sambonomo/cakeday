@@ -11,7 +11,7 @@ import {
   doc,
   orderBy,
   increment,
-  addDoc, // <- NEW: import addDoc for notifications!
+  addDoc,
 } from "firebase/firestore";
 import Toast from "../../../components/Toast";
 
@@ -73,41 +73,57 @@ export default function AdminRedemptionsPage() {
     ? redemptions
     : redemptions.filter((r) => r.status === statusFilter);
 
-  // Mark as fulfilled + notify user
+  // --- Only deduct points ON FULFILL ---
   async function markFulfilled(id: string) {
     setProcessingId(id);
     setError(null);
     setSuccess(null);
     try {
       const redemption = redemptions.find(r => r.id === id);
+      if (!redemption) throw new Error("Redemption not found.");
+      // 1. Deduct points if not already deducted (fulfilled)
+      // Find user doc
+      const usersSnap = await getDocs(
+        query(
+          collection(db, "users"),
+          where("companyId", "==", companyId),
+          where("uid", "==", redemption.userId)
+        )
+      );
+      if (!usersSnap.empty) {
+        const userDocRef = doc(db, "users", usersSnap.docs[0].id);
+        // Reduce points (never negative)
+        await updateDoc(userDocRef, {
+          points: increment(-Math.abs(redemption.pointsCost)),
+        });
+      }
+      // 2. Update redemption
       await updateDoc(doc(db, "redemptions", id), {
         status: "fulfilled",
         fulfilledAt: new Date(),
         notes: noteEdit[id] || "",
       });
-      // Send notification
-      if (redemption) {
-        await addDoc(collection(db, "notifications"), {
-          toUid: redemption.userId,
-          toEmail: redemption.userEmail,
-          companyId: redemption.companyId,
-          type: "redemption",
-          rewardName: redemption.rewardName,
-          pointsCost: redemption.pointsCost,
-          status: "fulfilled",
-          message: `Your reward "${redemption.rewardName}" has been fulfilled. Enjoy!`,
-          sentAt: new Date(),
-          read: false,
-        });
-      }
-      setSuccess("Marked as fulfilled!");
+      // 3. Send notification
+      await addDoc(collection(db, "notifications"), {
+        toUid: redemption.userId,
+        toEmail: redemption.userEmail,
+        companyId: redemption.companyId,
+        type: "redemption",
+        rewardName: redemption.rewardName,
+        pointsCost: redemption.pointsCost,
+        status: "fulfilled",
+        message: `Your reward "${redemption.rewardName}" has been fulfilled and ${redemption.pointsCost} points were deducted.`,
+        sentAt: new Date(),
+        read: false,
+      });
+      setSuccess("Marked as fulfilled and points deducted!");
     } catch (err: any) {
       setError(err.message || "Could not mark as fulfilled.");
     }
     setProcessingId(null);
   }
 
-  // Mark as denied (and refund points) + notify user
+  // --- Refund points if denied ---
   async function markDenied(redemption: Redemption) {
     setProcessingId(redemption.id);
     setError(null);
@@ -131,7 +147,7 @@ export default function AdminRedemptionsPage() {
           points: increment(redemption.pointsCost),
         });
       }
-      // Send notification
+      // Notify user
       await addDoc(collection(db, "notifications"), {
         toUid: redemption.userId,
         toEmail: redemption.userEmail,
@@ -151,7 +167,7 @@ export default function AdminRedemptionsPage() {
     setProcessingId(null);
   }
 
-  // Approve (optional step) + notify user
+  // --- Approve (optional step) ---
   async function markApproved(id: string) {
     setProcessingId(id);
     setError(null);
@@ -162,7 +178,7 @@ export default function AdminRedemptionsPage() {
         status: "approved",
         notes: noteEdit[id] || "",
       });
-      // Send notification
+      // Notify user
       if (redemption) {
         await addDoc(collection(db, "notifications"), {
           toUid: redemption.userId,

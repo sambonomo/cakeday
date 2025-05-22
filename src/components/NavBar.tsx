@@ -6,10 +6,12 @@ import { useAuth } from "../context/AuthContext";
 import UserAvatar from "./UserAvatar";
 import AdminSidebar from "./AdminSidebar";
 
+// --- Add Rewards/Notifications links ---
 const NAV_LINKS = [
   { label: "Dashboard", href: "/dashboard" },
   { label: "Directory", href: "/directory" },
   { label: "Events", href: "/events" },
+  { label: "Rewards", href: "/rewards" }, // new!
 ];
 
 export default function NavBar(): React.ReactElement | null {
@@ -17,6 +19,9 @@ export default function NavBar(): React.ReactElement | null {
   const [menuOpen, setMenuOpen] = useState(false);
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
+
+  // --- Notifications state ---
+  const [notifCount, setNotifCount] = useState(0);
 
   const dropdownRef = useRef<HTMLDivElement>(null);
 
@@ -36,6 +41,29 @@ export default function NavBar(): React.ReactElement | null {
       document.removeEventListener("mousedown", handleClickOutside);
     };
   }, [dropdownOpen]);
+
+  // Fetch unread notifications count (simple polling; switch to onSnapshot for live)
+  useEffect(() => {
+    let unsub: (() => void) | null = null;
+    async function loadNotifs() {
+      if (user?.uid) {
+        const { onSnapshot, collection, query, where } = await import("firebase/firestore");
+        const { db } = await import("../lib/firebase");
+        const q = query(
+          collection(db, "notifications"),
+          where("toUid", "==", user.uid),
+          where("read", "==", false)
+        );
+        unsub = onSnapshot(q, (snap) => {
+          setNotifCount(snap.size);
+        });
+      }
+    }
+    loadNotifs();
+    return () => {
+      if (unsub) unsub();
+    };
+  }, [user?.uid]);
 
   // Only show navbar for authenticated users (but all hooks always run)
   if (!user || loading) return null;
@@ -104,6 +132,30 @@ export default function NavBar(): React.ReactElement | null {
               {link.label}
             </Link>
           ))}
+          {/* Notifications bell */}
+          <Link href="/notifications" className="relative group ml-2 mr-1" aria-label="Notifications">
+            <span className="inline-block">
+              <svg
+                className="w-7 h-7 text-blue-600 hover:text-blue-800 transition"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+                aria-hidden="true"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M15 17h5l-1.405-1.405C18.37 15.203 18 14.552 18 13.867V11c0-3.07-1.64-5.64-4.5-6.32V4a1.5 1.5 0 00-3 0v.68C7.64 5.36 6 7.929 6 11v2.867c0 .685-.37 1.336-.595 1.728L4 17h5m6 0v1a3 3 0 01-6 0v-1m6 0H9"
+                />
+              </svg>
+              {notifCount > 0 && (
+                <span className="absolute -top-1 -right-1 bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs font-bold shadow">
+                  {notifCount > 9 ? "9+" : notifCount}
+                </span>
+              )}
+            </span>
+          </Link>
           {role === "admin" && (
             <button
               onClick={() => setSidebarOpen(true)}
@@ -142,6 +194,33 @@ export default function NavBar(): React.ReactElement | null {
               {link.label}
             </Link>
           ))}
+          {/* Notifications bell for mobile */}
+          <Link
+            href="/notifications"
+            className="flex items-center px-6 py-3 text-blue-700 font-medium hover:bg-gray-100 relative"
+            onClick={() => setMenuOpen(false)}
+          >
+            <svg
+              className="w-6 h-6 mr-2"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+              aria-hidden="true"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M15 17h5l-1.405-1.405C18.37 15.203 18 14.552 18 13.867V11c0-3.07-1.64-5.64-4.5-6.32V4a1.5 1.5 0 00-3 0v.68C7.64 5.36 6 7.929 6 11v2.867c0 .685-.37 1.336-.595 1.728L4 17h5m6 0v1a3 3 0 01-6 0v-1m6 0H9"
+              />
+            </svg>
+            Notifications
+            {notifCount > 0 && (
+              <span className="ml-2 bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs font-bold shadow">
+                {notifCount > 9 ? "9+" : notifCount}
+              </span>
+            )}
+          </Link>
           {role === "admin" && (
             <button
               onClick={() => {

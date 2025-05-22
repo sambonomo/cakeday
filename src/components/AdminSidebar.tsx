@@ -4,12 +4,17 @@ import React from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
+// Full admin navigation—edit order or icons as you wish!
 const ADMIN_LINKS = [
   { label: "Onboarding Tasks", href: "/admin/onboarding", icon: "📋" },
+  { label: "Offboarding Tasks", href: "/admin/offboarding", icon: "🚪" },
   { label: "Manage Users", href: "/admin/users", icon: "👥" },
+  { label: "Rewards Catalog", href: "/admin/rewards", icon: "🎁" },
+  { label: "Redemption Requests", href: "/admin/redemptions", icon: "🎟️" },
+  { label: "Analytics", href: "/admin/analytics", icon: "📊" },
+  { label: "Company Settings", href: "/admin/company", icon: "🏢" },
+  { label: "Documents", href: "/admin/documents", icon: "📄" },
   { label: "Integrations", href: "/admin/integrations", icon: "🔌" },
-  { label: "Offboarding", href: "/admin/offboarding", icon: "🚪" },
-  { label: "Documents", href: "/admin/documents", icon: "📄" }, // NEW!
   // Add more links as needed
 ];
 

@@ -39,10 +39,16 @@ export default function DashboardPage(): React.ReactElement {
   const { user, role, logout, loading, companyId } = useAuth();
   const router = useRouter();
 
+  // All hooks MUST be here!
   // Invite Code State (for admins)
   const [inviteCode, setInviteCode] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
 
+  // 🎉 Today's Event Toast state
+  const [todayEvents, setTodayEvents] = useState<UserEvent[]>([]);
+  const [showTodayToast, setShowTodayToast] = useState<boolean>(true);
+
+  // --- EFFECTS ---
   useEffect(() => {
     async function fetchInviteCode() {
       if (role === "admin" && companyId) {
@@ -55,12 +61,22 @@ export default function DashboardPage(): React.ReactElement {
     fetchInviteCode();
   }, [role, companyId]);
 
-  // Handle authentication & loop prevention
   useEffect(() => {
     if (!loading && (!user || !companyId)) {
       router.replace("/login");
     }
   }, [user, loading, companyId, router]);
+
+  useEffect(() => {
+    if (!loading && user && companyId) {
+      fetchAllUsers(companyId).then((users) => {
+        const allEvents = getUpcomingEvents(users);
+        const todays = allEvents.filter((ev) => ev.daysUntil === 0);
+        setTodayEvents(todays);
+        setShowTodayToast(todays.length > 0);
+      });
+    }
+  }, [loading, user, companyId]);
 
   // Show a spinner while loading auth or company
   if (loading || !user || !companyId) {
@@ -77,21 +93,6 @@ export default function DashboardPage(): React.ReactElement {
       </div>
     );
   }
-
-  // 🎉 Today's Event Toast state
-  const [todayEvents, setTodayEvents] = useState<UserEvent[]>([]);
-  const [showTodayToast, setShowTodayToast] = useState<boolean>(true);
-
-  useEffect(() => {
-    if (!loading && user && companyId) {
-      fetchAllUsers(companyId).then((users) => {
-        const allEvents = getUpcomingEvents(users);
-        const todays = allEvents.filter((ev) => ev.daysUntil === 0);
-        setTodayEvents(todays);
-        setShowTodayToast(todays.length > 0);
-      });
-    }
-  }, [loading, user, companyId]);
 
   // Today's events banner text
   const todayMsg =
