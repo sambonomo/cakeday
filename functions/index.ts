@@ -1,54 +1,81 @@
-import * as functions from "firebase-functions";
-import * as admin from "firebase-admin";
+import { initializeApp } from "firebase-admin/app";
+import { getFirestore, FieldValue } from "firebase-admin/firestore";
+import { onDocumentCreated } from "firebase-functions/v2/firestore";
+import { setGlobalOptions } from "firebase-functions/v2/options";
 import * as sgMail from "@sendgrid/mail";
+import { buildInviteEmail } from "./emailTemplates";
 
-admin.initializeApp();
+// ------------- 1. Initialize -------------
+initializeApp();
+const db = getFirestore();
+setGlobalOptions({ region: "us-central1" });
 
-sgMail.setApiKey(functions.config().sendgrid.key);
+// ------------- 2. Environment Variables -------------
+const SENDGRID_KEY =
+  process.env.SENDGRID_API_KEY ||
+  process.env.SENDGRID_KEY ||
+  ""; // fallback, warn if not set
+const APP_BASE_URL =
+  process.env.APP_BASE_URL ||
+  "https://yourdomain.com";
+const FROM_EMAIL =
+  process.env.FROM_EMAIL ||
+  "noreply@yourdomain.com";
+const FROM_NAME =
+  process.env.FROM_NAME ||
+  "Cakeday HR";
 
-// Production/Dev frontend URL - adjust for your environment!
-const APP_BASE_URL = functions.config().app && functions.config().app.base_url
-  ? functions.config().app.base_url
-  : "https://yourdomain.com"; // fallback
+if (!SENDGRID_KEY) {
+  console.warn(
+    "[WARN] SENDGRID_KEY not set. Outbound email will fail. Set this in your .env or deploy env."
+  );
+}
+sgMail.setApiKey(SENDGRID_KEY);
 
-export const sendInviteEmail = functions.firestore
-  .document("users/{userId}")
-  .onCreate(async (snap, context) => {
-    const user = snap.data();
+// ------------- 3. Invite Email Trigger -------------
+export const sendInviteEmail = onDocumentCreated("users/{userId}", async (event) => {
+  const snap = event.data;
+  if (!snap) return;
 
-    // Only send for invited users (can expand to "newHire" if you want both)
-    if (user.status !== "invited" || !user.email) {
-      return null;
-    }
+  const user = snap.data();
 
-    // Generate a secure activation link
-    const activationUrl = `${APP_BASE_URL}/activate?email=${encodeURIComponent(user.email)}`;
+  // Only send for invited users with an email
+  if (!user || user.status !== "invited" || !user.email) {
+    return;
+  }
 
-    const msg = {
-      to: user.email,
-      from: {
-        email: "noreply@yourdomain.com",
-        name: "Cakeday HR",
-      },
-      subject: "You're Invited to Join Cakeday HR!",
-      html: `
-        <h2>Welcome to the Team, ${user.fullName || user.email}!</h2>
-        <p>You've been invited to join Cakeday HR. Click below to activate your account and start onboarding:</p>
-        <p>
-          <a href="${activationUrl}" style="background:#2563eb;color:#fff;padding:12px 28px;text-decoration:none;border-radius:8px;">Activate My Account</a>
-        </p>
-        <p>If you did not expect this invitation, you can ignore this email.</p>
-        <br>
-        <small>This invite is valid for 7 days.</small>
-      `,
-    };
+  // Compose activation URL
+  const activationUrl = `${APP_BASE_URL}/activate?email=${encodeURIComponent(user.email)}`;
 
-    try {
-      await sgMail.send(msg);
-      console.log("Invite email sent to", user.email);
-      return snap.ref.update({ inviteSentAt: admin.firestore.FieldValue.serverTimestamp() });
-    } catch (err: any) {
-      console.error("SendGrid error:", err);
-      return snap.ref.update({ inviteError: err.message });
-    }
+  // Use centralized template
+  const msg = buildInviteEmail({
+    to: user.email,
+    fullName: user.fullName,
+    activationUrl,
+    from: { email: FROM_EMAIL, name: FROM_NAME },
   });
+
+  try {
+    await sgMail.send(msg);
+    console.log("Invite email sent to", user.email);
+
+    // Mark as sent in Firestore
+    await db.doc(`users/${event.params.userId}`).update({
+      inviteSentAt: FieldValue.serverTimestamp(),
+      inviteError: FieldValue.delete(),
+    });
+  } catch (err: any) {
+    // SendGrid errors are sometimes arrays
+    let errorMsg = err?.message || "Unknown SendGrid error";
+    if (err?.response?.body?.errors) {
+      errorMsg = err.response.body.errors.map((e: any) => e.message).join("; ");
+    }
+    console.error("SendGrid error:", errorMsg);
+    await db.doc(`users/${event.params.userId}`).update({
+      inviteError: errorMsg,
+    });
+  }
+});
+
+// TODO: Next steps — Add callable functions for password reset and welcome emails
+
