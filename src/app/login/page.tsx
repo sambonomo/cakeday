@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { useAuth } from "../../context/AuthContext";
 import { sendPasswordResetEmail } from "firebase/auth";
 import { auth } from "../../lib/firebase";
+import { Cake, KeyRound, LogIn, UserPlus, ArrowLeft } from "lucide-react";
 
 export default function LoginPage(): React.ReactElement {
   const [email, setEmail] = useState<string>("");
@@ -90,7 +91,7 @@ export default function LoginPage(): React.ReactElement {
     >
       <main className="w-full max-w-md">
         <div className="flex flex-col items-center mb-4">
-          <span className="text-5xl mb-2 animate-bounce">🎂</span>
+          <Cake className="text-pink-400 text-5xl mb-2 animate-bounce w-12 h-12" aria-hidden="true" />
           <h1 className="text-3xl font-extrabold text-brand-700 text-center drop-shadow">
             Welcome to Cakeday
           </h1>
@@ -108,8 +109,8 @@ export default function LoginPage(): React.ReactElement {
               animate-fade-in
             "
           >
-            <h2 className="text-xl font-semibold mb-5 text-center text-brand-700">
-              Sign In
+            <h2 className="text-xl font-semibold mb-5 text-center text-brand-700 flex items-center gap-2 justify-center">
+              <LogIn className="w-6 h-6" /> Sign In
             </h2>
             {error && (
               <div className="text-red-600 mb-4 text-center font-medium">
@@ -145,17 +146,18 @@ export default function LoginPage(): React.ReactElement {
             <button
               type="submit"
               className="
-                btn btn-primary w-full text-lg
+                btn btn-primary w-full text-lg flex items-center justify-center gap-2
                 disabled:opacity-50
               "
               disabled={loading}
             >
+              <LogIn className="w-5 h-5" />
               {loading ? "Logging In..." : "Log In"}
             </button>
             <div className="mt-4 flex flex-col items-center gap-2">
               <button
                 type="button"
-                className="text-brand-600 hover:underline text-sm"
+                className="text-brand-600 hover:underline text-sm flex items-center gap-1"
                 onClick={() => {
                   setResetMode(true);
                   setResetEmail("");
@@ -163,15 +165,15 @@ export default function LoginPage(): React.ReactElement {
                   setResetSent(false);
                 }}
               >
-                Forgot password?
+                <KeyRound className="w-4 h-4" /> Forgot password?
               </button>
               <p className="text-center text-sm">
                 Don&apos;t have an account?{" "}
                 <a
                   href="/signup"
-                  className="text-brand-600 hover:underline font-semibold"
+                  className="text-brand-600 hover:underline font-semibold flex items-center gap-1"
                 >
-                  Sign Up
+                  <UserPlus className="w-4 h-4" /> Sign Up
                 </a>
               </p>
             </div>
@@ -185,8 +187,8 @@ export default function LoginPage(): React.ReactElement {
               animate-fade-in
             "
           >
-            <h2 className="text-xl font-semibold mb-4 text-center text-brand-700">
-              Reset Password
+            <h2 className="text-xl font-semibold mb-4 text-center text-brand-700 flex items-center gap-2 justify-center">
+              <KeyRound className="w-6 h-6" /> Reset Password
             </h2>
             <p className="mb-4 text-center text-gray-700 text-sm">
               Enter your account email and we&apos;ll send you a password reset
@@ -208,23 +210,23 @@ export default function LoginPage(): React.ReactElement {
             <button
               type="submit"
               className="
-                btn btn-primary w-full text-lg
+                btn btn-primary w-full text-lg flex items-center justify-center gap-2
                 disabled:opacity-50
               "
               disabled={!resetEmail}
             >
-              Send Reset Email
+              <KeyRound className="w-5 h-5" /> Send Reset Email
             </button>
             <button
               type="button"
               className="
                 w-full mt-3 bg-gray-100 text-brand-700
-                py-2 rounded-xl font-semibold
+                py-2 rounded-xl font-semibold flex items-center justify-center gap-2
                 hover:bg-gray-200 transition
               "
               onClick={() => setResetMode(false)}
             >
-              Back to Login
+              <ArrowLeft className="w-5 h-5" /> Back to Login
             </button>
             {resetSent && (
               <div className="text-green-600 mt-4 text-center font-semibold">

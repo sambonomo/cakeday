@@ -9,29 +9,28 @@ import { db } from "../../lib/firebase";
 import { fetchAllUsers, getUpcomingEvents, UserEvent } from "../../lib/firestoreUsers";
 import Toast from "../../components/Toast";
 import Leaderboard from "../../components/Leaderboard";
+// Lucide icons
+import {
+  Cake,
+  ClipboardList,
+  Handshake,
+  FolderKanban,
+  Gift,
+  Trophy,
+  PartyPopper,
+  LogOut,
+  User,
+  Wrench,
+} from "lucide-react";
 
-// Dynamic imports (client-side only)
-const OnboardingChecklist = dynamic(() => import("../../components/OnboardingChecklist"), {
-  ssr: false,
-});
-const OffboardingChecklist = dynamic(() => import("../../components/OffboardingChecklist"), {
-  ssr: false,
-});
-const AssignedTasksDashboard = dynamic(() => import("../../components/AssignedTasksDashboard"), {
-  ssr: false,
-});
-const AdminOnboardingTasks = dynamic(() => import("../../components/AdminOnboardingTasks"), {
-  ssr: false,
-});
-const GiveKudosForm = dynamic(() => import("../../components/GiveKudosForm"), {
-  ssr: false,
-});
-const RecognitionFeed = dynamic(() => import("../../components/RecognitionFeed"), {
-  ssr: false,
-});
-const BirthdayAnniversaryFeed = dynamic(() => import("../../components/BirthdayAnniversaryFeed"), {
-  ssr: false,
-});
+// Dynamic imports for client-side only components
+const OnboardingChecklist = dynamic(() => import("../../components/OnboardingChecklist"), { ssr: false });
+const OffboardingChecklist = dynamic(() => import("../../components/OffboardingChecklist"), { ssr: false });
+const AssignedTasksDashboard = dynamic(() => import("../../components/AssignedTasksDashboard"), { ssr: false });
+const AdminOnboardingTasks = dynamic(() => import("../../components/AdminOnboardingTasks"), { ssr: false });
+const GiveKudosForm = dynamic(() => import("../../components/GiveKudosForm"), { ssr: false });
+const RecognitionFeed = dynamic(() => import("../../components/RecognitionFeed"), { ssr: false });
+const BirthdayAnniversaryFeed = dynamic(() => import("../../components/BirthdayAnniversaryFeed"), { ssr: false });
 
 export default function DashboardPage(): React.ReactElement {
   const { user, role, logout, loading, companyId } = useAuth();
@@ -74,7 +73,6 @@ export default function DashboardPage(): React.ReactElement {
     }
   }, [loading, user, companyId]);
 
-  // Show a spinner while loading auth or company
   if (loading || !user || !companyId) {
     return (
       <div className="flex items-center justify-center min-h-screen bg-gradient-to-tr from-white via-brand-50 to-accent-50">
@@ -88,9 +86,11 @@ export default function DashboardPage(): React.ReactElement {
     ? todayEvents
         .map(
           (ev) =>
-            `${ev.type === "birthday" ? "🎂" : "🎉"} ${
-              ev.user.fullName || ev.user.email
-            }'s ${
+            `${
+              ev.type === "birthday"
+                ? "🎂"
+                : "🎉"
+            } ${ev.user.fullName || ev.user.email}'s ${
               ev.type === "birthday" ? "birthday" : "work anniversary"
             } is today!`
         )
@@ -106,9 +106,7 @@ export default function DashboardPage(): React.ReactElement {
   const leftPanel = isNewHire ? (
     <section className="card-panel border-brand-100">
       <h2 className="text-2xl font-bold flex items-center gap-2 text-brand-700">
-        <span className="text-2xl" role="img" aria-label="Clipboard">
-          📋
-        </span>
+        <ClipboardList className="w-6 h-6 text-brand-500" aria-hidden="true" />
         Onboarding Checklist
       </h2>
       <OnboardingChecklist companyId={companyId} />
@@ -116,9 +114,7 @@ export default function DashboardPage(): React.ReactElement {
   ) : isExiting ? (
     <section className="card-panel border-red-100">
       <h2 className="text-2xl font-bold flex items-center gap-2 text-red-600">
-        <span className="text-2xl" role="img" aria-label="Wave goodbye">
-          👋
-        </span>
+        <LogOut className="w-6 h-6 text-red-500" aria-hidden="true" />
         Offboarding Checklist
       </h2>
       <OffboardingChecklist companyId={companyId} />
@@ -129,9 +125,7 @@ export default function DashboardPage(): React.ReactElement {
   const assignedSection = (
     <section className="card-panel border-blue-100">
       <h2 className="text-2xl font-bold flex items-center gap-2 text-blue-700">
-        <span className="text-xl" role="img" aria-label="Files icon">
-          🗂️
-        </span>
+        <FolderKanban className="w-6 h-6 text-blue-400" aria-hidden="true" />
         My Assigned Tasks
       </h2>
       <AssignedTasksDashboard />
@@ -142,9 +136,7 @@ export default function DashboardPage(): React.ReactElement {
   const eventsSection = (
     <section className="card-panel border-accent-100">
       <h2 className="text-2xl font-bold flex items-center gap-2 text-accent-700">
-        <span className="text-xl" role="img" aria-label="Confetti">
-          🎉
-        </span>
+        <PartyPopper className="w-6 h-6 text-pink-500" aria-hidden="true" />
         Birthdays &amp; Anniversaries
       </h2>
       <BirthdayAnniversaryFeed companyId={companyId} />
@@ -155,9 +147,7 @@ export default function DashboardPage(): React.ReactElement {
   const adminPanel = (
     <section className="w-full card-panel border-brand-200 shadow-2xl items-center mt-8">
       <h2 className="text-xl font-semibold mb-3 text-brand-800 flex items-center gap-2">
-        <span role="img" aria-label="Admin Tools">
-          🛠️
-        </span>
+        <Wrench className="w-5 h-5 text-brand-700" aria-hidden="true" />
         Admin Onboarding Tasks
       </h2>
       <AdminOnboardingTasks companyId={companyId} />
@@ -192,9 +182,7 @@ export default function DashboardPage(): React.ReactElement {
       {/* Hero Header */}
       <header className="w-full flex flex-col items-center justify-center px-4 pt-12 pb-8 bg-gradient-to-br from-brand-100 via-accent-50 to-accent-100 shadow-lg mb-4">
         <div className="flex items-center gap-6 mb-4">
-          <span className="text-6xl animate-bounce select-none" role="img" aria-label="Cake">
-            🎂
-          </span>
+          <Cake className="text-pink-600 w-16 h-16 drop-shadow" aria-hidden="true" />
           <div>
             <h1 className="text-4xl md:text-5xl font-extrabold text-brand-800 drop-shadow text-center mb-1">
               Welcome, <span className="text-accent-500">{displayName}</span>
@@ -225,10 +213,7 @@ export default function DashboardPage(): React.ReactElement {
         <Toast message={todayMsg} type="success" onClose={() => setShowTodayToast(false)} />
       )}
 
-      {/*
-        MAIN content area:
-        - Added id="main-content" for Skip Link accessibility
-      */}
+      {/* Main content area */}
       <main
         id="main-content"
         className="flex-1 w-full max-w-6xl mx-auto px-2 md:px-8 flex flex-col gap-10"
@@ -254,9 +239,7 @@ export default function DashboardPage(): React.ReactElement {
         {/* Employee Recognition Feed */}
         <section className="card-panel border-accent-100 mt-2">
           <h2 className="text-2xl font-bold mb-2 text-accent-600 flex items-center gap-2">
-            <span role="img" aria-label="Kudos Hands">
-              👏
-            </span>{" "}
+            <Handshake className="w-6 h-6 text-accent-400" aria-hidden="true" />
             Employee Recognition Feed
           </h2>
           <div className="mb-4">

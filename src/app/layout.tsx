@@ -30,7 +30,6 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <head>
-        {/* Optional: Favicon for all devices */}
         <link rel="icon" href="/favicon.ico" />
         <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
         <meta name="theme-color" content="#1e293b" />
@@ -42,14 +41,18 @@ export default function RootLayout({
           bg-gradient-to-tr from-white via-brand-50 to-accent-50
           dark:from-slate-900 dark:via-indigo-950 dark:to-blue-900
         `}
-        style={{
-          background: "var(--color-background)",
-          color: "var(--color-foreground)",
-        }}
       >
+        {/* Optional: global skip-link for accessibility */}
+        <a
+          href="#main-content"
+          className="sr-only focus:not-sr-only absolute left-4 top-4 z-50 bg-blue-700 text-white px-4 py-2 rounded transition"
+        >
+          Skip to main content
+        </a>
         <ClientProviders>
           {/* pt-20 gives space for the navbar; adjust if your nav height changes */}
           <main
+            id="main-content"
             className="pt-20 flex flex-col min-h-screen transition-all duration-300"
             role="main"
             aria-label="Cakeday Main Content"

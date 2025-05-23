@@ -12,9 +12,15 @@ import {
   doc,
 } from "firebase/firestore";
 import Toast from "./Toast";
-import { FileText, CheckCircle2, Clock8, Users2 } from "lucide-react";
+import {
+  FileText,
+  CheckCircle2,
+  Clock8,
+  Users2,
+  PartyPopper,
+  ClipboardCheck,
+} from "lucide-react";
 
-// --- Utility Types ---
 type UserTaskAssignment = {
   id: string;
   newHireId: string;
@@ -72,10 +78,8 @@ export default function AssignedTasksDashboard() {
         where("assignedTo", "==", user.uid)
       );
       const snap = await getDocs(q);
-      // SAFEST: Omit 'id' if present in Firestore data (shouldn't be, but prevents warning)
       const assignments = snap.docs.map((d) => {
         const data = d.data() as Omit<UserTaskAssignment, "id"> & { id?: string };
-        // Remove any id property from Firestore data, then set the correct id from Firestore doc id
         const { id: _, ...rest } = data;
         return { ...rest, id: d.id };
       });
@@ -98,7 +102,6 @@ export default function AssignedTasksDashboard() {
       setDocs(
         docsSnap.docs.map((d) => {
           const data = d.data() as Omit<DocInfo, "id"> & { id?: string };
-          // Defensive: Remove any id field from Firestore data, then set id from doc
           const { id: _, ...rest } = data;
           return { ...rest, id: d.id };
         })
@@ -133,7 +136,7 @@ export default function AssignedTasksDashboard() {
     setLoading(false);
   }
 
-  // Group tasks by new hire (for managers/IT, grouped by person they help onboard)
+  // Group tasks by new hire
   const grouped: Record<string, UserTaskAssignment[]> = {};
   assignments.forEach((a) => {
     if (!grouped[a.newHireId]) grouped[a.newHireId] = [];
@@ -142,7 +145,8 @@ export default function AssignedTasksDashboard() {
 
   if (loading) {
     return (
-      <div className="text-blue-600 text-center py-12 animate-pulse">
+      <div className="flex flex-col items-center justify-center py-12 text-blue-600 animate-pulse">
+        <ClipboardCheck className="w-8 h-8 mb-2" />
         Loading assigned onboarding tasks...
       </div>
     );
@@ -150,8 +154,8 @@ export default function AssignedTasksDashboard() {
 
   if (assignments.length === 0) {
     return (
-      <div className="text-gray-500 text-center py-8">
-        <span className="text-3xl">👍</span>
+      <div className="text-gray-500 text-center py-8 flex flex-col items-center">
+        <PartyPopper className="w-8 h-8 mb-2 text-green-400" />
         <div className="text-lg mt-2">No onboarding tasks assigned to you yet!</div>
       </div>
     );
@@ -202,7 +206,7 @@ export default function AssignedTasksDashboard() {
                       key={t.id}
                       className={`flex flex-col md:flex-row md:items-center gap-3 p-3 rounded border ${
                         t.completed
-                          ? "bg-green-50 border-green-300"
+                          ? "bg-green-50 border-green-300 opacity-80"
                           : "bg-white border-gray-200"
                       }`}
                     >

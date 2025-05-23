@@ -9,26 +9,42 @@ import { db } from "../lib/firebase";
 import type { UserProfile } from "../lib/firestoreUsers";
 import UserAvatar from "./UserAvatar";
 import Toast from "./Toast";
-import { Sparkles } from "lucide-react";
+import {
+  Sparkles,
+  PartyPopper,
+  Users,
+  Award,
+  Star,
+  Trophy,
+  HeartHandshake,
+  Lightbulb,
+  Target,
+  UserCheck,
+  Handshake,
+  Smile,
+} from "lucide-react";
 
+// Use Lucide icons for badge options
 const BADGES = [
-  { label: "Team Player", emoji: "🤝" },
-  { label: "Innovator", emoji: "💡" },
-  { label: "Leadership", emoji: "🦸" },
-  { label: "Extra Mile", emoji: "🏅" },
-  { label: "Problem Solver", emoji: "🧠" },
-  { label: "Cheerleader", emoji: "🎉" },
-  { label: "Rockstar", emoji: "🎸" },
-  { label: "Customer Hero", emoji: "🏆" },
-  { label: "Sharp Shooter", emoji: "🎯" },
-  { label: "Kindness", emoji: "💖" },
+  { label: "Team Player", Icon: Handshake },
+  { label: "Innovator", Icon: Lightbulb },
+  { label: "Leadership", Icon: Users },
+  { label: "Extra Mile", Icon: Star },
+  { label: "Problem Solver", Icon: Award },
+  { label: "Cheerleader", Icon: Smile },
+  { label: "Rockstar", Icon: Trophy },
+  { label: "Customer Hero", Icon: UserCheck },
+  { label: "Sharp Shooter", Icon: Target },
+  { label: "Kindness", Icon: HeartHandshake },
 ];
 
 interface GiveKudosFormProps {
   companyId?: string;
 }
 
-export default function GiveKudosForm({ companyId: propCompanyId }: GiveKudosFormProps): React.ReactElement {
+export default function GiveKudosForm({
+  companyId: propCompanyId,
+}: GiveKudosFormProps): React.ReactElement {
   const { user, companyId: contextCompanyId } = useAuth();
   const companyId = propCompanyId || contextCompanyId;
 
@@ -36,11 +52,12 @@ export default function GiveKudosForm({ companyId: propCompanyId }: GiveKudosFor
   const [queryValue, setQueryValue] = useState<string>("");
   const [toUid, setToUid] = useState<string | null>(null);
   const [message, setMessage] = useState<string>("");
-  const [badge, setBadge] = useState<string>(BADGES[0].emoji);
+  const [badge, setBadge] = useState<number>(0);
   const [success, setSuccess] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState<boolean>(false);
   const [showToast, setShowToast] = useState<boolean>(false);
+  const [sent, setSent] = useState(false);
 
   const toastTimer = useRef<NodeJS.Timeout | null>(null);
 
@@ -101,7 +118,7 @@ export default function GiveKudosForm({ companyId: propCompanyId }: GiveKudosFor
         toUid: recipient.uid,
         toEmail: recipient.email,
         message: message.trim(),
-        badge,
+        badge: BADGES[badge].label,
         companyId,
         fromName,
         fromPhotoURL,
@@ -113,10 +130,14 @@ export default function GiveKudosForm({ companyId: propCompanyId }: GiveKudosFor
       setToUid(null);
       setQueryValue("");
       setMessage("");
-      setBadge(BADGES[0].emoji);
+      setBadge(0);
+      setSent(true);
 
       if (toastTimer.current) clearTimeout(toastTimer.current);
-      toastTimer.current = setTimeout(() => setShowToast(false), 2500);
+      toastTimer.current = setTimeout(() => {
+        setShowToast(false);
+        setSent(false);
+      }, 2000);
     } catch (err) {
       if (err instanceof Error) {
         setError(err.message || "Error sending kudos.");
@@ -128,7 +149,6 @@ export default function GiveKudosForm({ companyId: propCompanyId }: GiveKudosFor
     setLoading(false);
   };
 
-  // --- Minor fix: TS-friendly, no need for ?? "" here
   const selectedEmployee = employees.find((e) => e.uid === toUid);
 
   return (
@@ -142,7 +162,11 @@ export default function GiveKudosForm({ companyId: propCompanyId }: GiveKudosFor
       "
     >
       <h3 className="font-extrabold text-xl flex items-center gap-2 text-green-700 mb-1">
-        <Sparkles className="w-6 h-6 text-yellow-400" />
+        {sent ? (
+          <PartyPopper className="w-6 h-6 text-pink-400 animate-bounce" />
+        ) : (
+          <Sparkles className="w-6 h-6 text-yellow-400" />
+        )}
         Give Kudos
       </h3>
 
@@ -150,29 +174,29 @@ export default function GiveKudosForm({ companyId: propCompanyId }: GiveKudosFor
       <div>
         <label className="block font-medium mb-1">Badge</label>
         <div className="grid grid-cols-5 gap-2 mb-1">
-          {BADGES.map((b) => (
+          {BADGES.map((b, idx) => (
             <button
-              key={b.emoji}
+              key={b.label}
               type="button"
-              className={`flex flex-col items-center justify-center rounded-xl text-2xl px-0.5 py-2 border-2 cursor-pointer transition-all duration-150 focus:outline-none
+              className={`flex flex-col items-center justify-center rounded-xl px-0.5 py-2 border-2 cursor-pointer transition-all duration-150 focus:outline-none text-green-700
                 ${
-                  badge === b.emoji
+                  badge === idx
                     ? "bg-green-100 border-green-600 scale-105 shadow"
                     : "bg-gray-50 border-gray-200 hover:scale-105 hover:border-green-400"
                 }`}
               aria-label={b.label}
               tabIndex={0}
               title={b.label}
-              onClick={() => setBadge(b.emoji)}
+              onClick={() => setBadge(idx)}
             >
-              <span>{b.emoji}</span>
-              <span className="text-xs mt-1 text-gray-600">{b.label}</span>
+              <b.Icon className="w-7 h-7 mb-1" />
+              <span className="text-xs text-gray-600">{b.label}</span>
             </button>
           ))}
         </div>
       </div>
 
-      {/* Recipient Selection (Modern Combobox) */}
+      {/* Recipient Selection (Combobox) */}
       <div>
         <label className="block font-medium mb-1">Recipient</label>
         <Combobox value={toUid} onChange={setToUid} nullable>
@@ -198,8 +222,7 @@ export default function GiveKudosForm({ companyId: propCompanyId }: GiveKudosFor
                   value={e.uid}
                   className={({ active }) =>
                     `flex items-center gap-3 px-4 py-2 cursor-pointer
-                    ${active ? "bg-green-100 text-green-900" : ""}
-                    `
+                    ${active ? "bg-green-100 text-green-900" : ""}`
                   }
                 >
                   <UserAvatar
@@ -214,7 +237,6 @@ export default function GiveKudosForm({ companyId: propCompanyId }: GiveKudosFor
             </Combobox.Options>
           </div>
         </Combobox>
-        {/* Preview below for selected recipient */}
         {toUid && selectedEmployee && (
           <div className="flex items-center gap-2 mt-2">
             <UserAvatar
@@ -247,7 +269,7 @@ export default function GiveKudosForm({ companyId: propCompanyId }: GiveKudosFor
         className="bg-gradient-to-r from-green-600 via-green-500 to-green-700 text-white rounded-xl px-5 py-2 font-bold shadow-md hover:from-green-700 hover:to-green-800 transition-transform hover:scale-105 disabled:opacity-60"
         disabled={loading}
       >
-        {loading ? "Sending..." : "Send Kudos"}
+        {loading ? "Sending..." : sent ? "Kudos Sent!" : "Send Kudos"}
       </button>
 
       {/* Success/Error Toast */}

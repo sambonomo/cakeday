@@ -1,10 +1,9 @@
 "use client";
 
-import React from "react";
+import React, { useEffect, useRef } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
-  // Example Lucide icons—adjust as you like!
   Wrench,
   ClipboardList,
   LogOut,
@@ -15,9 +14,9 @@ import {
   Building,
   FileText,
   PlugZap,
+  X
 } from "lucide-react";
 
-// Example links array, now using Icon components from lucide-react
 const ADMIN_LINKS = [
   { label: "Onboarding Tasks", href: "/admin/onboarding", Icon: ClipboardList },
   { label: "Offboarding Tasks", href: "/admin/offboarding", Icon: LogOut },
@@ -38,6 +37,43 @@ export default function AdminSidebar({
   onClose: () => void;
 }) {
   const pathname = usePathname();
+  const navRef = useRef<HTMLDivElement>(null);
+
+  // Close on Escape, trap focus for a11y
+  useEffect(() => {
+    if (!open) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+      if (e.key === "Tab") {
+        // Focus trap: keep tab focus inside sidebar
+        const focusableEls = navRef.current?.querySelectorAll<HTMLElement>(
+          'a,button,[tabindex]:not([tabindex="-1"])'
+        );
+        if (!focusableEls || focusableEls.length === 0) return;
+        const first = focusableEls[0];
+        const last = focusableEls[focusableEls.length - 1];
+        if (e.shiftKey) {
+          if (document.activeElement === first) {
+            e.preventDefault();
+            last.focus();
+          }
+        } else {
+          if (document.activeElement === last) {
+            e.preventDefault();
+            first.focus();
+          }
+        }
+      }
+    };
+    document.addEventListener("keydown", handleKeyDown);
+    return () => document.removeEventListener("keydown", handleKeyDown);
+  }, [open, onClose]);
+
+  // Focus the close button when opened
+  const closeBtnRef = useRef<HTMLButtonElement>(null);
+  useEffect(() => {
+    if (open) closeBtnRef.current?.focus();
+  }, [open]);
 
   if (!open) return null;
 
@@ -48,9 +84,9 @@ export default function AdminSidebar({
       aria-modal="true"
       aria-labelledby="admin-panel-title"
     >
-      {/* Overlay */}
+      {/* Overlay with fade */}
       <div
-        className="fixed inset-0 bg-black bg-opacity-40"
+        className="fixed inset-0 bg-black/40 transition-opacity animate-fade-in"
         onClick={onClose}
         aria-label="Close sidebar"
         tabIndex={-1}
@@ -58,29 +94,29 @@ export default function AdminSidebar({
 
       {/* Sidebar panel */}
       <nav
+        ref={navRef}
         aria-label="Admin sidebar"
-        className="relative w-72 bg-white shadow-lg h-full flex flex-col p-6 animate-fade-in"
+        className="relative w-80 max-w-full bg-white shadow-xl h-full flex flex-col p-6 animate-fade-in"
       >
         <div className="flex items-center justify-between mb-8">
-          {/* Title with a Lucide Tool icon instead of an emoji */}
           <span
             id="admin-panel-title"
-            className="text-lg font-bold text-blue-700 flex items-center gap-2"
+            className="text-xl font-bold text-blue-700 flex items-center gap-2"
           >
-            <Wrench className="w-5 h-5" />
+            <Wrench className="w-6 h-6" />
             Admin Panel
           </span>
-
           <button
-            className="text-gray-500 hover:text-red-600 text-xl"
+            className="rounded-full p-2 text-gray-500 hover:bg-red-50 hover:text-red-600 focus:outline-none transition"
             aria-label="Close admin sidebar"
             onClick={onClose}
+            ref={closeBtnRef}
           >
-            &times;
+            <X className="w-6 h-6" />
           </button>
         </div>
 
-        <ul className="flex-1 flex flex-col gap-2">
+        <ul className="flex-1 flex flex-col gap-1">
           {ADMIN_LINKS.map(({ href, label, Icon }) => {
             const isActive = pathname?.startsWith(href);
 
@@ -88,20 +124,26 @@ export default function AdminSidebar({
               <li key={href}>
                 <Link
                   href={href}
-                  className={`flex items-center gap-3 px-4 py-3 rounded transition font-medium ${
-                    isActive
-                      ? "bg-blue-100 text-blue-700"
-                      : "hover:bg-gray-100"
-                  }`}
+                  className={`flex items-center gap-3 px-4 py-3 rounded min-h-12 text-base transition font-medium outline-none ring-blue-400 ring-offset-2 focus-visible:ring-2
+                    ${
+                      isActive
+                        ? "bg-blue-100 text-blue-700 font-semibold shadow"
+                        : "hover:bg-gray-100"
+                    }`}
                   onClick={onClose}
+                  tabIndex={0}
                 >
-                  <Icon className="w-5 h-5" />
+                  <Icon className="w-5 h-5 flex-shrink-0" />
                   {label}
                 </Link>
               </li>
             );
           })}
         </ul>
+
+        <div className="mt-8 border-t pt-6 text-xs text-gray-400 text-center select-none">
+          &copy; {new Date().getFullYear()} Cakeday • Admin
+        </div>
       </nav>
     </aside>
   );

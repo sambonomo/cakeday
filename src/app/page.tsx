@@ -1,4 +1,17 @@
 import Link from "next/link";
+import {
+  Sparkles,
+  Cake,
+  Handshake,
+  Trophy,
+  CheckCircle2,
+  Calendar,
+  PartyPopper,
+  Users,
+  NotebookPen,
+  ArrowRight,
+  UserPlus,
+} from "lucide-react";
 
 export default function Home(): React.ReactElement {
   return (
@@ -11,10 +24,7 @@ export default function Home(): React.ReactElement {
         transition-all px-4
       "
     >
-      {/*
-        Optional Skip Link: Helps keyboard users jump to main content.
-        If you have a global nav on other pages, you can reuse that approach here.
-      */}
+      {/* Skip Link for accessibility */}
       <a
         href="#home-content"
         className="
@@ -62,11 +72,8 @@ export default function Home(): React.ReactElement {
             animate-fade-in-up
           "
         >
-          <span role="img" aria-label="Party Popper">
-            🎉
-          </span>{" "}
-          Cakeday{" "}
-          <span className="text-accent-500">HR</span>
+          <PartyPopper className="inline w-10 h-10 text-accent-500 mb-1 mr-2" aria-hidden="true" />
+          Cakeday <span className="text-accent-500">HR</span>
         </h1>
 
         <p
@@ -85,27 +92,19 @@ export default function Home(): React.ReactElement {
         {/* Features Mini Grid */}
         <div className="grid grid-cols-2 gap-3 w-full max-w-xs mt-2 animate-fade-in-up">
           <div className="bg-green-50 dark:bg-green-950/60 rounded-xl flex items-center gap-2 p-2 shadow text-green-700 dark:text-green-200">
-            <span role="img" aria-label="Checkmark">
-              ✔️
-            </span>
+            <CheckCircle2 className="w-5 h-5" aria-hidden="true" />
             <span className="font-semibold">Checklists</span>
           </div>
           <div className="bg-yellow-50 dark:bg-yellow-900/60 rounded-xl flex items-center gap-2 p-2 shadow text-yellow-700 dark:text-yellow-200">
-            <span role="img" aria-label="Birthday cake">
-              🎂
-            </span>
+            <Cake className="w-5 h-5" aria-hidden="true" />
             <span className="font-semibold">Auto Birthdays</span>
           </div>
           <div className="bg-pink-50 dark:bg-pink-900/60 rounded-xl flex items-center gap-2 p-2 shadow text-pink-700 dark:text-pink-200">
-            <span role="img" aria-label="Handshake">
-              🤝
-            </span>
+            <Handshake className="w-5 h-5" aria-hidden="true" />
             <span className="font-semibold">Kudos</span>
           </div>
           <div className="bg-blue-50 dark:bg-blue-900/60 rounded-xl flex items-center gap-2 p-2 shadow text-blue-700 dark:text-blue-200">
-            <span role="img" aria-label="Trophy">
-              🏆
-            </span>
+            <Trophy className="w-5 h-5" aria-hidden="true" />
             <span className="font-semibold">Rewards</span>
           </div>
         </div>
@@ -126,9 +125,10 @@ export default function Home(): React.ReactElement {
               hover:scale-105 hover:from-brand-700 hover:to-accent-700
               transition-transform duration-150 text-center
               focus:outline focus:ring-2 focus:ring-accent-400
+              flex items-center gap-2
             "
           >
-            Get Started
+            <UserPlus className="w-5 h-5" /> Get Started
           </Link>
           <Link
             href="/login"
@@ -140,9 +140,10 @@ export default function Home(): React.ReactElement {
               hover:scale-105 transition-transform
               duration-150 text-center
               focus:outline focus:ring-2 focus:ring-accent-400
+              flex items-center gap-2
             "
           >
-            Log In
+            <ArrowRight className="w-5 h-5" /> Log In
           </Link>
         </div>
         <div className="flex justify-center w-full mt-2">
@@ -159,8 +160,8 @@ export default function Home(): React.ReactElement {
 
         {/* Why Cakeday / Social Proof */}
         <div className="mt-8 mb-1 px-4">
-          <div className="text-accent-700 text-base font-semibold text-center mb-2">
-            ❤️ Loved by modern teams &amp; small businesses!
+          <div className="text-accent-700 text-base font-semibold text-center mb-2 flex items-center justify-center gap-2">
+            <Sparkles className="w-5 h-5 text-pink-400" /> Loved by modern teams &amp; small businesses!
           </div>
           <div className="flex gap-2 justify-center flex-wrap text-sm text-gray-500">
             <span>✓ 10x more engagement</span>
@@ -175,27 +176,21 @@ export default function Home(): React.ReactElement {
         <div className="w-full mt-5 border-t border-accent-100 pt-6 hidden md:block">
           <div className="flex items-center justify-center gap-8">
             <div className="flex flex-col items-center text-center">
-              <span className="text-2xl" role="img" aria-label="Notepad">
-                📝
-              </span>
+              <NotebookPen className="w-7 h-7 text-brand-500" aria-hidden="true" />
               <span className="text-xs mt-1 text-brand-700 font-bold">
                 Add Employees
               </span>
             </div>
-            <div className="text-2xl">➡️</div>
+            <ArrowRight className="w-6 h-6 text-gray-400" />
             <div className="flex flex-col items-center text-center">
-              <span className="text-2xl" role="img" aria-label="Confetti">
-                🎉
-              </span>
+              <Calendar className="w-7 h-7 text-yellow-400" aria-hidden="true" />
               <span className="text-xs mt-1 text-accent-700 font-bold">
                 Auto Celebrations
               </span>
             </div>
-            <div className="text-2xl">➡️</div>
+            <ArrowRight className="w-6 h-6 text-gray-400" />
             <div className="flex flex-col items-center text-center">
-              <span className="text-2xl" role="img" aria-label="Clapping Hands">
-                👏
-              </span>
+              <Sparkles className="w-7 h-7 text-pink-500" aria-hidden="true" />
               <span className="text-xs mt-1 text-pink-700 font-bold">
                 Kudos &amp; Rewards
               </span>

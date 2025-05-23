@@ -3,12 +3,13 @@
 import { useEffect, useState } from "react";
 import { fetchAllUsers, UserProfile } from "../lib/firestoreUsers";
 import { useAuth } from "../context/AuthContext";
-import { Crown, Star } from "lucide-react";
+import { Crown, Star, Sparkles, Medal, Award } from "lucide-react";
 
-const BADGE_LABELS: Record<string, string> = {
-  "first-kudos": "First Kudos 🎉",
-  "50-points": "Level 1 ⭐",
-  "100-points": "Level 2 🌟",
+// Map badge codes to readable labels and Lucide icons
+const BADGE_DEFS: Record<string, { label: string; Icon: React.ElementType }> = {
+  "first-kudos": { label: "First Kudos", Icon: Sparkles },
+  "50-points": { label: "Level 1", Icon: Medal },
+  "100-points": { label: "Level 2", Icon: Award },
   // Add more badge milestones as needed
 };
 
@@ -40,8 +41,15 @@ export default function Leaderboard({
     });
   }, [companyId, limit]);
 
-  if (loading) return <div className="text-gray-500">Loading leaderboard...</div>;
-  if (users.length === 0) return <div className="text-gray-400">No kudos or points awarded yet.</div>;
+  if (loading)
+    return <div className="text-gray-500">Loading leaderboard...</div>;
+  if (users.length === 0)
+    return (
+      <div className="text-gray-400 flex flex-col items-center py-6">
+        <Crown className="w-8 h-8 mb-1 text-yellow-300" />
+        No kudos or points awarded yet.
+      </div>
+    );
 
   return (
     <div className="glass-card w-full max-w-2xl mx-auto shadow-xl rounded-3xl p-6 mt-8 animate-fade-in">
@@ -78,16 +86,20 @@ export default function Leaderboard({
               <div className="font-semibold text-blue-800 truncate">{u.fullName || u.email}</div>
               <div className="text-xs text-gray-400">{u.email}</div>
               {/* Badges */}
-              <div className="flex gap-1 flex-wrap mt-1">
-                {(u.badges || []).map((b) => (
-                  <span
-                    key={b}
-                    className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-yellow-100 text-yellow-800 border border-yellow-200"
-                    title={BADGE_LABELS[b] || b}
-                  >
-                    {BADGE_LABELS[b] || b}
-                  </span>
-                ))}
+              <div className="flex gap-2 flex-wrap mt-1">
+                {(u.badges || []).map((b) => {
+                  const badgeDef = BADGE_DEFS[b];
+                  return badgeDef ? (
+                    <span
+                      key={b}
+                      className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-yellow-100 text-yellow-800 border border-yellow-200 gap-1"
+                      title={badgeDef.label}
+                    >
+                      <badgeDef.Icon className="w-4 h-4 text-yellow-400" />
+                      {badgeDef.label}
+                    </span>
+                  ) : null;
+                })}
               </div>
             </div>
             {/* Points */}

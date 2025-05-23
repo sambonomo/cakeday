@@ -3,21 +3,22 @@
 import React from "react";
 
 interface KudosBadgeProps {
-  emoji: string;
+  Icon: React.ElementType; // Lucide icon component
   label?: string;
   size?: "sm" | "md" | "lg";
   className?: string;
   showLabel?: boolean;
 }
 
+// Icon size mapping for consistency
 const sizeMap = {
-  sm: "text-lg",
-  md: "text-2xl",
-  lg: "text-4xl",
+  sm: "w-4 h-4",
+  md: "w-6 h-6",
+  lg: "w-10 h-10",
 };
 
 export default function KudosBadge({
-  emoji,
+  Icon,
   label,
   size = "md",
   className = "",
@@ -25,16 +26,13 @@ export default function KudosBadge({
 }: KudosBadgeProps) {
   return (
     <span className={`inline-flex items-center gap-2 ${className}`}>
-      <span
-        className={sizeMap[size]}
-        role="img"
+      <Icon
+        className={sizeMap[size] + " text-green-600 flex-shrink-0"}
         aria-label={label || "Badge"}
         title={label}
-      >
-        {emoji}
-      </span>
+      />
       {showLabel && label && (
-        <span className="text-xs sm:text-sm text-gray-600">{label}</span>
+        <span className="text-xs sm:text-sm text-green-800 font-semibold">{label}</span>
       )}
     </span>
   );

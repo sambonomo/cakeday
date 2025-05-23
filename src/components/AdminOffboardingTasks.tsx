@@ -29,6 +29,8 @@ import {
   Mail,
   Slack,
   FileText,
+  ClipboardCheck,
+  PartyPopper
 } from "lucide-react";
 import Toast from "./Toast";
 
@@ -244,9 +246,13 @@ export default function AdminOffboardingTasks({ companyId: propCompanyId }: { co
   return (
     <div className="bg-gradient-to-tr from-white via-pink-50 to-pink-100 rounded-3xl shadow-2xl p-8 w-full max-w-2xl mt-10">
       <div className="mb-6 flex flex-col items-center gap-2">
-        <h2 className="text-3xl font-bold text-pink-800">Offboarding Builder</h2>
-        <p className="text-gray-600 text-sm">
-          📝 Drag, edit, and automate offboarding. You can attach important docs!
+        <h2 className="text-3xl font-bold text-pink-800 flex items-center gap-2">
+          <ClipboardCheck className="w-8 h-8 text-pink-400" />
+          Offboarding Builder
+        </h2>
+        <p className="text-gray-600 text-sm flex items-center gap-2">
+          <Sparkles className="w-4 h-4 text-yellow-400" />
+          Drag, edit, and automate offboarding. You can attach important docs!
         </p>
       </div>
       <form
@@ -403,7 +409,7 @@ export default function AdminOffboardingTasks({ companyId: propCompanyId }: { co
               >
                 {tasks.length === 0 && (
                   <div className="text-center text-gray-400 py-10 flex flex-col items-center">
-                    <span className="text-5xl mb-3">👋</span>
+                    <PartyPopper className="w-10 h-10 mb-2 text-pink-400" />
                     <div className="text-lg font-semibold">No offboarding steps yet.</div>
                     <div className="text-xs text-gray-500 mt-1">Add your first step above!</div>
                   </div>
@@ -440,7 +446,8 @@ export default function AdminOffboardingTasks({ companyId: propCompanyId }: { co
                           </span>
                           <div className="flex-1 min-w-0">
                             <div className="font-bold text-pink-900 truncate text-lg">{task.title}</div>
-                            <div className="text-xs text-pink-500 font-medium capitalize mb-1">
+                            <div className="text-xs text-pink-500 font-medium capitalize mb-1 flex items-center gap-1">
+                              {TASK_TYPE_OPTIONS.find(o => o.value === task.type)?.icon}
                               {TASK_TYPE_OPTIONS.find(o => o.value === task.type)?.label || "Manual"}
                             </div>
                             {task.description && (

@@ -23,6 +23,19 @@ import {
   addDoc,
   updateDoc,
 } from "firebase/firestore";
+import {
+  UserPlus,
+  Search,
+  Lock,
+  Unlock,
+  UserCog,
+  UserCircle,
+  Mail,
+  ArrowRight,
+  Star,
+  Loader2,
+  Edit2
+} from "lucide-react";
 
 const ROLES = ["user", "admin", "manager"];
 
@@ -143,7 +156,6 @@ export default function AdminUserEditor(): React.ReactElement {
       ...prev,
       [name]: type === "checkbox" ? checked : value,
     }));
-    // If admin selects template or date, clear "assigned" so the button appears
     if (["onboardingTemplateId", "hireStartDate"].includes(name)) {
       setAssigned(false);
     }
@@ -185,7 +197,7 @@ export default function AdminUserEditor(): React.ReactElement {
     setSaving(false);
   }
 
-  // Assign onboarding tasks to new hire (+ relevant assignees)
+  // Assign onboarding tasks to new hire
   async function handleAssignOnboarding() {
     if (!selectedUserId || !companyId) return;
     if (!form.onboardingTemplateId) {
@@ -208,7 +220,6 @@ export default function AdminUserEditor(): React.ReactElement {
         new Date(form.hireStartDate),
         form.department || undefined
       );
-      // Also update the user doc for quick reference
       await updateDoc(doc(db, "users", selectedUserId), {
         onboardingTemplateId: form.onboardingTemplateId,
         hireStartDate: form.hireStartDate,
@@ -222,7 +233,7 @@ export default function AdminUserEditor(): React.ReactElement {
     setSaving(false);
   }
 
-  // Points assignment logic (for admin/manager, can't assign to self)
+  // Points assignment logic
   async function handleAssignPoints(e: React.FormEvent) {
     e.preventDefault();
     if (!selectedUserId || adminUser?.uid === selectedUserId) return;
@@ -241,8 +252,6 @@ export default function AdminUserEditor(): React.ReactElement {
           throw new Error("Invalid points value.");
 
         transaction.update(userRef, { points: newPoints });
-
-        // Optionally log to notifications/points log
         await addDoc(collection(db, "notifications"), {
           toUid: selectedUserId,
           toEmail: form.email,
@@ -325,7 +334,11 @@ export default function AdminUserEditor(): React.ReactElement {
     return <div className="text-gray-500 mt-8">Loading admin info...</div>;
   }
 
-  if (loading) return <div className="text-gray-600">Loading users...</div>;
+  if (loading) return (
+    <div className="flex items-center gap-2 text-gray-600 mt-8">
+      <Loader2 className="animate-spin w-6 h-6" /> Loading users...
+    </div>
+  );
 
   return (
     <div className="flex flex-col md:flex-row gap-8">
@@ -336,24 +349,30 @@ export default function AdminUserEditor(): React.ReactElement {
         onSuccess={() => setInviteOpen(false)}
       />
       <div className="w-full mb-4 flex justify-between items-end">
-        <h2 className="text-xl font-semibold text-blue-700">All Users</h2>
+        <h2 className="text-xl font-semibold text-blue-700 flex items-center gap-2">
+          <UserCog className="w-6 h-6" />
+          All Users
+        </h2>
         <button
-          className="bg-green-600 text-white font-bold px-4 py-2 rounded-xl shadow hover:bg-green-700 transition"
+          className="bg-green-600 text-white font-bold px-4 py-2 rounded-xl shadow hover:bg-green-700 transition flex items-center gap-2"
           onClick={() => setInviteOpen(true)}
         >
-          + Invite New Hire
+          <UserPlus className="w-5 h-5" /> Invite New Hire
         </button>
       </div>
 
       {/* User List */}
       <div className="w-full md:w-1/2">
-        <input
-          type="text"
-          placeholder="Search by name, email, or role"
-          value={filter}
-          onChange={(e) => setFilter(e.target.value)}
-          className="mb-3 w-full p-2 border border-gray-300 rounded"
-        />
+        <div className="relative mb-3">
+          <Search className="absolute left-3 top-3 w-4 h-4 text-gray-400" />
+          <input
+            type="text"
+            placeholder="Search by name, email, or role"
+            value={filter}
+            onChange={(e) => setFilter(e.target.value)}
+            className="w-full pl-10 pr-3 py-2 border border-gray-300 rounded"
+          />
+        </div>
         <ul className="bg-white rounded shadow divide-y border max-h-[70vh] overflow-y-auto">
           {filteredUsers.length === 0 && (
             <li className="p-3 text-gray-400 italic">No users found.</li>
@@ -384,8 +403,8 @@ export default function AdminUserEditor(): React.ReactElement {
                   {u.fullName || "(No name)"}{" "}
                   <span className="text-xs text-gray-500">({u.email})</span>
                   {u.disabled && (
-                    <span className="ml-2 text-xs font-bold text-red-500">
-                      (Disabled)
+                    <span className="ml-2 text-xs font-bold text-red-500 flex items-center gap-1">
+                      <Lock className="w-3 h-3" /> (Disabled)
                     </span>
                   )}
                 </div>
@@ -395,25 +414,25 @@ export default function AdminUserEditor(): React.ReactElement {
               <div className="flex gap-2">
                 <button
                   type="button"
-                  className="px-2 py-1 text-xs rounded bg-blue-100 text-blue-700 hover:bg-blue-200"
+                  className="px-2 py-1 text-xs rounded bg-blue-100 text-blue-700 hover:bg-blue-200 flex items-center gap-1"
                   onClick={(e) => {
                     e.stopPropagation();
                     handleResetPassword(u.email);
                   }}
                   title="Send password reset email"
                 >
-                  Reset PW
+                  <Mail className="w-4 h-4" /> Reset PW
                 </button>
                 <button
                   type="button"
-                  className="px-2 py-1 text-xs rounded bg-pink-100 text-pink-700 hover:bg-pink-200"
+                  className="px-2 py-1 text-xs rounded bg-pink-100 text-pink-700 hover:bg-pink-200 flex items-center gap-1"
                   onClick={(e) => {
                     e.stopPropagation();
                     handleImpersonate(u.email);
                   }}
                   title="Impersonate (demo)"
                 >
-                  View As
+                  <UserCircle className="w-4 h-4" /> View As
                 </button>
               </div>
             </li>
@@ -435,8 +454,8 @@ export default function AdminUserEditor(): React.ReactElement {
             className="flex flex-col gap-4 bg-white border rounded-lg p-4 w-full max-w-md shadow"
             autoComplete="off"
           >
-            <h3 className="text-lg font-medium text-blue-700 mb-2">
-              Edit User Profile
+            <h3 className="text-lg font-medium text-blue-700 mb-2 flex items-center gap-1">
+              <Edit2 className="w-5 h-5" /> Edit User Profile
             </h3>
             {form.photoURL && (
               <div className="flex justify-center">
@@ -593,15 +612,16 @@ export default function AdminUserEditor(): React.ReactElement {
                   <button
                     type="button"
                     onClick={handleAssignOnboarding}
-                    className="bg-green-600 text-white rounded px-4 py-2 mt-2 font-bold hover:bg-green-700"
+                    className="bg-green-600 text-white rounded px-4 py-2 mt-2 font-bold hover:bg-green-700 flex items-center gap-1"
                     disabled={saving || !form.onboardingTemplateId || !form.hireStartDate}
                   >
+                    <ArrowRight className="w-4 h-4" />
                     {saving ? "Assigning..." : "Assign Onboarding Checklist"}
                   </button>
                 )}
                 {assigned && (
-                  <div className="mt-2 text-green-700 text-sm font-semibold">
-                    Onboarding checklist assigned!
+                  <div className="mt-2 text-green-700 text-sm font-semibold flex items-center gap-1">
+                    <Star className="w-4 h-4" /> Onboarding checklist assigned!
                   </div>
                 )}
               </>
@@ -630,9 +650,10 @@ export default function AdminUserEditor(): React.ReactElement {
                   </label>
                   <button
                     type="submit"
-                    className="bg-green-600 text-white px-4 py-2 rounded mt-1 font-bold hover:bg-green-700"
+                    className="bg-green-600 text-white px-4 py-2 rounded mt-1 font-bold hover:bg-green-700 flex items-center gap-1"
                     disabled={saving || pointsEdit === String(form.points ?? 0)}
                   >
+                    <Star className="w-4 h-4" />
                     {saving ? "Saving..." : "Set Points"}
                   </button>
                 </form>
@@ -641,7 +662,7 @@ export default function AdminUserEditor(): React.ReactElement {
             {/* Disable/Enable button */}
             <button
               type="button"
-              className={`mt-2 px-4 py-2 rounded ${
+              className={`mt-2 px-4 py-2 rounded flex items-center gap-1 ${
                 form.disabled
                   ? "bg-green-500 hover:bg-green-600"
                   : "bg-gray-500 hover:bg-gray-700"
@@ -649,13 +670,22 @@ export default function AdminUserEditor(): React.ReactElement {
               onClick={handleToggleDisable}
               disabled={saving}
             >
-              {form.disabled ? "Re-enable User" : "Disable User"}
+              {form.disabled ? (
+                <>
+                  <Unlock className="w-4 h-4" /> Re-enable User
+                </>
+              ) : (
+                <>
+                  <Lock className="w-4 h-4" /> Disable User
+                </>
+              )}
             </button>
             <button
               type="submit"
-              className="bg-blue-600 text-white rounded px-4 py-2 hover:bg-blue-700 transition disabled:opacity-60 mt-2"
+              className="bg-blue-600 text-white rounded px-4 py-2 hover:bg-blue-700 transition disabled:opacity-60 mt-2 flex items-center gap-1"
               disabled={saving}
             >
+              <Edit2 className="w-4 h-4" />
               {saving ? "Saving..." : "Save"}
             </button>
             {success && (

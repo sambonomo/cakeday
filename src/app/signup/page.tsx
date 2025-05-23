@@ -1,19 +1,11 @@
 "use client";
 import React, { useState } from "react";
 import { useRouter } from "next/navigation";
-import { useAuth } from "../../context/AuthContext";
 import { db, auth } from "../../lib/firebase";
-import {
-  collection,
-  addDoc,
-  getDocs,
-  query,
-  where,
-  setDoc,
-  doc,
-} from "firebase/firestore";
+import { collection, addDoc, getDocs, query, where, setDoc, doc } from "firebase/firestore";
 import { createUserWithEmailAndPassword, signInWithEmailAndPassword } from "firebase/auth";
 import { nanoid } from "nanoid";
+import { CheckCircle2, PartyPopper, Building2, UserPlus, ArrowRight } from "lucide-react";
 
 export default function SignupPage(): React.ReactElement {
   const [email, setEmail] = useState<string>("");
@@ -42,7 +34,6 @@ export default function SignupPage(): React.ReactElement {
       let code = inviteCode.trim().toUpperCase();
 
       if (mode === "create") {
-        // 1. Basic checks
         if (!companyName.trim()) {
           setError("Please enter a company name.");
           setLoading(false);
@@ -58,18 +49,14 @@ export default function SignupPage(): React.ReactElement {
           setLoading(false);
           return;
         }
-
-        // 2. Register user with Firebase Auth FIRST
         const userCred = await createUserWithEmailAndPassword(auth, email, password);
 
-        // 3. Now you are authenticated, safe to check for existing company/domain
         const domain = email.split("@")[1]?.toLowerCase().trim();
         if (!domain) {
           setError("Could not extract domain from email.");
           setLoading(false);
           return;
         }
-
         // Check if domain is already in use by another company
         const domainExists = await getDocs(
           query(collection(db, "companies"), where("domain", "==", domain))
@@ -81,21 +68,14 @@ export default function SignupPage(): React.ReactElement {
           setLoading(false);
           return;
         }
-
-        // Prevent duplicate company names (optional)
         const existing = await getDocs(
-          query(
-            collection(db, "companies"),
-            where("name", "==", companyName.trim())
-          )
+          query(collection(db, "companies"), where("name", "==", companyName.trim()))
         );
         if (!existing.empty) {
           setError("A company with this name already exists.");
           setLoading(false);
           return;
         }
-
-        // 4. Generate invite code and create the company doc
         code = nanoid(8).toUpperCase();
         const companyRef = await addDoc(collection(db, "companies"), {
           name: companyName.trim(),
@@ -104,8 +84,6 @@ export default function SignupPage(): React.ReactElement {
           inviteCode: code,
         });
         companyId = companyRef.id;
-
-        // 5. Create user Firestore profile with admin role
         await setDoc(doc(db, "users", userCred.user.uid), {
           email,
           companyId,
@@ -113,23 +91,18 @@ export default function SignupPage(): React.ReactElement {
           name,
           createdAt: new Date(),
         });
-
         setGeneratedCode(code);
         setLoading(false);
         return;
       }
 
-      // --- JOIN EXISTING COMPANY FLOW ---
+      // JOIN EXISTING COMPANY FLOW
       if (!inviteCode.trim()) {
         setError("Please enter your company invite code.");
         setLoading(false);
         return;
       }
-      // Lookup company by invite code
-      const codeQuery = query(
-        collection(db, "companies"),
-        where("inviteCode", "==", code)
-      );
+      const codeQuery = query(collection(db, "companies"), where("inviteCode", "==", code));
       const snap = await getDocs(codeQuery);
       if (snap.empty) {
         setError("Invite code not found. Please check with your admin.");
@@ -152,7 +125,7 @@ export default function SignupPage(): React.ReactElement {
         createdAt: new Date(),
       });
 
-      // Auto-login (optional: can just rely on AuthContext)
+      // Auto-login
       await signInWithEmailAndPassword(auth, email, password);
 
       router.push("/dashboard");
@@ -180,11 +153,14 @@ export default function SignupPage(): React.ReactElement {
             shadow-2xl w-full max-w-md mt-8 flex flex-col items-center
           "
         >
-          <h2 className="text-3xl font-extrabold mb-6 text-center text-brand-700">
-            🎉 Company Created!
+          <h2 className="text-3xl font-extrabold mb-6 text-center text-brand-700 flex items-center gap-2">
+            <PartyPopper className="w-8 h-8 text-accent-400" /> Company Created!
           </h2>
           <div className="mb-6 text-center">
-            <p className="font-semibold mb-2">Your invite code:</p>
+            <p className="font-semibold mb-2 flex items-center justify-center gap-2">
+              <CheckCircle2 className="w-5 h-5 text-green-500" />
+              Your invite code:
+            </p>
             <div
               className="
                 text-2xl font-mono bg-gray-100 rounded-lg
@@ -200,10 +176,11 @@ export default function SignupPage(): React.ReactElement {
           <button
             className="
               w-full bg-brand-600 text-white py-3 rounded-xl font-bold shadow
-              hover:bg-brand-700 transition-colors text-lg
+              hover:bg-brand-700 transition-colors text-lg flex items-center justify-center gap-2
             "
             onClick={() => router.push("/dashboard")}
           >
+            <ArrowRight className="w-5 h-5" />
             Continue to Dashboard
           </button>
         </div>
@@ -227,8 +204,8 @@ export default function SignupPage(): React.ReactElement {
           animate-fade-in
         "
       >
-        <h2 className="text-3xl font-extrabold mb-3 text-center text-brand-700">
-          Create an Account
+        <h2 className="text-3xl font-extrabold mb-3 text-center text-brand-700 flex items-center gap-2">
+          <UserPlus className="w-8 h-8 text-brand-500" /> Create an Account
         </h2>
         {error && (
           <div
@@ -243,12 +220,7 @@ export default function SignupPage(): React.ReactElement {
 
         {/* Company choice */}
         <div className="mb-2 flex gap-4 justify-center">
-          <label
-            className="
-              flex items-center gap-1 text-sm font-semibold text-brand-700
-              cursor-pointer
-            "
-          >
+          <label className="flex items-center gap-1 text-sm font-semibold text-brand-700 cursor-pointer">
             <input
               type="radio"
               value="create"
@@ -256,14 +228,9 @@ export default function SignupPage(): React.ReactElement {
               onChange={() => setMode("create")}
               className="accent-brand-600"
             />
-            Create New Company
+            <Building2 className="w-5 h-5" /> Create New Company
           </label>
-          <label
-            className="
-              flex items-center gap-1 text-sm font-semibold text-accent-700
-              cursor-pointer
-            "
-          >
+          <label className="flex items-center gap-1 text-sm font-semibold text-accent-700 cursor-pointer">
             <input
               type="radio"
               value="join"
@@ -271,7 +238,7 @@ export default function SignupPage(): React.ReactElement {
               onChange={() => setMode("join")}
               className="accent-accent-600"
             />
-            Join Existing (with Invite Code)
+            <CheckCircle2 className="w-5 h-5" /> Join Existing (with Invite Code)
           </label>
         </div>
 
@@ -361,11 +328,12 @@ export default function SignupPage(): React.ReactElement {
           className="
             w-full bg-brand-600 text-white py-3
             rounded-xl font-bold shadow
-            hover:bg-brand-700 transition-colors text-lg
+            hover:bg-brand-700 transition-colors text-lg flex items-center justify-center gap-2
             disabled:opacity-60
           "
           disabled={loading}
         >
+          <UserPlus className="w-5 h-5" />
           {loading ? "Signing Up..." : "Sign Up"}
         </button>
         <p className="mt-2 text-center text-sm">

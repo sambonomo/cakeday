@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { fetchAllUsers, getUpcomingEvents, UserEvent } from "../lib/firestoreUsers";
 import { useAuth } from "../context/AuthContext";
+import { Cake, PartyPopper } from "lucide-react";
 
 interface BirthdayAnniversaryFeedProps {
   companyId?: string;
@@ -32,7 +33,13 @@ export default function BirthdayAnniversaryFeed({
   }, [companyId, maxEvents]);
 
   if (loading) return <div className="text-gray-600">Loading...</div>;
-  if (events.length === 0) return <div className="text-gray-500">No upcoming birthdays or anniversaries.</div>;
+  if (events.length === 0)
+    return (
+      <div className="text-gray-500 flex flex-col items-center py-8">
+        <PartyPopper className="w-8 h-8 mb-2 text-blue-400" />
+        No upcoming birthdays or anniversaries.
+      </div>
+    );
 
   return (
     <ul className="flex flex-col gap-3">
@@ -44,10 +51,12 @@ export default function BirthdayAnniversaryFeed({
             ${event.daysUntil === 0 ? "border-2 border-green-400" : ""}
           `}
         >
-          <span className="flex items-center gap-1">
-            <span className="text-xl">
-              {event.type === "birthday" ? "🎂" : "🎉"}
-            </span>
+          <span className="flex items-center gap-2">
+            {event.type === "birthday" ? (
+              <Cake className="w-6 h-6 text-yellow-400" aria-label="Birthday" />
+            ) : (
+              <PartyPopper className="w-6 h-6 text-blue-400" aria-label="Anniversary" />
+            )}
             <span className="font-semibold">{event.user.fullName || event.user.email}</span>
             {event.type === "birthday"
               ? " has a birthday "

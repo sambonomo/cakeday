@@ -5,15 +5,29 @@ import { getUserProgress, setUserTaskProgress, getOnboardingTemplates, getTempla
 import { useAuth } from "../context/AuthContext";
 import { collection, query, where, getDocs } from "firebase/firestore";
 import { db } from "../lib/firebase";
-import { FileText, Lock } from "lucide-react";
+import {
+  FileText,
+  Lock,
+  User,
+  Users,
+  Wrench,
+  Laptop2,
+  Building,
+  PartyPopper,
+  Paperclip,
+  ClipboardList,
+} from "lucide-react";
 
-// Helper: Maps role to emoji/pill
-const ROLE_PILLS: Record<string, { label: string; icon: string; color: string }> = {
-  user:      { label: "You",        icon: "👤", color: "bg-green-100 text-green-800" },
-  manager:   { label: "Manager",    icon: "🙋‍♂️", color: "bg-blue-100 text-blue-800" },
-  admin:     { label: "HR",         icon: "🛠️", color: "bg-pink-100 text-pink-700" },
-  IT:        { label: "IT",         icon: "💻", color: "bg-yellow-100 text-yellow-800" },
-  undefined: { label: "Other",      icon: "❓", color: "bg-gray-100 text-gray-500" },
+// Helper: Maps role to icon/pill (no emoji, just Lucide icons)
+const ROLE_PILLS: Record<
+  string,
+  { label: string; Icon: React.ElementType; color: string }
+> = {
+  user: { label: "You", Icon: User, color: "bg-green-100 text-green-800" },
+  manager: { label: "Manager", Icon: Users, color: "bg-blue-100 text-blue-800" },
+  admin: { label: "HR", Icon: Wrench, color: "bg-pink-100 text-pink-700" },
+  IT: { label: "IT", Icon: Laptop2, color: "bg-yellow-100 text-yellow-800" },
+  undefined: { label: "Other", Icon: User, color: "bg-gray-100 text-gray-500" }
 };
 
 interface OnboardingChecklistProps {
@@ -37,7 +51,7 @@ function groupByDepartment(tasks: any[]) {
   return grouped;
 }
 
-// Mini Confetti Emoji Burst (simple, pure-React)
+// Mini Confetti Burst
 function ConfettiBurst() {
   const [show, setShow] = useState(true);
   useEffect(() => {
@@ -48,7 +62,9 @@ function ConfettiBurst() {
   return (
     <div className="fixed top-20 left-1/2 z-50 pointer-events-none select-none" style={{ transform: "translateX(-50%)" }}>
       <div className="text-5xl animate-[wiggle_1s_ease-in-out]">
-        🎉🎊✨🥳
+        <PartyPopper className="inline w-10 h-10 text-pink-500 mx-2" />
+        <PartyPopper className="inline w-10 h-10 text-yellow-400 mx-2" />
+        <PartyPopper className="inline w-10 h-10 text-green-400 mx-2" />
       </div>
     </div>
   );
@@ -70,7 +86,7 @@ export default function OnboardingChecklist({ companyId: propCompanyId }: Onboar
     const fetchData = async () => {
       setLoading(true);
 
-      // 1. Find the best template for this user (by dept, role, fallback to any)
+      // 1. Find best template for user (dept/role/fallback)
       const templates = await getOnboardingTemplates(companyId);
       let found: any = null;
       if (user.department && user.role) {
@@ -91,7 +107,7 @@ export default function OnboardingChecklist({ companyId: propCompanyId }: Onboar
       }
       setTemplate(found);
 
-      // 2. Fetch tasks for that template (or none if no template)
+      // 2. Fetch tasks for that template
       let tasksData: any[] = [];
       if (found) {
         tasksData = await getTemplateTasks(found.id);
@@ -109,7 +125,7 @@ export default function OnboardingChecklist({ companyId: propCompanyId }: Onboar
       setDocs(
         docsSnap.docs.map((d) => ({
           ...(d.data() as DocInfo),
-          id: d.id,
+          id: d.id
         }))
       );
 
@@ -125,7 +141,7 @@ export default function OnboardingChecklist({ companyId: propCompanyId }: Onboar
 
     await setUserTaskProgress(user.uid, taskId, completed, companyId);
 
-    // Show confetti if now ALL tasks are done!
+    // Show confetti if ALL tasks are done!
     if (!progress[taskId] && completed) {
       const completedNow = tasks.filter((t) =>
         t.id === taskId ? true : progress[t.id]
@@ -150,7 +166,7 @@ export default function OnboardingChecklist({ companyId: propCompanyId }: Onboar
   if (!template) {
     return (
       <div className="text-center text-gray-500 py-8">
-        <span className="text-3xl">🤷‍♂️</span>
+        <Building className="mx-auto w-10 h-10 text-gray-400" aria-hidden="true" />
         <div className="text-lg mt-2">No onboarding checklist found for your department/role yet.</div>
       </div>
     );
@@ -159,7 +175,7 @@ export default function OnboardingChecklist({ companyId: propCompanyId }: Onboar
   if (tasks.length === 0) {
     return (
       <div className="text-center text-gray-500 py-8">
-        <span className="text-2xl">📋</span>
+        <ClipboardList className="mx-auto w-8 h-8 text-gray-400" aria-hidden="true" />
         <div className="text-lg mt-2">
           No onboarding steps have been added for your checklist: <b>{template.name}</b>
         </div>
@@ -173,10 +189,10 @@ export default function OnboardingChecklist({ companyId: propCompanyId }: Onboar
       {/* Progress Bar */}
       <div className="mb-5">
         <div className="flex items-end justify-between mb-1">
-          <span className="text-brand-800 font-extrabold text-xl">
+          <span className="text-brand-800 font-extrabold text-xl flex items-center gap-2">
             {template.name}
             {progressPercent === 100 && (
-              <span className="ml-2 text-green-600 text-lg animate-bounce">✅</span>
+              <span className="ml-2 text-green-600 text-lg animate-bounce">✔️</span>
             )}
           </span>
           <span className="text-sm font-semibold text-gray-700">
@@ -194,13 +210,13 @@ export default function OnboardingChecklist({ companyId: propCompanyId }: Onboar
         </div>
         <div className="flex gap-2 mt-2">
           {template.department && (
-            <span className="ml-1 text-xs px-2 py-1 rounded-full bg-blue-100 text-blue-600 font-semibold">
-              {template.department}
+            <span className="ml-1 text-xs px-2 py-1 rounded-full bg-blue-100 text-blue-600 font-semibold flex items-center gap-1">
+              <Building className="w-4 h-4" /> {template.department}
             </span>
           )}
           {template.role && (
-            <span className="ml-2 text-xs bg-pink-100 text-pink-600 rounded-full px-2 font-semibold">
-              {template.role}
+            <span className="ml-2 text-xs bg-pink-100 text-pink-600 rounded-full px-2 font-semibold flex items-center gap-1">
+              <Wrench className="w-4 h-4" /> {template.role}
             </span>
           )}
         </div>
@@ -215,7 +231,7 @@ export default function OnboardingChecklist({ companyId: propCompanyId }: Onboar
           <div key={dept} className="mb-2">
             {Object.keys(groupedTasks).length > 1 && (
               <div className="font-semibold text-blue-700 text-lg mb-3 flex items-center gap-2">
-                <span className="text-lg">🏢</span> {dept}
+                <Building className="w-5 h-5 text-blue-400" /> {dept}
               </div>
             )}
             <ul className="flex flex-col gap-3">
@@ -262,7 +278,7 @@ export default function OnboardingChecklist({ companyId: propCompanyId }: Onboar
                       />
                     </div>
                     <div className="flex-1">
-                      <div className="font-semibold flex items-center gap-2">
+                      <div className="font-semibold flex items-center gap-2 flex-wrap">
                         {/* Task Title */}
                         <span
                           className={`transition-colors duration-200 ${
@@ -276,7 +292,7 @@ export default function OnboardingChecklist({ companyId: propCompanyId }: Onboar
                           className={`ml-1 px-2 py-0.5 text-xs rounded-full font-semibold flex items-center gap-1 ${pill.color}`}
                           title={pill.label}
                         >
-                          <span className="text-base">{pill.icon}</span>
+                          <pill.Icon className="w-4 h-4" />
                           {pill.label}
                         </span>
                         {/* Due date */}
@@ -294,8 +310,8 @@ export default function OnboardingChecklist({ companyId: propCompanyId }: Onboar
                             className="flex items-center gap-1 text-blue-700 underline ml-2 hover:text-accent-600"
                             title="View attachment"
                           >
-                            <span className="text-lg mr-0.5">📎</span>
-                            <FileText className="w-4 h-4 inline" />
+                            <Paperclip className="w-4 h-4" />
+                            <FileText className="w-4 h-4" />
                             {doc.title || "Document"}
                           </a>
                         )}
@@ -323,8 +339,8 @@ export default function OnboardingChecklist({ companyId: propCompanyId }: Onboar
       {/* Final celebratory message */}
       {progressPercent === 100 && (
         <div className="mt-6 text-center text-green-700 font-bold text-lg flex flex-col items-center gap-2 animate-fade-in-up">
-          <span className="text-3xl">🎉 All tasks complete!</span>
-          <span>Welcome to the team — you're officially onboarded! </span>
+          <PartyPopper className="w-10 h-10 mx-auto mb-2 text-green-500" />
+          <span>All tasks complete! Welcome to the team — you're officially onboarded!</span>
         </div>
       )}
     </div>

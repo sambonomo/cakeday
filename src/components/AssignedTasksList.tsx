@@ -10,7 +10,7 @@ import {
 import { useAuth } from "../context/AuthContext";
 import { collection, query, where, getDocs } from "firebase/firestore";
 import { db } from "../lib/firebase";
-import { FileText } from "lucide-react";
+import { FileText, ClipboardCheck, PartyPopper } from "lucide-react";
 
 type DocInfo = {
   id: string;
@@ -54,7 +54,6 @@ export default function AssignedTasksList({ companyId: propCompanyId }: { compan
       let allTasks: OnboardingTask[] = [];
       for (const template of loadedTemplates) {
         const tasks = await getTemplateTasks(template.id);
-        // Assigned if the task defaultAssigneeRole matches the user's role, or the user is the new hire
         tasks.forEach((t: OnboardingTask) => {
           const isAssigned =
             (t.defaultAssigneeRole === "user" && user.status === "newHire") ||
@@ -113,12 +112,18 @@ export default function AssignedTasksList({ companyId: propCompanyId }: { compan
     return acc;
   }, {});
 
-  if (loading) return <div className="text-gray-600">Loading your assigned tasks...</div>;
+  if (loading)
+    return (
+      <div className="flex flex-col items-center justify-center text-blue-600 py-12 animate-pulse">
+        <ClipboardCheck className="w-8 h-8 mb-2" />
+        Loading your assigned tasks...
+      </div>
+    );
 
   if (assignedTasks.length === 0) {
     return (
-      <div className="text-center text-gray-500 py-8">
-        <span className="text-2xl">✅</span>
+      <div className="text-center text-gray-500 py-8 flex flex-col items-center">
+        <PartyPopper className="w-8 h-8 mb-2 text-green-400" />
         <div className="text-lg mt-2">You have no outstanding assigned onboarding tasks.</div>
       </div>
     );
@@ -128,7 +133,10 @@ export default function AssignedTasksList({ companyId: propCompanyId }: { compan
     <div>
       <div className="mb-4">
         <div className="flex items-center justify-between mb-1">
-          <span className="text-blue-800 font-bold text-lg">Assigned Tasks</span>
+          <span className="text-blue-800 font-bold text-lg flex items-center gap-2">
+            <ClipboardCheck className="w-5 h-5" />
+            Assigned Tasks
+          </span>
           <span className="text-sm font-semibold text-gray-700">{completedTasks} of {totalTasks} complete</span>
         </div>
         <div className="w-full bg-gray-200 rounded-full h-3">
@@ -141,7 +149,10 @@ export default function AssignedTasksList({ companyId: propCompanyId }: { compan
       {/* Group by template and department */}
       {Object.entries(grouped).map(([templateName, depts]) => (
         <div key={templateName} className="mb-5">
-          <div className="font-bold text-blue-700 text-base mb-2">{templateName}</div>
+          <div className="font-bold text-blue-700 text-base mb-2 flex items-center gap-2">
+            <ClipboardCheck className="w-5 h-5 text-blue-400" />
+            {templateName}
+          </div>
           {Object.entries(depts).map(([dept, tasks]) => (
             <div key={dept}>
               {Object.keys(depts).length > 1 && (
@@ -153,21 +164,22 @@ export default function AssignedTasksList({ companyId: propCompanyId }: { compan
                   return (
                     <li
                       key={task.id}
-                      className={`flex items-start gap-3 p-3 rounded border ${
-                        progress[task.id]
-                          ? "bg-green-50 border-green-300"
+                      className={`flex items-start gap-3 p-3 rounded border transition-all duration-300
+                        ${progress[task.id]
+                          ? "bg-green-50 border-green-300 opacity-80"
                           : "bg-white border-gray-200"
-                      }`}
+                        }
+                        hover:shadow`}
                     >
                       <input
                         type="checkbox"
-                        className="mt-1 h-5 w-5 text-blue-600"
+                        className="mt-1 h-5 w-5 text-blue-600 accent-blue-600 transition"
                         checked={!!progress[task.id]}
                         onChange={(e) => toggleTask(task.id, e.target.checked)}
                         aria-label={`Mark ${task.title} as ${progress[task.id] ? "incomplete" : "complete"}`}
                       />
-                      <div>
-                        <div className="font-semibold flex items-center gap-2">
+                      <div className="flex-1 min-w-0">
+                        <div className="font-semibold flex items-center gap-2 flex-wrap">
                           {task.title}
                           {typeof task.dueOffsetDays === "number" && task.dueOffsetDays > 0 && (
                             <span className="ml-1 px-2 py-0.5 bg-yellow-50 text-yellow-700 text-xs rounded">
@@ -190,7 +202,9 @@ export default function AssignedTasksList({ companyId: propCompanyId }: { compan
                           <div className="text-sm text-gray-500">{task.description}</div>
                         )}
                         {task.defaultAssigneeRole && (
-                          <div className="text-xs text-gray-400 mt-1">Assigned to: {task.defaultAssigneeRole}</div>
+                          <div className="text-xs text-gray-400 mt-1">
+                            Assigned to: {task.defaultAssigneeRole}
+                          </div>
                         )}
                       </div>
                     </li>

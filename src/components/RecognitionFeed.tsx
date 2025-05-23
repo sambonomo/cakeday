@@ -6,6 +6,7 @@ import { db } from "../lib/firebase";
 import { useAuth } from "../context/AuthContext";
 import KudosBadge from "./KudosBadge";
 import UserAvatar from "./UserAvatar";
+import { PartyPopper, Handshake, Lightbulb, Users, Star, Award, Smile, Trophy, UserCheck, Target, HeartHandshake } from "lucide-react";
 
 interface RecognitionFeedProps {
   companyId?: string;
@@ -24,6 +25,29 @@ type KudosWithProfile = {
   message: string;
   createdAt?: { seconds: number };
 };
+
+// Map badge labels to Lucide icons
+const BADGE_ICONS: Record<string, React.ElementType> = {
+  "Team Player": Handshake,
+  Innovator: Lightbulb,
+  Leadership: Users,
+  "Extra Mile": Star,
+  "Problem Solver": Award,
+  Cheerleader: Smile,
+  Rockstar: Trophy,
+  "Customer Hero": UserCheck,
+  "Sharp Shooter": Target,
+  Kindness: HeartHandshake,
+};
+
+function timeAgo(date: Date) {
+  const seconds = Math.floor((Date.now() - date.getTime()) / 1000);
+  if (seconds < 60) return "just now";
+  if (seconds < 3600) return `${Math.floor(seconds / 60)} min ago`;
+  if (seconds < 86400) return `${Math.floor(seconds / 3600)} hr ago`;
+  if (seconds < 604800) return `${Math.floor(seconds / 86400)}d ago`;
+  return date.toLocaleDateString();
+}
 
 export default function RecognitionFeed({ companyId: propCompanyId }: RecognitionFeedProps) {
   const { companyId: contextCompanyId } = useAuth();
@@ -48,22 +72,6 @@ export default function RecognitionFeed({ companyId: propCompanyId }: Recognitio
         id: doc.id,
         ...doc.data(),
       })) as KudosWithProfile[];
-
-      // Get all user UIDs for profile pics (from and to)
-      const uids = Array.from(
-        new Set(
-          result.flatMap((k) => [
-            (k as any).fromUid,
-            (k as any).toUid,
-          ])
-        )
-      ).filter(Boolean);
-
-      // Fetch profiles in batch if needed
-      // Optional: if your kudos docs already have photoURL/name, skip this.
-      // This is a scalable way if you want avatars to always be fresh.
-      // For demo, let's use data from kudos doc only.
-
       setKudos(result);
       setLoading(false);
     });
@@ -71,34 +79,76 @@ export default function RecognitionFeed({ companyId: propCompanyId }: Recognitio
     return () => unsubscribe();
   }, [companyId]);
 
-  if (loading) return <div className="text-gray-600">Loading recognition feed...</div>;
-  if (kudos.length === 0) return <div className="text-gray-500">No kudos given yet.</div>;
+  if (loading)
+    return <div className="text-gray-600">Loading recognition feed...</div>;
+
+  if (kudos.length === 0)
+    return (
+      <div className="text-gray-500 flex flex-col items-center py-8">
+        <PartyPopper className="w-8 h-8 mb-2 text-blue-400" />
+        No kudos given yet. Be the first to celebrate a teammate!
+      </div>
+    );
 
   return (
-    <ul className="flex flex-col gap-3">
-      {kudos.map((kudo) => (
-        <li
-          key={kudo.id}
-          className="bg-blue-50 border border-blue-200 rounded-lg p-4 shadow flex flex-col sm:flex-row sm:items-center gap-2"
-        >
-          <UserAvatar nameOrEmail={kudo.fromName || kudo.fromEmail} photoURL={(kudo as any).fromPhotoURL} size={36} />
-          <span className="font-semibold text-blue-700">
-            {kudo.fromName || kudo.fromEmail}
-          </span>
-          <span>gave kudos to</span>
-          <UserAvatar nameOrEmail={kudo.toName || kudo.toEmail} photoURL={(kudo as any).toPhotoURL} size={36} />
-          <span className="font-semibold text-green-700">{kudo.toName || kudo.toEmail}</span>
-          <span className="italic text-gray-700">“{kudo.message}”</span>
-          {kudo.badge && (
-            <KudosBadge emoji={kudo.badge} label={kudo.badgeLabel} size="md" />
-          )}
-          <span className="ml-auto text-xs text-gray-400">
-            {kudo.createdAt?.seconds
-              ? new Date(kudo.createdAt.seconds * 1000).toLocaleString()
-              : "just now"}
-          </span>
-        </li>
-      ))}
+    <ul className="flex flex-col gap-4">
+      {kudos.map((kudo) => {
+        const created =
+          kudo.createdAt?.seconds !== undefined
+            ? new Date(kudo.createdAt.seconds * 1000)
+            : new Date();
+        const badgeLabel = kudo.badgeLabel || kudo.badge;
+        const IconComponent = BADGE_ICONS[badgeLabel] || Star;
+        return (
+          <li
+            key={kudo.id}
+            className="bg-white/90 border border-blue-100 rounded-2xl shadow-lg p-4 flex flex-col sm:flex-row sm:items-center gap-2 animate-fade-in"
+          >
+            {/* Giver */}
+            <div className="flex items-center gap-2 min-w-[150px]">
+              <UserAvatar
+                nameOrEmail={kudo.fromName || kudo.fromEmail}
+                photoURL={kudo.fromPhotoURL}
+                size={36}
+              />
+              <span className="font-semibold text-blue-700">{kudo.fromName || kudo.fromEmail}</span>
+            </div>
+            <span className="text-gray-500 text-xs font-medium px-1">gave kudos to</span>
+
+            {/* Recipient */}
+            <div className="flex items-center gap-2 min-w-[150px]">
+              <UserAvatar
+                nameOrEmail={kudo.toName || kudo.toEmail}
+                photoURL={kudo.toPhotoURL}
+                size={36}
+              />
+              <span className="font-semibold text-green-700">{kudo.toName || kudo.toEmail}</span>
+            </div>
+
+            {/* Badge */}
+            {kudo.badge && (
+              <div className="flex items-center gap-1 px-2 py-1 rounded-full bg-green-50 border border-green-200 ml-1">
+                <KudosBadge
+                  Icon={IconComponent}
+                  label={badgeLabel}
+                  size="md"
+                />
+                <span className="text-xs font-semibold text-green-800">{badgeLabel}</span>
+              </div>
+            )}
+
+            {/* Message */}
+            <span className="italic text-brand-800 text-base flex-1 px-2 py-1">
+              “{kudo.message}”
+            </span>
+
+            {/* Time */}
+            <span className="ml-auto text-xs text-gray-400">
+              {timeAgo(created)}
+            </span>
+          </li>
+        );
+      })}
     </ul>
   );
 }

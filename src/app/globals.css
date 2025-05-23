@@ -2,28 +2,16 @@
 @tailwind components;
 @tailwind utilities;
 
-/* 
-  ==========================
-  Global Theme & Fonts
-  ==========================
-*/
+/* ========== Global Theme & Fonts ========== */
 :root {
-  /* 
-    You can keep these if you still want custom CSS variables. 
-    But now that we have brand/accent colors in tailwind.config.js, 
-    you can rely less on these if you want. 
-  */
   --background: #f7faff;
   --foreground: #18192b;
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-
   --font-sans: var(--font-geist-sans), Arial, Helvetica, sans-serif;
   --font-mono: var(--font-geist-mono), ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
-
   --glass-blur: 22px;
 }
-
 @media (prefers-color-scheme: dark) {
   :root {
     --background: #1a2233;
@@ -33,38 +21,24 @@
   }
 }
 
-/* 
-  ==========================
-  Base Body Styles
-  ==========================
-*/
+/* ========== Base Body Styles ========== */
 body {
   @apply antialiased;
-  /* 
-    A more unified brand-to-accent gradient background
-    so it’s consistent. Tweak if you prefer a lighter gradient.
-  */
   background: linear-gradient(115deg, rgba(37,99,235,0.1) 0%, rgba(244,114,182,0.1) 100%);
   color: var(--color-foreground);
   font-family: var(--font-sans);
   min-height: 100vh;
   transition: background 0.3s, color 0.3s;
 }
-
 @media (prefers-color-scheme: dark) {
   body {
-    /* Adjust the gradient for dark mode if you like */
     background: linear-gradient(115deg, #161e34 0%, #31294a 100%);
   }
 }
 
-/* 
-  ==========================
-  Glassmorphism Cards
-  ==========================
-*/
+/* ========== Glassmorphism Card ========== */
 .glass-card {
-  background: rgba(255,255,255,0.88);  /* or brand-50 at ~80% if you prefer */
+  background: rgba(255,255,255,0.88);
   box-shadow: 0 8px 32px rgba(0,0,0,0.12);
   backdrop-filter: blur(var(--glass-blur));
   -webkit-backdrop-filter: blur(var(--glass-blur));
@@ -72,7 +46,6 @@ body {
   border: 1.5px solid rgba(255,255,255,0.3);
   transition: background 0.2s, box-shadow 0.2s;
 }
-
 @media (prefers-color-scheme: dark) {
   .glass-card {
     background: rgba(23,27,41,0.4);
@@ -80,184 +53,91 @@ body {
   }
 }
 
-/* 
-  ==========================
-  Animations
-  ==========================
-*/
+/* ========== Animations ========== */
 @keyframes fade-in {
-  from {
-    opacity: 0;
-    transform: translateY(32px);
-  }
-  to {
-    opacity: 1;
-    transform: none;
-  }
+  from { opacity: 0; transform: translateY(32px);}
+  to { opacity: 1; transform: none;}
 }
 .animate-fade-in {
   animation: fade-in 0.7s cubic-bezier(.44,1.26,.6,1) both;
 }
-
 @keyframes fade-in-up {
-  from {
-    opacity: 0;
-    transform: translateY(48px);
-  }
-  to {
-    opacity: 1;
-    transform: none;
-  }
+  from { opacity: 0; transform: translateY(48px);}
+  to { opacity: 1; transform: none;}
 }
 .animate-fade-in-up {
   animation: fade-in-up 0.9s cubic-bezier(.44,1.26,.6,1) both;
 }
-
 @keyframes float-bubbles {
-  0% {
-    transform: translateY(0);
-  }
-  100% {
-    transform: translateY(-18px);
-  }
+  0% { transform: translateY(0);}
+  100% { transform: translateY(-18px);}
 }
 .animate-float-bubbles {
   animation: float-bubbles 6s ease-in-out infinite alternate;
 }
 
-/* 
-  ==========================
-  Focus States & Disabled
-  ==========================
-*/
-input,
-button,
-textarea,
-select {
+/* ========== Focus & Disabled States ========== */
+input, button, textarea, select {
   @apply transition focus:ring-2 focus:ring-brand-400 focus:outline-none;
 }
-input:disabled,
-button:disabled {
+input:disabled, button:disabled {
   @apply opacity-60 cursor-not-allowed;
 }
 
-/* 
-  ==========================
-  Utility Classes
-  ==========================
-*/
-
-/* 
-  Reusable "card panel" utility for your dashboard sections, 
-  replacing repetitive classes in page.tsx
-*/
+/* ========== Utility Classes ========== */
 .card-panel {
   @apply bg-white/80 backdrop-blur-sm rounded-2xl shadow-xl border p-7 mb-6
     flex flex-col gap-4 transition;
 }
-
-/* Optional: Glass rounding */
-.rounded-glass {
-  border-radius: 2.3rem;
-}
-
-/* Extra text and shadow styles */
+.rounded-glass { border-radius: 2.3rem; }
 .text-pop {
   font-family: var(--font-sans);
   font-weight: 900;
   letter-spacing: 0.03em;
   text-shadow: 0 2px 18px rgba(37,99,235,0.07);
 }
-.shadow-pop {
-  box-shadow: 0 2px 14px rgba(0,0,0,0.07), 0 8px 26px rgba(67,56,202,0.04);
-}
+.shadow-pop { box-shadow: 0 2px 14px rgba(0,0,0,0.07), 0 8px 26px rgba(67,56,202,0.04); }
 
-/* 
-  ==========================
-  Link Styles
-  ==========================
-*/
+/* ========== Link Styles ========== */
 a {
   @apply font-bold;
-  color: #2563eb; /* brand-600 as default link color */
+  color: #2563eb;
   text-decoration-skip-ink: auto;
   transition: color 0.18s;
 }
-a:hover,
-a:focus {
-  color: #f472b6; /* accent-400 on hover */
+a:hover, a:focus {
+  color: #f472b6;
   text-decoration: underline;
 }
 
-/* 
-  ==========================
-  Buttons
-  ==========================
-*/
+/* ========== Buttons ========== */
 .btn {
   @apply inline-flex items-center justify-center px-4 py-2 text-sm font-medium
     rounded-md shadow-sm border border-transparent
     focus:ring-2 focus:ring-offset-2 transition-colors duration-200;
 }
+.btn-primary { @apply bg-brand-600 text-white hover:bg-brand-700 focus:ring-brand-500; }
+.btn-secondary { @apply bg-accent-500 text-white hover:bg-accent-600 focus:ring-accent-400; }
+/* .btn-danger, .btn-outline: see previous code for extras if needed */
 
-/* Primary = brand color */
-.btn-primary {
-  @apply bg-brand-600 text-white hover:bg-brand-700 focus:ring-brand-500;
-}
-
-/* Secondary = accent color */
-.btn-secondary {
-  @apply bg-accent-500 text-white hover:bg-accent-600 focus:ring-accent-400;
-}
-
-/* If needed, a “danger” button or a “white outline” button, etc.:
-.btn-danger {
-  @apply bg-red-600 text-white hover:bg-red-700 focus:ring-red-500;
-}
-.btn-outline {
-  @apply bg-white text-brand-600 border-brand-600 border hover:bg-brand-50;
-}
-*/
-
-/* 
-  ==========================
-  Scrollbar
-  ==========================
-*/
-::-webkit-scrollbar {
-  width: 0.5em;
-  background: transparent;
-}
-::-webkit-scrollbar-thumb {
-  @apply rounded-md;
-  background: #e0e7ff; /* light brand color for the scrollbar */
-}
+/* ========== Scrollbar ========== */
+::-webkit-scrollbar { width: 0.5em; background: transparent; }
+::-webkit-scrollbar-thumb { @apply rounded-md; background: #e0e7ff; }
 @media (prefers-color-scheme: dark) {
-  ::-webkit-scrollbar-thumb {
-    background: #232b46;
-  }
+  ::-webkit-scrollbar-thumb { background: #232b46; }
 }
 
-/*
-  Subtle transitions for everything
-  (You can keep this or remove if you prefer faster UI)
-*/
+/* ========== Transitions for All ========== */
 * {
   transition-property: background, color, border, box-shadow, opacity, transform;
   transition-duration: 180ms;
   transition-timing-function: cubic-bezier(.44,1.26,.6,1);
 }
 
-/* 
-  ==========================
-  Additional Shadow Utilities
-  ==========================
-*/
+/* ========== Card & Hero Shadows ========== */
 .card-shadow {
   box-shadow: 0 3px 12px #a5b4fc55, 0 2px 8px #f472b655;
 }
-
-/* New hero-shadow utility */
 .hero-shadow {
   box-shadow: 0 8px 40px 0 #c7d2fe88, 0 1.5px 4px 0 #2563eb22;
 }
