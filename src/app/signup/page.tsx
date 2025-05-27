@@ -1,11 +1,18 @@
 "use client";
-import React, { useState } from "react";
+import React, { useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { db, auth } from "../../lib/firebase";
 import { collection, addDoc, getDocs, query, where, setDoc, doc } from "firebase/firestore";
 import { createUserWithEmailAndPassword, signInWithEmailAndPassword } from "firebase/auth";
 import { nanoid } from "nanoid";
-import { CheckCircle2, PartyPopper, Building2, UserPlus, ArrowRight } from "lucide-react";
+import {
+  CheckCircle2,
+  PartyPopper,
+  Building2,
+  UserPlus,
+  ArrowRight,
+  Copy,
+} from "lucide-react";
 
 export default function SignupPage(): React.ReactElement {
   const [email, setEmail] = useState<string>("");
@@ -21,10 +28,12 @@ export default function SignupPage(): React.ReactElement {
 
   // After admin creates company, show code
   const [generatedCode, setGeneratedCode] = useState<string | null>(null);
+  const [copied, setCopied] = useState<boolean>(false);
 
+  const codeRef = useRef<HTMLDivElement>(null);
   const router = useRouter();
 
-  const handleSignup = async (e: React.FormEvent<HTMLFormElement>) => {
+  async function handleSignup(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setError(null);
     setLoading(true);
@@ -33,6 +42,7 @@ export default function SignupPage(): React.ReactElement {
       let companyId = "";
       let code = inviteCode.trim().toUpperCase();
 
+      // --- Create Company Flow ---
       if (mode === "create") {
         if (!companyName.trim()) {
           setError("Please enter a company name.");
@@ -49,15 +59,23 @@ export default function SignupPage(): React.ReactElement {
           setLoading(false);
           return;
         }
+        if (password.length < 8) {
+          setError("Password must be at least 8 characters.");
+          setLoading(false);
+          return;
+        }
+
+        // Create user in Firebase Auth
         const userCred = await createUserWithEmailAndPassword(auth, email, password);
 
+        // Extract domain from email
         const domain = email.split("@")[1]?.toLowerCase().trim();
         if (!domain) {
           setError("Could not extract domain from email.");
           setLoading(false);
           return;
         }
-        // Check if domain is already in use by another company
+        // Domain already used?
         const domainExists = await getDocs(
           query(collection(db, "companies"), where("domain", "==", domain))
         );
@@ -68,6 +86,7 @@ export default function SignupPage(): React.ReactElement {
           setLoading(false);
           return;
         }
+        // Company name unique?
         const existing = await getDocs(
           query(collection(db, "companies"), where("name", "==", companyName.trim()))
         );
@@ -76,6 +95,7 @@ export default function SignupPage(): React.ReactElement {
           setLoading(false);
           return;
         }
+        // Generate invite code, create company
         code = nanoid(8).toUpperCase();
         const companyRef = await addDoc(collection(db, "companies"), {
           name: companyName.trim(),
@@ -84,11 +104,12 @@ export default function SignupPage(): React.ReactElement {
           inviteCode: code,
         });
         companyId = companyRef.id;
+        // Add admin user to Firestore
         await setDoc(doc(db, "users", userCred.user.uid), {
           email,
           companyId,
           role: "admin",
-          name,
+          fullName: name,
           createdAt: new Date(),
         });
         setGeneratedCode(code);
@@ -96,7 +117,7 @@ export default function SignupPage(): React.ReactElement {
         return;
       }
 
-      // JOIN EXISTING COMPANY FLOW
+      // --- Join Existing Company Flow ---
       if (!inviteCode.trim()) {
         setError("Please enter your company invite code.");
         setLoading(false);
@@ -112,15 +133,31 @@ export default function SignupPage(): React.ReactElement {
       const companyDoc = snap.docs[0];
       companyId = companyDoc.id;
 
+      if (!name.trim()) {
+        setError("Please enter your name.");
+        setLoading(false);
+        return;
+      }
+      if (!email.trim() || !email.includes("@")) {
+        setError("Please enter a valid email.");
+        setLoading(false);
+        return;
+      }
+      if (password.length < 8) {
+        setError("Password must be at least 8 characters.");
+        setLoading(false);
+        return;
+      }
+
       // Create user with Firebase Auth
       const userCred = await createUserWithEmailAndPassword(auth, email, password);
 
-      // Create Firestore user profile with user role
+      // Create Firestore user profile
       await setDoc(doc(db, "users", userCred.user.uid), {
         email,
         companyId,
         role: "user",
-        name,
+        fullName: name,
         status: "newHire",
         createdAt: new Date(),
       });
@@ -132,27 +169,24 @@ export default function SignupPage(): React.ReactElement {
       setLoading(false);
 
     } catch (err: any) {
-      setError(err.message || "Signup failed");
+      if (err.code === "auth/email-already-in-use") {
+        setError("An account with this email already exists. Try logging in.");
+      } else if (err.code === "auth/weak-password") {
+        setError("Password is too weak. Please use at least 8 characters.");
+      } else if (err.code === "auth/invalid-email") {
+        setError("Invalid email address.");
+      } else {
+        setError(err.message || "Signup failed");
+      }
       setLoading(false);
     }
-  };
+  }
 
-  // Show code after company creation for admin
+  // --- Show Invite Code to Admin after Company Creation ---
   if (generatedCode) {
     return (
-      <div
-        className="
-          flex flex-col items-center justify-center min-h-screen
-          bg-gradient-to-br from-white via-brand-50 to-accent-50
-          px-4
-        "
-      >
-        <div
-          className="
-            backdrop-blur-lg bg-white/90 p-10 rounded-3xl
-            shadow-2xl w-full max-w-md mt-8 flex flex-col items-center
-          "
-        >
+      <div className="flex flex-col items-center justify-center min-h-screen bg-gradient-to-br from-white via-brand-50 to-accent-50 px-4">
+        <div className="backdrop-blur-lg bg-white/90 p-10 rounded-3xl shadow-2xl w-full max-w-md mt-8 flex flex-col items-center">
           <h2 className="text-3xl font-extrabold mb-6 text-center text-brand-700 flex items-center gap-2">
             <PartyPopper className="w-8 h-8 text-accent-400" /> Company Created!
           </h2>
@@ -162,23 +196,38 @@ export default function SignupPage(): React.ReactElement {
               Your invite code:
             </p>
             <div
-              className="
-                text-2xl font-mono bg-gray-100 rounded-lg
-                px-4 py-3 inline-block tracking-widest shadow
-              "
+              ref={codeRef}
+              className="text-2xl font-mono bg-gray-100 rounded-lg px-4 py-3 inline-block tracking-widest shadow cursor-pointer select-all"
+              title="Click to copy code"
+              tabIndex={0}
+              onClick={() => {
+                navigator.clipboard.writeText(generatedCode);
+                setCopied(true);
+                setTimeout(() => setCopied(false), 1200);
+              }}
+              onKeyDown={e => {
+                if (e.key === "Enter" || e.key === " ") {
+                  navigator.clipboard.writeText(generatedCode);
+                  setCopied(true);
+                  setTimeout(() => setCopied(false), 1200);
+                }
+              }}
+              aria-label="Copy invite code"
+              role="button"
             >
               {generatedCode}
+              <Copy className="inline w-5 h-5 ml-2 text-gray-400" />
+              {copied && <span className="ml-2 text-green-600 text-sm font-bold">Copied!</span>}
             </div>
             <p className="mt-4 text-gray-700">
-              Share this code with your teammates so they can join your company!
+              Share this code with your teammates so they can join your company.
             </p>
           </div>
           <button
-            className="
-              w-full bg-brand-600 text-white py-3 rounded-xl font-bold shadow
-              hover:bg-brand-700 transition-colors text-lg flex items-center justify-center gap-2
-            "
+            className="w-full bg-brand-600 text-white py-3 rounded-xl font-bold shadow hover:bg-brand-700 transition-colors text-lg flex items-center justify-center gap-2"
             onClick={() => router.push("/dashboard")}
+            aria-label="Continue to Dashboard"
+            autoFocus
           >
             <ArrowRight className="w-5 h-5" />
             Continue to Dashboard
@@ -188,31 +237,23 @@ export default function SignupPage(): React.ReactElement {
     );
   }
 
+  // --- Signup Form ---
   return (
-    <div
-      className="
-        flex flex-col items-center justify-center min-h-screen
-        bg-gradient-to-br from-white via-brand-50 to-accent-50
-        px-4
-      "
-    >
+    <div className="flex flex-col items-center justify-center min-h-screen bg-gradient-to-br from-white via-brand-50 to-accent-50 px-4">
       <form
         onSubmit={handleSignup}
-        className="
-          bg-white/95 p-10 rounded-3xl shadow-2xl
-          w-full max-w-md mt-8 flex flex-col gap-6
-          animate-fade-in
-        "
+        className="bg-white/95 p-10 rounded-3xl shadow-2xl w-full max-w-md mt-8 flex flex-col gap-6 animate-fade-in"
+        aria-label="Sign up for Cakeday"
+        autoComplete="off"
       >
         <h2 className="text-3xl font-extrabold mb-3 text-center text-brand-700 flex items-center gap-2">
           <UserPlus className="w-8 h-8 text-brand-500" /> Create an Account
         </h2>
         {error && (
           <div
-            className="
-              text-red-500 mb-2 text-center rounded px-4 py-2
-              bg-red-100 font-semibold shadow
-            "
+            className="text-red-500 mb-2 text-center rounded px-4 py-2 bg-red-100 font-semibold shadow"
+            role="alert"
+            aria-live="assertive"
           >
             {error}
           </div>
@@ -247,26 +288,22 @@ export default function SignupPage(): React.ReactElement {
             <input
               type="text"
               placeholder="Company Name"
-              className="
-                mb-3 w-full p-3 border-2 border-brand-200
-                focus:border-brand-500 rounded-lg
-              "
+              className="mb-3 w-full p-3 border-2 border-brand-200 focus:border-brand-500 rounded-lg"
               value={companyName}
               onChange={(e) => setCompanyName(e.target.value)}
               required
               maxLength={50}
+              aria-label="Company Name"
             />
             <input
               type="text"
               placeholder="Your Name"
-              className="
-                mb-3 w-full p-3 border-2 border-brand-100
-                focus:border-brand-400 rounded-lg
-              "
+              className="mb-3 w-full p-3 border-2 border-brand-100 focus:border-brand-400 rounded-lg"
               value={name}
               onChange={(e) => setName(e.target.value)}
               required
               maxLength={40}
+              aria-label="Your Name"
             />
           </>
         ) : (
@@ -274,26 +311,22 @@ export default function SignupPage(): React.ReactElement {
             <input
               type="text"
               placeholder="Enter your company invite code"
-              className="
-                mb-3 w-full p-3 border-2 border-accent-200
-                focus:border-accent-500 rounded-lg
-              "
+              className="mb-3 w-full p-3 border-2 border-accent-200 focus:border-accent-500 rounded-lg"
               value={inviteCode}
               onChange={(e) => setInviteCode(e.target.value)}
               required
               maxLength={20}
+              aria-label="Invite Code"
             />
             <input
               type="text"
               placeholder="Your Name"
-              className="
-                mb-3 w-full p-3 border-2 border-accent-100
-                focus:border-accent-400 rounded-lg
-              "
+              className="mb-3 w-full p-3 border-2 border-accent-100 focus:border-accent-400 rounded-lg"
               value={name}
               onChange={(e) => setName(e.target.value)}
               required
               maxLength={40}
+              aria-label="Your Name"
             />
           </>
         )}
@@ -301,37 +334,30 @@ export default function SignupPage(): React.ReactElement {
         <input
           type="email"
           placeholder="Email"
-          className="
-            mb-3 w-full p-3 border-2 border-gray-200
-            focus:border-brand-400 rounded-lg
-          "
+          className="mb-3 w-full p-3 border-2 border-gray-200 focus:border-brand-400 rounded-lg"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
           required
           autoComplete="email"
+          aria-label="Email"
         />
         <input
           type="password"
-          placeholder="Password"
-          className="
-            mb-3 w-full p-3 border-2 border-gray-200
-            focus:border-brand-400 rounded-lg
-          "
+          placeholder="Password (min 8 characters)"
+          className="mb-3 w-full p-3 border-2 border-gray-200 focus:border-brand-400 rounded-lg"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
           required
           autoComplete="new-password"
+          minLength={8}
+          aria-label="Password"
         />
 
         <button
           type="submit"
-          className="
-            w-full bg-brand-600 text-white py-3
-            rounded-xl font-bold shadow
-            hover:bg-brand-700 transition-colors text-lg flex items-center justify-center gap-2
-            disabled:opacity-60
-          "
+          className="w-full bg-brand-600 text-white py-3 rounded-xl font-bold shadow hover:bg-brand-700 transition-colors text-lg flex items-center justify-center gap-2 disabled:opacity-60"
           disabled={loading}
+          aria-disabled={loading}
         >
           <UserPlus className="w-5 h-5" />
           {loading ? "Signing Up..." : "Sign Up"}

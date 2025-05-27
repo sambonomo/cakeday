@@ -17,12 +17,10 @@ import {
   Calendar,
   UserX2,
   Sparkles,
-  CheckCircle2,
   XCircle,
   FileText,
 } from "lucide-react";
 
-// Define the model (match your Firestore)
 export type OffboardingTask = {
   id: string;
   title: string;
@@ -126,18 +124,26 @@ export default function OffboardingChecklist({
           const doc = task.documentId
             ? docs.find((d) => d.id === task.documentId)
             : null;
+          const type = task.type || "manual";
+          const isAutomated = type !== "manual";
           return (
             <li
               key={task.id}
               className={`p-4 rounded-xl border-2 flex flex-col sm:flex-row sm:items-center gap-2 bg-white/90 shadow-md
-            ${
-              task.enabled === false
-                ? "opacity-50 border-gray-200"
-                : "border-pink-200"
-            }`}
+                ${
+                  task.enabled === false
+                    ? "opacity-50 border-gray-200"
+                    : isAutomated
+                    ? "border-pink-300"
+                    : "border-pink-200"
+                }
+                focus:outline-none focus-visible:ring-2 focus-visible:ring-pink-400
+              `}
+              tabIndex={0}
+              aria-disabled={task.enabled === false}
             >
-              <span className="flex items-center gap-2">
-                {TYPE_ICONS[task.type ?? "manual"] || TYPE_ICONS["manual"]}
+              <span className="flex items-center gap-2 min-w-[200px]">
+                {TYPE_ICONS[type] || TYPE_ICONS["manual"]}
                 <span className="font-semibold text-pink-900">{task.title}</span>
                 {doc && (
                   <a
@@ -157,14 +163,14 @@ export default function OffboardingChecklist({
                 )}
               </span>
               <span className="ml-0 sm:ml-auto text-xs text-gray-400">
-                {task.type && task.type !== "manual"
-                  ? `Automated (${task.type.replace("-", " ")})`
+                {isAutomated
+                  ? `Automated (${type.replace("-", " ")})`
                   : "Manual"}
               </span>
               {task.description && (
                 <div className="text-gray-600 text-sm mt-1">{task.description}</div>
               )}
-              {task.type && task.type !== "manual" && task.autoMessageTemplate && (
+              {isAutomated && task.autoMessageTemplate && (
                 <div className="mt-1 text-xs text-pink-600 bg-pink-50 border border-pink-100 rounded p-2">
                   <b>Message:</b> {task.autoMessageTemplate}
                 </div>

@@ -39,7 +39,7 @@ export default function AdminSidebar({
   const pathname = usePathname();
   const navRef = useRef<HTMLDivElement>(null);
 
-  // Close on Escape, trap focus for a11y
+  // Trap focus inside sidebar and close on Escape
   useEffect(() => {
     if (!open) return;
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -84,19 +84,18 @@ export default function AdminSidebar({
       aria-modal="true"
       aria-labelledby="admin-panel-title"
     >
-      {/* Overlay with fade */}
+      {/* Overlay with fade and slide in */}
       <div
         className="fixed inset-0 bg-black/40 transition-opacity animate-fade-in"
         onClick={onClose}
         aria-label="Close sidebar"
         tabIndex={-1}
       />
-
       {/* Sidebar panel */}
       <nav
         ref={navRef}
         aria-label="Admin sidebar"
-        className="relative w-80 max-w-full bg-white shadow-xl h-full flex flex-col p-6 animate-fade-in"
+        className="relative w-80 max-w-full bg-white shadow-xl h-full flex flex-col p-6 animate-slide-in-right"
       >
         <div className="flex items-center justify-between mb-8">
           <span
@@ -132,8 +131,10 @@ export default function AdminSidebar({
                     }`}
                   onClick={onClose}
                   tabIndex={0}
+                  aria-current={isActive ? "page" : undefined}
+                  aria-label={label}
                 >
-                  <Icon className="w-5 h-5 flex-shrink-0" />
+                  <Icon className="w-5 h-5 flex-shrink-0" aria-hidden="true" />
                   {label}
                 </Link>
               </li>
@@ -145,6 +146,21 @@ export default function AdminSidebar({
           &copy; {new Date().getFullYear()} Cakeday • Admin
         </div>
       </nav>
+      <style jsx global>{`
+        @keyframes slide-in-right {
+          0% {
+            transform: translateX(100%);
+            opacity: 0.6;
+          }
+          100% {
+            transform: translateX(0);
+            opacity: 1;
+          }
+        }
+        .animate-slide-in-right {
+          animation: slide-in-right 0.3s cubic-bezier(0.42, 0, 0.58, 1) both;
+        }
+      `}</style>
     </aside>
   );
 }

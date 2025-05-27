@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "../../context/AuthContext";
 import dynamic from "next/dynamic";
@@ -9,14 +9,11 @@ import { db } from "../../lib/firebase";
 import { fetchAllUsers, getUpcomingEvents, UserEvent } from "../../lib/firestoreUsers";
 import Toast from "../../components/Toast";
 import Leaderboard from "../../components/Leaderboard";
-// Lucide icons
 import {
   Cake,
   ClipboardList,
   Handshake,
   FolderKanban,
-  Gift,
-  Trophy,
   PartyPopper,
   LogOut,
   User,
@@ -49,8 +46,9 @@ export default function DashboardPage(): React.ReactElement {
   const [onboardingIncomplete, setOnboardingIncomplete] = useState(false);
   const [showOnboardingNudge, setShowOnboardingNudge] = useState(false);
 
-  // Confirm logout dialog
+  // Confirm logout dialog & focus trap
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
+  const logoutConfirmRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     async function fetchInviteCode() {
@@ -81,22 +79,19 @@ export default function DashboardPage(): React.ReactElement {
     }
   }, [loading, user, companyId]);
 
-  // --- Onboarding visibility logic (High impact improvement) ---
+  // --- Onboarding visibility logic ---
   useEffect(() => {
     async function checkOnboarding() {
       if (user && companyId && (user.status === "newHire" || user.status === "active")) {
-        // Check if there are incomplete onboarding tasks for the user (from Firestore)
-        // We assume you have a userTaskProgress doc: userTaskProgress/{companyId}_{user.uid}
+        // userTaskProgress/{companyId}_{user.uid}
         const progressDoc = await getDoc(doc(db, "userTaskProgress", `${companyId}_${user.uid}`));
         if (progressDoc.exists()) {
           const data = progressDoc.data() || {};
-          // If there are incomplete tasks (value === false), show checklist
           const hasIncomplete = Object.values(data).some(v => v === false);
           setOnboardingIncomplete(hasIncomplete);
           setShowOnboarding(hasIncomplete);
           setShowOnboardingNudge(hasIncomplete);
         } else {
-          // No progress doc: assume onboarding not started
           setOnboardingIncomplete(true);
           setShowOnboarding(true);
           setShowOnboardingNudge(true);
@@ -109,6 +104,13 @@ export default function DashboardPage(): React.ReactElement {
     }
     checkOnboarding();
   }, [user, companyId]);
+
+  // Focus trap for logout modal
+  useEffect(() => {
+    if (showLogoutConfirm && logoutConfirmRef.current) {
+      logoutConfirmRef.current.focus();
+    }
+  }, [showLogoutConfirm]);
 
   if (loading || !user || !companyId) {
     return (
@@ -195,7 +197,8 @@ export default function DashboardPage(): React.ReactElement {
   );
 
   // Highlight active nav link (Directory as an example)
-  const isActiveRoute = (path: string) => typeof window !== "undefined" && window.location.pathname === path;
+  const isActiveRoute = (path: string) =>
+    typeof window !== "undefined" && window.location.pathname === path;
 
   return (
     <div className="flex flex-col min-h-screen bg-gradient-to-tr from-white via-brand-50 to-accent-50">
@@ -239,12 +242,14 @@ export default function DashboardPage(): React.ReactElement {
           <a
             href="/directory"
             className={`text-brand-600 underline text-base font-medium hover:text-brand-800 transition ${isActiveRoute("/directory") ? "font-bold text-accent-600" : ""}`}
+            aria-current={isActiveRoute("/directory") ? "page" : undefined}
           >
             Directory
           </a>
           <button
             onClick={() => setShowLogoutConfirm(true)}
             className="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded transition"
+            aria-label="Log Out"
           >
             Log Out
           </button>
@@ -253,9 +258,11 @@ export default function DashboardPage(): React.ReactElement {
 
       {/* Confirm Logout Dialog */}
       {showLogoutConfirm && (
-        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50" onClick={() => setShowLogoutConfirm(false)}>
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50" aria-modal="true" role="dialog">
           <div
+            ref={logoutConfirmRef}
             className="bg-white rounded-lg shadow-xl p-8 max-w-sm w-full"
+            tabIndex={-1}
             onClick={(e) => e.stopPropagation()}
           >
             <h3 className="text-xl font-bold mb-4">Are you sure you want to log out?</h3>
@@ -263,6 +270,7 @@ export default function DashboardPage(): React.ReactElement {
               <button
                 className="px-4 py-2 bg-gray-200 rounded"
                 onClick={() => setShowLogoutConfirm(false)}
+                aria-label="Cancel log out"
               >
                 Cancel
               </button>
@@ -272,6 +280,7 @@ export default function DashboardPage(): React.ReactElement {
                   setShowLogoutConfirm(false);
                   logout();
                 }}
+                aria-label="Confirm log out"
               >
                 Log Out
               </button>

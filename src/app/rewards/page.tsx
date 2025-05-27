@@ -179,6 +179,11 @@ export default function RewardsPage() {
 
   return (
     <div className="max-w-3xl mx-auto mt-12 mb-10 bg-white p-8 rounded-3xl shadow-2xl">
+      {/* Toasts */}
+      <div className="fixed top-6 left-1/2 transform -translate-x-1/2 z-50">
+        {error && <Toast message={error} type="error" onClose={() => setError(null)} />}
+        {success && <Toast message={success} type="success" onClose={() => setSuccess(null)} />}
+      </div>
       <h1 className="text-3xl font-bold text-blue-700 mb-6 flex items-center gap-2">
         <Gift className="w-8 h-8 text-pink-400" /> Rewards Store
       </h1>
@@ -191,12 +196,8 @@ export default function RewardsPage() {
           Use your points to redeem any available reward!
         </div>
       </div>
-      {error && (
-        <Toast message={error} type="error" onClose={() => setError(null)} />
-      )}
-      {success && (
-        <Toast message={success} type="success" onClose={() => setSuccess(null)} />
-      )}
+
+      {/* Available Rewards */}
       <h2 className="text-xl font-semibold mb-3 mt-6 flex items-center gap-2">
         <Gift className="w-5 h-5 text-pink-300" />
         Available Rewards
@@ -223,15 +224,16 @@ export default function RewardsPage() {
             return (
               <div
                 key={r.id}
-                className={`rounded-xl border-2 p-5 bg-blue-50 flex flex-col gap-2 shadow relative ${
+                className={`rounded-xl border-2 p-5 bg-blue-50 flex flex-col gap-2 shadow relative group ${
                   outOfStock ? "opacity-50" : ""
                 }`}
+                aria-disabled={outOfStock}
               >
                 <div className="flex items-center gap-2">
                   {r.imageUrl ? (
                     <img
                       src={r.imageUrl}
-                      alt=""
+                      alt={r.name}
                       className="w-16 h-16 object-cover rounded border"
                     />
                   ) : (
@@ -273,6 +275,7 @@ export default function RewardsPage() {
                   }
                   maxLength={120}
                   disabled={outOfStock || notEnoughPoints || alreadyRequested}
+                  aria-label={`Add notes for ${r.name}`}
                 />
                 <button
                   disabled={
@@ -282,12 +285,21 @@ export default function RewardsPage() {
                     alreadyRequested
                   }
                   onClick={() => handleRedeem(r)}
-                  className={`mt-2 px-4 py-2 rounded-xl font-bold text-white shadow transition flex items-center justify-center gap-2
+                  className={`mt-2 px-4 py-2 rounded-xl font-bold text-white shadow transition flex items-center justify-center gap-2 focus:outline-none
                     ${
                       notEnoughPoints || outOfStock || !!redeemingId || alreadyRequested
                         ? "bg-gray-300 cursor-not-allowed"
-                        : "bg-blue-600 hover:bg-blue-700"
+                        : "bg-blue-600 hover:bg-blue-700 focus:ring-2 focus:ring-blue-400"
                     }`}
+                  aria-label={
+                    alreadyRequested
+                      ? `Request for ${r.name} is pending`
+                      : outOfStock
+                      ? `${r.name} is out of stock`
+                      : notEnoughPoints
+                      ? `Not enough points for ${r.name}`
+                      : `Redeem ${r.name}`
+                  }
                 >
                   {alreadyRequested ? (
                     <>
@@ -317,6 +329,7 @@ export default function RewardsPage() {
         </div>
       )}
 
+      {/* Redemption History */}
       <h2 className="text-xl font-semibold mb-3 mt-8 flex items-center gap-2">
         <Gift className="w-5 h-5 text-pink-300" /> Your Redemption History
       </h2>
@@ -364,6 +377,7 @@ export default function RewardsPage() {
                     <button
                       className="text-xs text-red-600 underline"
                       onClick={() => handleCancelRedemption(r)}
+                      aria-label={`Cancel redemption for ${r.rewardName}`}
                     >
                       Cancel
                     </button>

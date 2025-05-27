@@ -172,7 +172,7 @@ export default function AdminRewardsPage() {
       <h1 className="text-3xl font-bold text-blue-700 mb-6 flex items-center gap-2">
         🎁 Company Rewards Catalog
       </h1>
-      <form onSubmit={handleSubmit} className="flex flex-col md:flex-row gap-6 mb-8">
+      <form onSubmit={handleSubmit} className="flex flex-col md:flex-row gap-6 mb-8" aria-label={editId ? "Edit Reward" : "Add Reward"}>
         <div className="flex-1 flex flex-col gap-2">
           <input
             type="text"
@@ -183,6 +183,8 @@ export default function AdminRewardsPage() {
             onChange={handleFormChange}
             required
             maxLength={60}
+            disabled={saving}
+            aria-label="Reward Name"
           />
           <textarea
             name="description"
@@ -192,6 +194,8 @@ export default function AdminRewardsPage() {
             onChange={handleFormChange}
             maxLength={160}
             rows={2}
+            disabled={saving}
+            aria-label="Reward Description"
           />
           <input
             type="text"
@@ -201,6 +205,8 @@ export default function AdminRewardsPage() {
             value={form.imageUrl || ""}
             onChange={handleFormChange}
             maxLength={300}
+            disabled={saving}
+            aria-label="Image URL"
           />
         </div>
         <div className="flex flex-col gap-2 md:w-52">
@@ -213,6 +219,8 @@ export default function AdminRewardsPage() {
             value={form.pointsCost === undefined ? "" : form.pointsCost}
             onChange={handleFormChange}
             required
+            disabled={saving}
+            aria-label="Points Cost"
           />
           <input
             type="number"
@@ -222,11 +230,14 @@ export default function AdminRewardsPage() {
             className="p-3 border rounded-lg"
             value={form.quantity === undefined || form.quantity === null ? "" : form.quantity}
             onChange={handleFormChange}
+            disabled={saving}
+            aria-label="Reward Quantity"
           />
           <button
             type="submit"
-            className="bg-blue-600 text-white px-5 py-2 rounded-lg font-bold hover:bg-blue-700 mt-2"
+            className="bg-blue-600 text-white px-5 py-2 rounded-lg font-bold hover:bg-blue-700 mt-2 transition disabled:opacity-60"
             disabled={saving}
+            aria-disabled={saving}
           >
             {saving ? "Saving..." : editId ? "Update Reward" : "Add Reward"}
           </button>
@@ -236,6 +247,7 @@ export default function AdminRewardsPage() {
               className="border border-gray-300 text-gray-700 rounded-lg px-4 py-2 font-semibold hover:bg-gray-200 transition mt-1"
               onClick={cancelEdit}
               aria-label="Cancel Edit"
+              disabled={saving}
             >
               Cancel
             </button>
@@ -251,53 +263,59 @@ export default function AdminRewardsPage() {
       ) : rewards.length === 0 ? (
         <div className="text-gray-400 italic">No rewards created yet.</div>
       ) : (
-        <table className="min-w-full border text-sm">
-          <thead>
-            <tr className="bg-gray-100">
-              <th className="py-2 px-3">Reward</th>
-              <th className="py-2 px-3">Cost</th>
-              <th className="py-2 px-3">Qty</th>
-              <th className="py-2 px-3"></th>
-            </tr>
-          </thead>
-          <tbody>
-            {rewards.map((r) => (
-              <tr key={r.id} className="border-t">
-                <td className="py-2 px-3 font-semibold flex items-center gap-2">
-                  {r.imageUrl && (
-                    <img src={r.imageUrl} alt="" className="w-9 h-9 rounded object-cover border" />
-                  )}
-                  <div>
-                    <div>{r.name}</div>
-                    {r.description && (
-                      <div className="text-xs text-gray-500">{r.description}</div>
-                    )}
-                  </div>
-                </td>
-                <td className="py-2 px-3 font-bold text-blue-700">{r.pointsCost}</td>
-                <td className="py-2 px-3">
-                  {r.quantity === undefined || r.quantity === null || r.quantity === 0 ? (
-                    <span className="text-gray-500">Unlimited</span>
-                  ) : r.quantity}
-                </td>
-                <td className="py-2 px-3 flex gap-2">
-                  <button
-                    className="text-blue-600 hover:underline text-xs"
-                    onClick={() => startEdit(r)}
-                  >
-                    Edit
-                  </button>
-                  <button
-                    className="text-red-500 hover:underline text-xs"
-                    onClick={() => handleDelete(r.id)}
-                  >
-                    Delete
-                  </button>
-                </td>
+        <div className="overflow-x-auto">
+          <table className="min-w-full border text-sm" aria-label="Company Rewards Table">
+            <thead>
+              <tr className="bg-gray-100">
+                <th className="py-2 px-3">Reward</th>
+                <th className="py-2 px-3">Cost</th>
+                <th className="py-2 px-3">Qty</th>
+                <th className="py-2 px-3"></th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {rewards.map((r) => (
+                <tr key={r.id} className="border-t">
+                  <td className="py-2 px-3 font-semibold flex items-center gap-2 min-w-[140px]">
+                    {r.imageUrl && (
+                      <img src={r.imageUrl} alt="" className="w-9 h-9 rounded object-cover border" />
+                    )}
+                    <div>
+                      <div>{r.name}</div>
+                      {r.description && (
+                        <div className="text-xs text-gray-500">{r.description}</div>
+                      )}
+                    </div>
+                  </td>
+                  <td className="py-2 px-3 font-bold text-blue-700">{r.pointsCost}</td>
+                  <td className="py-2 px-3">
+                    {r.quantity === undefined || r.quantity === null || r.quantity === 0 ? (
+                      <span className="text-gray-500">Unlimited</span>
+                    ) : r.quantity}
+                  </td>
+                  <td className="py-2 px-3 flex gap-2 min-w-[100px]">
+                    <button
+                      className="text-blue-600 hover:underline text-xs"
+                      onClick={() => startEdit(r)}
+                      aria-label={`Edit ${r.name}`}
+                      disabled={saving}
+                    >
+                      Edit
+                    </button>
+                    <button
+                      className="text-red-500 hover:underline text-xs"
+                      onClick={() => handleDelete(r.id)}
+                      aria-label={`Delete ${r.name}`}
+                      disabled={saving}
+                    >
+                      Delete
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       )}
     </div>
   );

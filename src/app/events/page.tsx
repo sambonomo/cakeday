@@ -13,7 +13,9 @@ export default function EventsPage(): React.ReactElement {
     if (!companyId) return;
     setFetching(true);
     fetchAllUsers(companyId).then((users) => {
-      const evts = getUpcomingEvents(users).filter((ev) => ev.daysUntil >= 0 && ev.daysUntil <= 10);
+      const evts = getUpcomingEvents(users).filter(
+        (ev) => ev.daysUntil >= 0 && ev.daysUntil <= 10
+      );
       setEvents(evts);
       setFetching(false);
     });
@@ -32,19 +34,26 @@ export default function EventsPage(): React.ReactElement {
   return (
     <div className="flex flex-col min-h-screen bg-gradient-to-tr from-white via-brand-50 to-accent-50 px-2">
       {/* Hero header */}
-      <section className="w-full flex flex-col items-center justify-center py-10 bg-gradient-to-br from-brand-100 via-accent-50 to-accent-100 border-b border-brand-100 shadow">
+      <section
+        className="w-full flex flex-col items-center justify-center py-10 bg-gradient-to-br from-brand-100 via-accent-50 to-accent-100 border-b border-brand-100 shadow"
+        aria-label="Upcoming events hero"
+      >
         <div className="flex items-center gap-4">
           <PartyPopper className="text-accent-500 w-12 h-12 animate-bounce" aria-hidden="true" />
-          <h1 className="text-3xl md:text-4xl font-extrabold text-brand-800 drop-shadow">
+          <h1 className="text-3xl md:text-4xl font-extrabold text-brand-800 drop-shadow" tabIndex={0}>
             Upcoming Events
           </h1>
         </div>
-        <p className="mt-2 text-brand-600 text-base md:text-lg font-medium text-center">
+        <p className="mt-2 text-brand-600 text-base md:text-lg font-medium text-center max-w-xl">
           Never miss a birthday or work anniversary!
         </p>
       </section>
 
-      <main className="flex-1 flex flex-col items-center justify-center py-10 px-2">
+      <main
+        className="flex-1 flex flex-col items-center justify-center py-10 px-2"
+        id="main-content"
+        tabIndex={-1}
+      >
         <div className="w-full max-w-2xl bg-white/95 rounded-3xl shadow-xl p-8 mt-8 mb-8">
           {events.length === 0 ? (
             <div className="flex flex-col items-center text-center py-10 text-gray-400">
@@ -57,7 +66,7 @@ export default function EventsPage(): React.ReactElement {
               </div>
             </div>
           ) : (
-            <ul className="flex flex-col gap-4">
+            <ul className="flex flex-col gap-4" aria-live="polite">
               {events.map((event, idx) => (
                 <li
                   key={idx}
@@ -75,6 +84,7 @@ export default function EventsPage(): React.ReactElement {
                         : ""
                     }
                   `}
+                  aria-label={`${event.user.fullName || event.user.email} ${event.type === "birthday" ? "birthday" : "work anniversary"}${event.daysUntil === 0 ? " is today!" : ` in ${event.daysUntil} days`}`}
                 >
                   <span className="flex items-center gap-3 text-lg font-semibold">
                     {event.type === "birthday" ? (

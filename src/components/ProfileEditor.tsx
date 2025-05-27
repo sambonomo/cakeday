@@ -46,19 +46,20 @@ export default function ProfileEditor({
     });
   }, [user]);
 
-  // Change handler
   function handleChange(e: React.ChangeEvent<HTMLInputElement>) {
     setForm({ ...form, [e.target.name]: e.target.value });
   }
 
-  // Track changes for Save button
+  // Track changes for Save button (null-safe)
   const hasChanges =
     profile &&
-    (form.fullName !== (profile.fullName || "") ||
+    (
+      form.fullName !== (profile.fullName || "") ||
       form.phone !== (profile.phone || "") ||
       form.birthday !== (profile.birthday || "") ||
       form.anniversary !== (profile.anniversary || "") ||
-      photoFile);
+      photoFile
+    );
 
   // Handle photo change
   const handlePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -79,10 +80,10 @@ export default function ProfileEditor({
     let uploadedPhotoURL = photoURL;
 
     // If a new photo is selected, upload it
-    if (photoFile) {
+    if (photoFile && user) {
       try {
         const storage = getStorage();
-        const storageRef = ref(storage, `user-profiles/${user!.uid}/${photoFile.name}`);
+        const storageRef = ref(storage, `user-profiles/${user.uid}/${photoFile.name}`);
         await uploadBytes(storageRef, photoFile);
         uploadedPhotoURL = await getDownloadURL(storageRef);
         setPhotoURL(uploadedPhotoURL);
@@ -95,15 +96,17 @@ export default function ProfileEditor({
     }
 
     try {
-      await updateUserProfile(user!.uid, {
-        ...form,
-        photoURL: uploadedPhotoURL,
-      });
-      setSuccess("Profile updated!");
-      setProfile({ ...profile!, ...form, photoURL: uploadedPhotoURL });
-      setPhotoFile(null);
-      if (fileInputRef.current) fileInputRef.current.value = "";
-      if (onDone) onDone(true);
+      if (user) {
+        await updateUserProfile(user.uid, {
+          ...form,
+          photoURL: uploadedPhotoURL,
+        });
+        setSuccess("Profile updated!");
+        setProfile({ ...profile!, ...form, photoURL: uploadedPhotoURL });
+        setPhotoFile(null);
+        if (fileInputRef.current) fileInputRef.current.value = "";
+        if (onDone) onDone(true);
+      }
     } catch (err) {
       const errMsg = err instanceof Error ? err.message : "Error saving profile.";
       setError(errMsg);
@@ -145,6 +148,7 @@ export default function ProfileEditor({
             className="text-sm"
             disabled={saving}
             aria-label="Upload profile photo"
+            tabIndex={0}
           />
         </div>
       </label>
@@ -158,6 +162,7 @@ export default function ProfileEditor({
           onChange={handleChange}
           placeholder="Your name"
           required
+          disabled={saving}
         />
       </label>
       <label className="font-medium">
@@ -178,6 +183,7 @@ export default function ProfileEditor({
           className="p-2 border border-gray-300 rounded w-full mt-1"
           onChange={handleChange}
           placeholder="e.g. (555) 123-4567"
+          disabled={saving}
         />
       </label>
       <label className="font-medium">
@@ -189,6 +195,7 @@ export default function ProfileEditor({
           className="p-2 border border-gray-300 rounded w-full mt-1"
           onChange={handleChange}
           max={new Date().toISOString().split("T")[0]}
+          disabled={saving}
         />
       </label>
       <label className="font-medium">
@@ -200,6 +207,7 @@ export default function ProfileEditor({
           className="p-2 border border-gray-300 rounded w-full mt-1"
           onChange={handleChange}
           max={new Date().toISOString().split("T")[0]}
+          disabled={saving}
         />
       </label>
       <button

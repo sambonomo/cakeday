@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, ChangeEvent, FormEvent } from "react";
+import React, { useState, useEffect, useRef, ChangeEvent, FormEvent } from "react";
 import {
   fetchAllUsers,
   updateUserProfile,
@@ -95,6 +95,9 @@ export default function AdminUserEditor(): React.ReactElement {
   // Impersonation state
   const [impersonateEmail, setImpersonateEmail] = useState<string | null>(null);
 
+  // Scroll to editor on user select
+  const editorRef = useRef<HTMLDivElement | null>(null);
+
   // Fetch all users
   useEffect(() => {
     if (!companyId) return;
@@ -119,7 +122,7 @@ export default function AdminUserEditor(): React.ReactElement {
       .finally(() => setTemplateLoading(false));
   }, [companyId]);
 
-  // Populate form on user select
+  // Populate form on user select, scroll to edit panel
   useEffect(() => {
     if (!selectedUserId) return;
     const user = users.find((u) => u.uid === selectedUserId);
@@ -144,6 +147,7 @@ export default function AdminUserEditor(): React.ReactElement {
       setSuccess(null);
       setError(null);
       setAssigned(!!(user as any).onboardingTemplateId);
+      setTimeout(() => editorRef.current?.scrollIntoView({ behavior: "smooth" }), 150);
     }
   }, [selectedUserId, users]);
 
@@ -334,14 +338,20 @@ export default function AdminUserEditor(): React.ReactElement {
     return <div className="text-gray-500 mt-8">Loading admin info...</div>;
   }
 
-  if (loading) return (
-    <div className="flex items-center gap-2 text-gray-600 mt-8">
-      <Loader2 className="animate-spin w-6 h-6" /> Loading users...
-    </div>
-  );
+  if (loading)
+    return (
+      <div className="flex items-center gap-2 text-gray-600 mt-8">
+        <Loader2 className="animate-spin w-6 h-6" /> Loading users...
+      </div>
+    );
 
   return (
-    <div className="flex flex-col md:flex-row gap-8">
+    <div className="flex flex-col md:flex-row gap-8 w-full">
+      {/* Toasts for whole editor */}
+      <div className="fixed top-20 left-1/2 transform -translate-x-1/2 z-40 pointer-events-none">
+        {success && <Toast message={success} type="success" onClose={() => setSuccess(null)} />}
+        {error && <Toast message={error} type="error" onClose={() => setError(null)} />}
+      </div>
       {/* Invite New Hire Button and Modal */}
       <InviteNewHireModal
         open={inviteOpen}
@@ -447,7 +457,7 @@ export default function AdminUserEditor(): React.ReactElement {
       </div>
 
       {/* Editor */}
-      <div className="w-full md:w-1/2">
+      <div className="w-full md:w-1/2" ref={editorRef}>
         {selectedUserId ? (
           <form
             onSubmit={handleSave}
@@ -509,7 +519,6 @@ export default function AdminUserEditor(): React.ReactElement {
                 className="p-2 border border-gray-300 rounded w-full mt-1"
                 onChange={handleChange}
                 max={new Date().toISOString().split("T")[0]}
-                required
               />
             </label>
             <label className="font-medium">
@@ -521,7 +530,6 @@ export default function AdminUserEditor(): React.ReactElement {
                 className="p-2 border border-gray-300 rounded w-full mt-1"
                 onChange={handleChange}
                 max={new Date().toISOString().split("T")[0]}
-                required
               />
             </label>
             <label className="font-medium">
@@ -688,20 +696,6 @@ export default function AdminUserEditor(): React.ReactElement {
               <Edit2 className="w-4 h-4" />
               {saving ? "Saving..." : "Save"}
             </button>
-            {success && (
-              <Toast
-                message={success}
-                type="success"
-                onClose={() => setSuccess(null)}
-              />
-            )}
-            {error && (
-              <Toast
-                message={error}
-                type="error"
-                onClose={() => setError(null)}
-              />
-            )}
           </form>
         ) : (
           <div className="text-gray-500 mt-8">

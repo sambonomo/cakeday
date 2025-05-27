@@ -7,7 +7,17 @@ export const dynamic = "force-dynamic";
 
 export default function ActivatePage() {
   return (
-    <Suspense fallback={<div className="flex min-h-screen items-center justify-center">Loading...</div>}>
+    <Suspense
+      fallback={
+        <div
+          className="flex min-h-screen items-center justify-center text-lg text-blue-700 animate-pulse"
+          role="status"
+          aria-label="Loading activation page"
+        >
+          Loading...
+        </div>
+      }
+    >
       <ActivatePageContent />
     </Suspense>
   );

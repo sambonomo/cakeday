@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import { db } from "../lib/firebase";
 import { useAuth } from "../context/AuthContext";
 import {
@@ -66,6 +66,9 @@ export default function AssignedTasksDashboard() {
   const [loading, setLoading] = useState(true);
   const [toast, setToast] = useState<string | null>(null);
   const [markingId, setMarkingId] = useState<string | null>(null);
+
+  // For live toast location at top center
+  const toastAnchor = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (!user || !companyId) return;
@@ -185,7 +188,17 @@ export default function AssignedTasksDashboard() {
   }
 
   return (
-    <div className="bg-white/90 rounded-2xl shadow-xl border border-brand-100 p-6 mb-8">
+    <div className="relative bg-white/90 rounded-2xl shadow-xl border border-brand-100 p-6 mb-8">
+      {/* Toast anchor */}
+      <div ref={toastAnchor} className="fixed top-16 left-1/2 transform -translate-x-1/2 z-50 pointer-events-none">
+        {toast && (
+          <Toast
+            message={toast}
+            type="success"
+            onClose={() => setToast(null)}
+          />
+        )}
+      </div>
       <h2 className="text-2xl font-bold mb-2 text-brand-800 flex items-center gap-2">
         <Users2 className="w-6 h-6" />
         My Assigned Onboarding Tasks
@@ -205,11 +218,19 @@ export default function AssignedTasksDashboard() {
         const newHire =
           users.find((u) => u.uid === newHireId) || { fullName: "Unknown", email: "" };
         const completedCount = tasks.filter((t) => t.completed).length;
+        const allComplete = tasks.length > 0 && completedCount === tasks.length;
+        const anyOverdue = tasks.some(isOverdue);
 
         return (
           <div
             key={newHireId}
-            className="mb-7 p-4 rounded-xl bg-blue-50 border border-blue-100 shadow"
+            className={`mb-7 p-4 rounded-xl border ${
+              allComplete
+                ? "bg-green-50 border-green-200"
+                : anyOverdue
+                ? "bg-red-50 border-red-200"
+                : "bg-blue-50 border-blue-100"
+            } shadow`}
           >
             <div className="flex items-center gap-2 mb-1">
               <span className="font-semibold text-blue-700 text-lg">
@@ -218,6 +239,16 @@ export default function AssignedTasksDashboard() {
               {newHire.email && (
                 <span className="ml-2 text-xs bg-gray-200 rounded px-2">
                   {newHire.email}
+                </span>
+              )}
+              {allComplete && (
+                <span className="ml-2 text-green-600 text-xs font-bold flex items-center gap-1">
+                  <CheckCircle2 className="w-4 h-4" /> Done
+                </span>
+              )}
+              {anyOverdue && !allComplete && (
+                <span className="ml-2 text-red-600 text-xs font-bold flex items-center gap-1">
+                  <AlertTriangle className="w-4 h-4" /> Overdue
                 </span>
               )}
               <span className="ml-auto text-xs text-gray-400">
@@ -239,7 +270,7 @@ export default function AssignedTasksDashboard() {
                         t.completed
                           ? "bg-green-50 border-green-300 opacity-80"
                           : overdue
-                          ? "bg-red-50 border-red-300 animate-pulse"
+                          ? "bg-red-100 border-red-300 animate-pulse"
                           : "bg-white border-gray-200"
                       }`}
                     >
@@ -320,13 +351,6 @@ export default function AssignedTasksDashboard() {
           </div>
         );
       })}
-      {toast && (
-        <Toast
-          message={toast}
-          type="success"
-          onClose={() => setToast(null)}
-        />
-      )}
     </div>
   );
 }

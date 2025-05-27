@@ -2,11 +2,7 @@
 import React, { useEffect, useState } from "react";
 import { useAuth } from "../../../context/AuthContext";
 import { db } from "../../../lib/firebase";
-import {
-  doc,
-  getDoc,
-  updateDoc,
-} from "firebase/firestore";
+import { doc, getDoc, updateDoc } from "firebase/firestore";
 import { nanoid } from "nanoid";
 import Toast from "../../../components/Toast";
 
@@ -44,8 +40,8 @@ export default function CompanySettingsPage() {
           createdAt: data.createdAt,
           inviteCodeUpdatedAt: data.inviteCodeUpdatedAt,
         });
-        setEditName(data.name);
-        setEditDomain(data.domain);
+        setEditName(data.name || "");
+        setEditDomain(data.domain || "");
       }
       setLoading(false);
     }
@@ -71,7 +67,7 @@ export default function CompanySettingsPage() {
       });
       setCompany({
         ...company,
-        id: company.id, // always present, never undefined
+        id: company.id,
         name: editName,
         domain: editDomain,
       });
@@ -119,33 +115,38 @@ export default function CompanySettingsPage() {
       <h1 className="text-3xl font-bold text-blue-700 mb-6 flex items-center gap-2">
         🏢 Company Settings
       </h1>
-      <form onSubmit={handleSave} className="flex flex-col gap-5 mb-8">
-        <label className="font-semibold">
+      <form onSubmit={handleSave} className="flex flex-col gap-5 mb-8" autoComplete="off" aria-label="Edit company settings">
+        <label className="font-semibold" htmlFor="company-name">
           Company Name
           <input
+            id="company-name"
             type="text"
             value={editName}
             onChange={e => setEditName(e.target.value)}
             className="p-3 border rounded-lg w-full mt-1"
             maxLength={60}
             required
+            disabled={saving}
           />
         </label>
-        <label className="font-semibold">
+        <label className="font-semibold" htmlFor="company-domain">
           Company Domain
           <input
+            id="company-domain"
             type="text"
             value={editDomain}
             onChange={e => setEditDomain(e.target.value)}
             className="p-3 border rounded-lg w-full mt-1"
             maxLength={80}
             required
+            disabled={saving}
           />
         </label>
         <button
           type="submit"
-          className="bg-blue-600 text-white rounded-lg px-5 py-2 font-bold hover:bg-blue-700 mt-1"
-          disabled={saving}
+          className="bg-blue-600 text-white rounded-lg px-5 py-2 font-bold hover:bg-blue-700 mt-1 transition disabled:opacity-60"
+          disabled={saving || !editName.trim() || !editDomain.trim()}
+          aria-disabled={saving || !editName.trim() || !editDomain.trim()}
         >
           {saving ? "Saving..." : "Save Changes"}
         </button>
@@ -156,20 +157,21 @@ export default function CompanySettingsPage() {
         <span className="font-semibold text-yellow-700">
           Company Invite Code:
         </span>
-        <span className="font-mono bg-yellow-100 rounded px-2 py-1 text-yellow-900 text-lg tracking-widest">
+        <span className="font-mono bg-yellow-100 rounded px-2 py-1 text-yellow-900 text-lg tracking-widest select-all">
           {company.inviteCode}
         </span>
         <button
           className="px-4 py-2 rounded bg-yellow-400 text-white font-semibold hover:bg-yellow-500 transition"
           onClick={handleCopy}
           title="Copy code to clipboard"
+          disabled={saving}
         >
           {copied ? "Copied!" : "Copy"}
         </button>
       </div>
       <div className="flex flex-col sm:flex-row items-center justify-between gap-3 mt-3">
         <button
-          className="bg-pink-600 text-white px-4 py-2 rounded font-bold hover:bg-pink-700 transition"
+          className="bg-pink-600 text-white px-4 py-2 rounded font-bold hover:bg-pink-700 transition disabled:opacity-60"
           onClick={handleRegenerateCode}
           disabled={saving}
         >
@@ -179,6 +181,8 @@ export default function CompanySettingsPage() {
           <span className="text-xs text-gray-400">
             Last updated: {company.inviteCodeUpdatedAt.toDate
               ? company.inviteCodeUpdatedAt.toDate().toLocaleDateString()
+              : company.inviteCodeUpdatedAt instanceof Date
+              ? company.inviteCodeUpdatedAt.toLocaleDateString()
               : ""}
           </span>
         )}
@@ -186,7 +190,7 @@ export default function CompanySettingsPage() {
       {toast && (
         <Toast
           message={toast}
-          type="success"
+          type={toast.startsWith("Failed") ? "error" : "success"}
           onClose={() => setToast(null)}
         />
       )}

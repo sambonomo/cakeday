@@ -10,7 +10,7 @@ import {
 import { useAuth } from "../context/AuthContext";
 import { collection, query, where, getDocs } from "firebase/firestore";
 import { db } from "../lib/firebase";
-import { FileText, ClipboardCheck, PartyPopper } from "lucide-react";
+import { FileText, ClipboardCheck, PartyPopper, AlertTriangle, CheckCircle2 } from "lucide-react";
 
 type DocInfo = {
   id: string;
@@ -102,6 +102,9 @@ export default function AssignedTasksList({ companyId: propCompanyId }: { compan
   const completedTasks = assignedTasks.filter((t) => progress[t.id]).length;
   const progressPercent = totalTasks === 0 ? 0 : Math.round((completedTasks / totalTasks) * 100);
 
+  // Overdue helper (optional, for date-based highlighting)
+  // If you want to add per-task due date logic based on user.startDate + dueOffsetDays, add that here!
+
   // Group by template and department
   const grouped = assignedTasks.reduce((acc: Record<string, Record<string, OnboardingTask[]>>, task) => {
     const tmpl = task.templateName || "General";
@@ -139,13 +142,23 @@ export default function AssignedTasksList({ companyId: propCompanyId }: { compan
           </span>
           <span className="text-sm font-semibold text-gray-700">{completedTasks} of {totalTasks} complete</span>
         </div>
-        <div className="w-full bg-gray-200 rounded-full h-3">
+        <div className="relative w-full bg-gray-200 rounded-full h-3">
           <div
             className="bg-blue-500 h-3 rounded-full transition-all duration-300"
             style={{ width: `${progressPercent}%` }}
           />
+          <div className="absolute right-2 top-0 h-3 flex items-center text-xs font-bold text-blue-700">
+            {progressPercent}%
+          </div>
         </div>
       </div>
+      {/* Show a congratulatory message if all tasks are complete */}
+      {completedTasks === totalTasks && totalTasks > 0 && (
+        <div className="flex items-center gap-2 mb-4 p-3 bg-green-50 rounded-lg border border-green-200 text-green-700 font-semibold shadow">
+          <CheckCircle2 className="w-5 h-5" />
+          All assigned onboarding tasks are complete!
+        </div>
+      )}
       {/* Group by template and department */}
       {Object.entries(grouped).map(([templateName, depts]) => (
         <div key={templateName} className="mb-5">

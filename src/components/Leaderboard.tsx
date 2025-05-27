@@ -41,13 +41,20 @@ export default function Leaderboard({
             (b.points || 0) - (a.points || 0) ||
             (a.fullName || "").localeCompare(b.fullName || "")
         );
-      setUsers(ranked.slice(0, limit));
+      setUsers(ranked);
       setLoading(false);
     });
   }, [companyId, limit]);
 
-  // See if the current user is in the leaderboard list
-  const userOnBoard = loggedInUser && users.find((u) => u.uid === loggedInUser.uid);
+  // Slice for display
+  const topUsers = users.slice(0, limit);
+
+  // Find your position if not top N
+  let selfRank = -1;
+  if (loggedInUser) {
+    selfRank = users.findIndex((u) => u.uid === loggedInUser.uid);
+  }
+  const selfOnBoard = selfRank >= limit && users[selfRank];
 
   if (loading)
     return <div className="text-gray-500">Loading leaderboard...</div>;
@@ -65,7 +72,7 @@ export default function Leaderboard({
         <Crown className="w-7 h-7 text-yellow-400 drop-shadow" /> Kudos Leaderboard
       </h2>
       <ul className="divide-y divide-blue-100">
-        {users.map((u, idx) => {
+        {topUsers.map((u, idx) => {
           const isTop = idx === 0;
           const isSelf = loggedInUser && u.uid === loggedInUser.uid;
           return (
@@ -143,6 +150,56 @@ export default function Leaderboard({
             </li>
           );
         })}
+
+        {/* Show user's own spot if not in top N */}
+        {selfOnBoard && (
+          <li
+            className={`
+              flex items-center gap-4 py-4 px-2 transition-all group outline-none bg-green-50 border border-green-300 rounded-lg shadow mt-2
+              focus:ring-2 focus:ring-accent-400
+            `}
+            tabIndex={0}
+            aria-label={`Your ranking: #${selfRank + 1} ${(selfOnBoard.fullName || selfOnBoard.email)}. ${selfOnBoard.points || 0} points.`}
+            title="You"
+          >
+            <span className="text-xl font-bold w-8 flex-shrink-0 text-center select-none">{selfRank + 1}</span>
+            <UserAvatar
+              nameOrEmail={selfOnBoard.fullName || selfOnBoard.email}
+              photoURL={typeof selfOnBoard.photoURL === "string" ? selfOnBoard.photoURL : undefined}
+              size={48}
+              className="ring-2 ring-green-500"
+            />
+            <div className="flex-1 min-w-0">
+              <div className="font-semibold text-blue-800 truncate flex gap-1 items-center">
+                {selfOnBoard.fullName || selfOnBoard.email}
+                <span className="ml-1 px-2 py-0.5 bg-green-100 text-green-700 rounded text-xs font-bold">You</span>
+              </div>
+              <div className="text-xs text-gray-400">{selfOnBoard.email}</div>
+              <div className="flex gap-2 flex-wrap mt-1">
+                {(selfOnBoard.badges || []).map((b) => {
+                  const badgeDef = BADGE_DEFS[b];
+                  return badgeDef ? (
+                    <span
+                      key={b}
+                      className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-yellow-100 text-yellow-800 border border-yellow-200 gap-1"
+                      title={badgeDef.label}
+                      aria-label={badgeDef.label}
+                    >
+                      <badgeDef.Icon className="w-4 h-4 text-yellow-400" />
+                      {badgeDef.label}
+                    </span>
+                  ) : null;
+                })}
+              </div>
+            </div>
+            <div className="flex flex-col items-end justify-center min-w-[60px]">
+              <span className="font-bold text-lg text-blue-900 flex items-center gap-1">
+                <Star className="w-4 h-4 text-yellow-400" /> {selfOnBoard.points || 0}
+              </span>
+              <span className="text-xs text-gray-400">pts</span>
+            </div>
+          </li>
+        )}
       </ul>
       <div className="mt-4 text-center text-xs text-gray-400">
         Keep sending kudos to climb the leaderboard!

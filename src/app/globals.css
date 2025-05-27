@@ -2,7 +2,7 @@
 @tailwind components;
 @tailwind utilities;
 
-/* ========== Global Theme & Fonts ========== */
+/* =================== Global Theme & Fonts =================== */
 :root {
   --background: #f7faff;
   --foreground: #18192b;
@@ -14,29 +14,29 @@
 }
 @media (prefers-color-scheme: dark) {
   :root {
-    --background: #1a2233;
-    --foreground: #f6f7fb;
+    --background: #181f2b;
+    --foreground: #f3f5fb;
     --color-background: var(--background);
     --color-foreground: var(--foreground);
   }
 }
 
-/* ========== Base Body Styles ========== */
+/* =================== Base Body Styles =================== */
 body {
   @apply antialiased;
-  background: linear-gradient(115deg, rgba(37,99,235,0.1) 0%, rgba(244,114,182,0.1) 100%);
+  background: linear-gradient(115deg, rgba(37,99,235,0.10) 0%, rgba(244,114,182,0.08) 100%);
   color: var(--color-foreground);
   font-family: var(--font-sans);
   min-height: 100vh;
-  transition: background 0.3s, color 0.3s;
+  transition: background 0.35s, color 0.35s;
 }
 @media (prefers-color-scheme: dark) {
   body {
-    background: linear-gradient(115deg, #161e34 0%, #31294a 100%);
+    background: linear-gradient(115deg, #161e34 0%, #2c2545 100%);
   }
 }
 
-/* ========== Glassmorphism Card ========== */
+/* =================== Glassmorphism Card =================== */
 .glass-card {
   background: rgba(255,255,255,0.88);
   box-shadow: 0 8px 32px rgba(0,0,0,0.12);
@@ -44,16 +44,16 @@ body {
   -webkit-backdrop-filter: blur(var(--glass-blur));
   border-radius: 2rem;
   border: 1.5px solid rgba(255,255,255,0.3);
-  transition: background 0.2s, box-shadow 0.2s;
+  transition: background 0.22s, box-shadow 0.22s;
 }
 @media (prefers-color-scheme: dark) {
   .glass-card {
-    background: rgba(23,27,41,0.4);
-    border-color: rgba(255,255,255,0.1);
+    background: rgba(23,27,41,0.5);
+    border-color: rgba(255,255,255,0.09);
   }
 }
 
-/* ========== Animations ========== */
+/* =================== Animations =================== */
 @keyframes fade-in {
   from { opacity: 0; transform: translateY(32px);}
   to { opacity: 1; transform: none;}
@@ -76,18 +76,17 @@ body {
   animation: float-bubbles 6s ease-in-out infinite alternate;
 }
 
-/* ========== Focus & Disabled States ========== */
+/* =================== Focus & Disabled States =================== */
 input, button, textarea, select {
   @apply transition focus:ring-2 focus:ring-brand-400 focus:outline-none;
 }
-input:disabled, button:disabled {
+input:disabled, button:disabled, textarea:disabled, select:disabled {
   @apply opacity-60 cursor-not-allowed;
 }
 
-/* ========== Utility Classes ========== */
+/* =================== Utility Classes =================== */
 .card-panel {
-  @apply bg-white/80 backdrop-blur-sm rounded-2xl shadow-xl border p-7 mb-6
-    flex flex-col gap-4 transition;
+  @apply bg-white/80 backdrop-blur-sm rounded-2xl shadow-xl border p-7 mb-6 flex flex-col gap-4 transition;
 }
 .rounded-glass { border-radius: 2.3rem; }
 .text-pop {
@@ -98,7 +97,7 @@ input:disabled, button:disabled {
 }
 .shadow-pop { box-shadow: 0 2px 14px rgba(0,0,0,0.07), 0 8px 26px rgba(67,56,202,0.04); }
 
-/* ========== Link Styles ========== */
+/* =================== Link Styles =================== */
 a {
   @apply font-bold;
   color: #2563eb;
@@ -110,7 +109,7 @@ a:hover, a:focus {
   text-decoration: underline;
 }
 
-/* ========== Buttons ========== */
+/* =================== Buttons =================== */
 .btn {
   @apply inline-flex items-center justify-center px-4 py-2 text-sm font-medium
     rounded-md shadow-sm border border-transparent
@@ -118,26 +117,42 @@ a:hover, a:focus {
 }
 .btn-primary { @apply bg-brand-600 text-white hover:bg-brand-700 focus:ring-brand-500; }
 .btn-secondary { @apply bg-accent-500 text-white hover:bg-accent-600 focus:ring-accent-400; }
-/* .btn-danger, .btn-outline: see previous code for extras if needed */
 
-/* ========== Scrollbar ========== */
-::-webkit-scrollbar { width: 0.5em; background: transparent; }
+/* =================== Scrollbar =================== */
+::-webkit-scrollbar { width: 0.48em; background: transparent; }
 ::-webkit-scrollbar-thumb { @apply rounded-md; background: #e0e7ff; }
 @media (prefers-color-scheme: dark) {
   ::-webkit-scrollbar-thumb { background: #232b46; }
 }
 
-/* ========== Transitions for All ========== */
+/* =================== Transitions for All =================== */
 * {
   transition-property: background, color, border, box-shadow, opacity, transform;
   transition-duration: 180ms;
   transition-timing-function: cubic-bezier(.44,1.26,.6,1);
 }
 
-/* ========== Card & Hero Shadows ========== */
+/* =================== Card & Hero Shadows =================== */
 .card-shadow {
   box-shadow: 0 3px 12px #a5b4fc55, 0 2px 8px #f472b655;
 }
 .hero-shadow {
   box-shadow: 0 8px 40px 0 #c7d2fe88, 0 1.5px 4px 0 #2563eb22;
+}
+
+/* =================== Tooltip Styles (Optional) =================== */
+[role="tooltip"] {
+  @apply bg-black text-white rounded px-3 py-1 text-xs shadow-lg;
+  opacity: 0.92;
+}
+
+/* =================== Custom Accessibility States =================== */
+:focus-visible {
+  outline: 2px solid #3b82f6;
+  outline-offset: 2px;
+}
+@media (prefers-color-scheme: dark) {
+  :focus-visible {
+    outline: 2px solid #fbbf24;
+  }
 }

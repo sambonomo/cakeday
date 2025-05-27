@@ -32,6 +32,7 @@ export default function NavBar(): React.ReactElement | null {
   const [notifCount, setNotifCount] = useState(0);
   const pathname = usePathname();
   const mobileMenuRef = useRef<HTMLDivElement | null>(null);
+  const hamburgerBtnRef = useRef<HTMLButtonElement | null>(null);
 
   useEffect(() => {
     let unsub: (() => void) | null = null;
@@ -90,6 +91,14 @@ export default function NavBar(): React.ReactElement | null {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, [menuOpen]);
 
+  // Auto-close menu/sidebar on route change
+  useEffect(() => {
+    setMenuOpen(false);
+    setSidebarOpen(false);
+    if (hamburgerBtnRef.current) hamburgerBtnRef.current.focus();
+    // eslint-disable-next-line
+  }, [pathname]);
+
   if (!user || loading) return null;
 
   const nameOrEmail = user.fullName || user.email || "User";
@@ -98,7 +107,7 @@ export default function NavBar(): React.ReactElement | null {
   const isActive = (href: string) => pathname === href;
 
   return (
-    <nav className="fixed top-0 left-0 w-full bg-white shadow z-40">
+    <nav className="fixed top-0 left-0 w-full bg-white shadow z-40" aria-label="Main navigation">
       {/* Skip link for accessibility */}
       <a
         href="#main-content"
@@ -224,6 +233,9 @@ export default function NavBar(): React.ReactElement | null {
           onClick={() => setMenuOpen((m) => !m)}
           aria-label={menuOpen ? "Close navigation menu" : "Open navigation menu"}
           type="button"
+          ref={hamburgerBtnRef}
+          aria-expanded={menuOpen}
+          aria-controls="mobile-nav"
         >
           {menuOpen ? (
             <CloseIcon className="w-7 h-7 text-blue-700" />
@@ -233,102 +245,111 @@ export default function NavBar(): React.ReactElement | null {
         </button>
       </div>
 
-      {/* Mobile menu */}
+      {/* Mobile menu overlay */}
       {menuOpen && (
-        <div
-          ref={mobileMenuRef}
-          className="md:hidden bg-white border-t flex flex-col py-2 animate-fade-in absolute w-full left-0 top-full z-30"
-        >
-          {NAV_LINKS.map((link) => (
+        <div>
+          <div className="fixed inset-0 bg-black/40 z-30 md:hidden animate-fade-in" aria-hidden="true" onClick={() => setMenuOpen(false)} />
+          <div
+            ref={mobileMenuRef}
+            id="mobile-nav"
+            className="md:hidden bg-white border-t flex flex-col py-2 animate-fade-in absolute w-full left-0 top-full z-40"
+            role="menu"
+            aria-label="Mobile navigation"
+          >
+            {NAV_LINKS.map((link) => (
+              <Link
+                key={link.href}
+                href={link.href}
+                className={`px-6 py-3 text-blue-700 font-medium hover:bg-gray-100 rounded
+                  ${isActive(link.href) ? "bg-blue-50 underline font-bold" : ""}`}
+                aria-current={isActive(link.href) ? "page" : undefined}
+                role="menuitem"
+                onClick={() => setMenuOpen(false)}
+              >
+                {link.label}
+              </Link>
+            ))}
+
+            {/* Notifications (Mobile) */}
             <Link
-              key={link.href}
-              href={link.href}
-              className={`px-6 py-3 text-blue-700 font-medium hover:bg-gray-100 rounded
-                ${isActive(link.href) ? "bg-blue-50 underline font-bold" : ""}`}
-              aria-current={isActive(link.href) ? "page" : undefined}
+              href="/notifications"
+              className="flex items-center px-6 py-3 text-blue-700 font-medium hover:bg-gray-100 relative"
+              aria-label={`Notifications${notifCount > 0 ? ` (${notifCount} unread)` : ""}`}
+              role="menuitem"
               onClick={() => setMenuOpen(false)}
             >
-              {link.label}
+              <Bell className="w-5 h-5 mr-2" />
+              Notifications
+              {notifCount > 0 && (
+                <span className="ml-2 bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs font-bold shadow" aria-label={`${notifCount} unread notifications`}>
+                  {notifCount > 9 ? "9+" : notifCount}
+                </span>
+              )}
             </Link>
-          ))}
 
-          {/* Notifications (Mobile) */}
-          <Link
-            href="/notifications"
-            className="flex items-center px-6 py-3 text-blue-700 font-medium hover:bg-gray-100 relative"
-            aria-label={`Notifications${notifCount > 0 ? ` (${notifCount} unread)` : ""}`}
-            onClick={() => setMenuOpen(false)}
-          >
-            <Bell className="w-5 h-5 mr-2" />
-            Notifications
-            {notifCount > 0 && (
-              <span className="ml-2 bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs font-bold shadow" aria-label={`${notifCount} unread notifications`}>
-                {notifCount > 9 ? "9+" : notifCount}
-              </span>
+            {/* Admin mode (Mobile) */}
+            {role === "admin" && (
+              <button
+                onClick={() => {
+                  setMenuOpen(false);
+                  setSidebarOpen(true);
+                }}
+                className="flex items-center gap-2 px-6 py-3 text-pink-600 font-semibold hover:bg-gray-100 text-left w-full"
+                type="button"
+                aria-label="Open admin sidebar"
+                role="menuitem"
+              >
+                <Shield className="w-4 h-4" /> Admin
+              </button>
             )}
-          </Link>
 
-          {/* Admin mode (Mobile) */}
-          {role === "admin" && (
-            <button
-              onClick={() => {
-                setMenuOpen(false);
-                setSidebarOpen(true);
-              }}
-              className="flex items-center gap-2 px-6 py-3 text-pink-600 font-semibold hover:bg-gray-100 text-left w-full"
-              type="button"
-              aria-label="Open admin sidebar"
-            >
-              <Shield className="w-4 h-4" /> Admin
-            </button>
-          )}
-
-          {/* User avatar & dropdown (Headless UI) */}
-          <HeadlessMenu as="div" className="relative px-6 py-2">
-            <HeadlessMenu.Button className="flex items-center gap-2 focus:outline-none rounded transition group w-full">
-              <UserAvatar nameOrEmail={nameOrEmail} photoURL={user.photoURL} size={28} />
-              <span className="font-medium text-sm">{nameOrEmail}</span>
-            </HeadlessMenu.Button>
-            <Transition
-              enter="transition duration-100 ease-out"
-              enterFrom="transform scale-95 opacity-0"
-              enterTo="transform scale-100 opacity-100"
-              leave="transition duration-75 ease-in"
-              leaveFrom="transform scale-100 opacity-100"
-              leaveTo="transform scale-95 opacity-0"
-            >
-              <HeadlessMenu.Items className="absolute right-0 mt-2 w-44 bg-white border rounded shadow-lg z-50 focus:outline-none">
-                <div className="py-1">
-                  <HeadlessMenu.Item>
-                    {({ active }) => (
-                      <Link
-                        href="/profile"
-                        className={`flex items-center gap-2 px-4 py-2 text-gray-700 ${active ? "bg-gray-100" : ""}`}
-                        onClick={() => setMenuOpen(false)}
-                      >
-                        <User className="w-4 h-4" />
-                        Profile
-                      </Link>
-                    )}
-                  </HeadlessMenu.Item>
-                  <HeadlessMenu.Item>
-                    {({ active }) => (
-                      <button
-                        onClick={() => {
-                          setMenuOpen(false);
-                          logout();
-                        }}
-                        className={`flex items-center gap-2 w-full text-left px-4 py-2 text-gray-700 ${active ? "bg-gray-100" : ""}`}
-                      >
-                        <LogOut className="w-4 h-4" />
-                        Log Out
-                      </button>
-                    )}
-                  </HeadlessMenu.Item>
-                </div>
-              </HeadlessMenu.Items>
-            </Transition>
-          </HeadlessMenu>
+            {/* User avatar & dropdown (Headless UI) */}
+            <HeadlessMenu as="div" className="relative px-6 py-2">
+              <HeadlessMenu.Button className="flex items-center gap-2 focus:outline-none rounded transition group w-full">
+                <UserAvatar nameOrEmail={nameOrEmail} photoURL={user.photoURL} size={28} />
+                <span className="font-medium text-sm">{nameOrEmail}</span>
+              </HeadlessMenu.Button>
+              <Transition
+                enter="transition duration-100 ease-out"
+                enterFrom="transform scale-95 opacity-0"
+                enterTo="transform scale-100 opacity-100"
+                leave="transition duration-75 ease-in"
+                leaveFrom="transform scale-100 opacity-100"
+                leaveTo="transform scale-95 opacity-0"
+              >
+                <HeadlessMenu.Items className="absolute right-0 mt-2 w-44 bg-white border rounded shadow-lg z-50 focus:outline-none">
+                  <div className="py-1">
+                    <HeadlessMenu.Item>
+                      {({ active }) => (
+                        <Link
+                          href="/profile"
+                          className={`flex items-center gap-2 px-4 py-2 text-gray-700 ${active ? "bg-gray-100" : ""}`}
+                          onClick={() => setMenuOpen(false)}
+                        >
+                          <User className="w-4 h-4" />
+                          Profile
+                        </Link>
+                      )}
+                    </HeadlessMenu.Item>
+                    <HeadlessMenu.Item>
+                      {({ active }) => (
+                        <button
+                          onClick={() => {
+                            setMenuOpen(false);
+                            logout();
+                          }}
+                          className={`flex items-center gap-2 w-full text-left px-4 py-2 text-gray-700 ${active ? "bg-gray-100" : ""}`}
+                        >
+                          <LogOut className="w-4 h-4" />
+                          Log Out
+                        </button>
+                      )}
+                    </HeadlessMenu.Item>
+                  </div>
+                </HeadlessMenu.Items>
+              </Transition>
+            </HeadlessMenu>
+          </div>
         </div>
       )}
 

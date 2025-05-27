@@ -9,7 +9,7 @@ type UserAvatarProps = {
   className?: string;
 };
 
-// (Optional) Color hash for consistent background colors
+// Optional: Color hash for unique background color
 function stringToColor(str: string) {
   let hash = 0;
   for (let i = 0; i < str.length; i++) hash = str.charCodeAt(i) + ((hash << 5) - hash);
@@ -19,10 +19,12 @@ function stringToColor(str: string) {
 
 function getInitials(nameOrEmail: string) {
   if (!nameOrEmail) return "?";
-  const parts = nameOrEmail.trim().split(" ");
-  if (parts.length > 1) return (parts[0][0] + parts[1][0]).toUpperCase();
-  if (nameOrEmail.includes("@")) return nameOrEmail[0].toUpperCase();
-  return nameOrEmail.slice(0, 2).toUpperCase();
+  const trimmed = nameOrEmail.trim();
+  const parts = trimmed.split(" ");
+  if (parts.length > 1 && parts[0] && parts[1])
+    return (parts[0][0] + parts[1][0]).toUpperCase();
+  if (trimmed.includes("@")) return trimmed[0].toUpperCase();
+  return trimmed.slice(0, 2).toUpperCase();
 }
 
 export default function UserAvatar({
@@ -33,7 +35,7 @@ export default function UserAvatar({
 }: UserAvatarProps) {
   const [imgError, setImgError] = useState(false);
   const initials = getInitials(nameOrEmail);
-  // Uncomment the next line to use unique bg colors:
+  // Uncomment to use a unique color per user:
   // const bgColor = stringToColor(nameOrEmail);
 
   if (photoURL && !imgError) {
@@ -44,9 +46,15 @@ export default function UserAvatar({
         width={size}
         height={size}
         className={`rounded-full object-cover border border-gray-300 shadow-sm ${className}`}
-        style={{ width: size, height: size, minWidth: size, minHeight: size }}
+        style={{
+          width: size,
+          height: size,
+          minWidth: size,
+          minHeight: size,
+        }}
         onError={() => setImgError(true)}
         aria-label={nameOrEmail}
+        title={nameOrEmail}
       />
     );
   }
@@ -63,10 +71,11 @@ export default function UserAvatar({
         minWidth: size,
         minHeight: size,
         fontSize: Math.round(size / 2),
-        // backgroundColor: bgColor, // Uncomment to use color hash backgrounds
+        // backgroundColor: bgColor,
       }}
       aria-label={nameOrEmail}
       title={nameOrEmail}
+      tabIndex={0}
     >
       {initials}
     </span>

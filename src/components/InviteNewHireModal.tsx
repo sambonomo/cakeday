@@ -13,7 +13,7 @@ import {
 import { useAuth } from "../context/AuthContext";
 import { getOnboardingTemplates, assignTemplateToNewHire } from "../lib/firestoreOnboarding";
 import Toast from "./Toast";
-import { UserPlus, Sparkles } from "lucide-react";
+import { UserPlus } from "lucide-react";
 
 type ModalProps = {
   open: boolean;
@@ -46,8 +46,38 @@ export default function InviteNewHireModal({ open, onClose, onSuccess }: ModalPr
   const [templates, setTemplates] = useState<Template[]>([]);
   const [managers, setManagers] = useState<UserProfile[]>([]);
   const [loading, setLoading] = useState(false);
-  const [toast, setToast] = useState<string | null>(null);
+  const [toast, setToast] = useState<{ msg: string; type: "success" | "error" } | null>(null);
   const firstInputRef = useRef<HTMLInputElement | null>(null);
+  const modalRef = useRef<HTMLDivElement | null>(null);
+
+  // Focus trap
+  useEffect(() => {
+    if (!open) return;
+    const trap = (e: KeyboardEvent) => {
+      if (e.key === "Tab") {
+        const focusables = modalRef.current?.querySelectorAll<HTMLElement>(
+          'input,select,button,[tabindex]:not([tabindex="-1"])'
+        );
+        if (!focusables || focusables.length === 0) return;
+        const first = focusables[0];
+        const last = focusables[focusables.length - 1];
+        if (e.shiftKey) {
+          if (document.activeElement === first) {
+            e.preventDefault();
+            last.focus();
+          }
+        } else {
+          if (document.activeElement === last) {
+            e.preventDefault();
+            first.focus();
+          }
+        }
+      }
+      if (e.key === "Escape") onClose();
+    };
+    window.addEventListener("keydown", trap);
+    return () => window.removeEventListener("keydown", trap);
+  }, [open, onClose]);
 
   // Fetch templates & managers on open
   useEffect(() => {
@@ -84,14 +114,20 @@ export default function InviteNewHireModal({ open, onClose, onSuccess }: ModalPr
     }
   }, [open]);
 
-  // Keyboard close (ESC)
+  // Close modal on click outside the panel
   useEffect(() => {
     if (!open) return;
-    const handler = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onClose();
+    const closeOnOutside = (e: MouseEvent) => {
+      if (
+        modalRef.current &&
+        e.target instanceof Node &&
+        !modalRef.current.contains(e.target)
+      ) {
+        onClose();
+      }
     };
-    window.addEventListener("keydown", handler);
-    return () => window.removeEventListener("keydown", handler);
+    document.addEventListener("mousedown", closeOnOutside);
+    return () => document.removeEventListener("mousedown", closeOnOutside);
   }, [open, onClose]);
 
   if (!open) return null;
@@ -104,7 +140,7 @@ export default function InviteNewHireModal({ open, onClose, onSuccess }: ModalPr
     const trimmedEmail = email.trim().toLowerCase();
 
     if (!trimmedEmail || !templateId || !startDate) {
-      setToast("All fields except Manager/Name are required.");
+      setToast({ msg: "All fields except Manager/Name are required.", type: "error" });
       return;
     }
     setLoading(true);
@@ -119,7 +155,7 @@ export default function InviteNewHireModal({ open, onClose, onSuccess }: ModalPr
         )
       );
       if (!existing.empty) {
-        setToast("A user with this email already exists.");
+        setToast({ msg: "A user with this email already exists.", type: "error" });
         setLoading(false);
         return;
       }
@@ -149,14 +185,14 @@ export default function InviteNewHireModal({ open, onClose, onSuccess }: ModalPr
 
       // --- TO-DO: Send activation email via Cloud Function
 
-      setToast("Invite sent & onboarding checklist assigned!");
+      setToast({ msg: "Invite sent & onboarding checklist assigned!", type: "success" });
       onSuccess?.(trimmedEmail);
       setTimeout(() => {
         setLoading(false);
         onClose();
       }, 1200);
     } catch (err: any) {
-      setToast(err.message || "Error sending invite.");
+      setToast({ msg: err.message || "Error sending invite.", type: "error" });
       setLoading(false);
     }
   };
@@ -168,10 +204,13 @@ export default function InviteNewHireModal({ open, onClose, onSuccess }: ModalPr
       aria-modal="true"
       role="dialog"
     >
-      <div className="
-        bg-white/95 rounded-3xl shadow-2xl p-8 w-full max-w-md relative animate-fade-in-up border border-blue-100
-        transition-all duration-300
-      ">
+      <div
+        className="
+          bg-white/95 rounded-3xl shadow-2xl p-8 w-full max-w-md relative animate-fade-in-up border border-blue-100
+          transition-all duration-300
+        "
+        ref={modalRef}
+      >
         <button
           className="absolute top-3 right-3 text-gray-400 hover:text-red-600 text-2xl"
           onClick={onClose}
@@ -188,7 +227,9 @@ export default function InviteNewHireModal({ open, onClose, onSuccess }: ModalPr
         <form className="flex flex-col gap-4 mt-3" onSubmit={handleInvite} autoComplete="off">
           {/* Email */}
           <div>
-            <label className="block text-sm font-semibold text-blue-700 mb-1">Work Email <span className="text-red-500">*</span></label>
+            <label className="block text-sm font-semibold text-blue-700 mb-1">
+              Work Email <span className="text-red-500">*</span>
+            </label>
             <input
               ref={firstInputRef}
               type="email"
@@ -197,14 +238,16 @@ export default function InviteNewHireModal({ open, onClose, onSuccess }: ModalPr
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
-              autoFocus
               maxLength={80}
               spellCheck={false}
+              aria-required="true"
             />
           </div>
           {/* Name */}
           <div>
-            <label className="block text-sm font-semibold text-blue-700 mb-1">Full Name</label>
+            <label className="block text-sm font-semibold text-blue-700 mb-1">
+              Full Name
+            </label>
             <input
               type="text"
               placeholder="Full Name (optional)"
@@ -217,12 +260,15 @@ export default function InviteNewHireModal({ open, onClose, onSuccess }: ModalPr
           </div>
           {/* Onboarding Template */}
           <div>
-            <label className="block text-sm font-semibold text-blue-700 mb-1">Onboarding Template <span className="text-red-500">*</span></label>
+            <label className="block text-sm font-semibold text-blue-700 mb-1">
+              Onboarding Template <span className="text-red-500">*</span>
+            </label>
             <select
               value={templateId}
               onChange={(e) => setTemplateId(e.target.value)}
               className="p-3 border-2 border-blue-100 rounded-xl w-full bg-blue-50 focus:outline-none focus:border-blue-400"
               required
+              aria-required="true"
             >
               <option value="">-- Select Onboarding Template --</option>
               {templates.map((t) => (
@@ -236,7 +282,9 @@ export default function InviteNewHireModal({ open, onClose, onSuccess }: ModalPr
           </div>
           {/* Start Date */}
           <div>
-            <label className="block text-sm font-semibold text-blue-700 mb-1">Start Date <span className="text-red-500">*</span></label>
+            <label className="block text-sm font-semibold text-blue-700 mb-1">
+              Start Date <span className="text-red-500">*</span>
+            </label>
             <input
               type="date"
               value={startDate}
@@ -244,11 +292,14 @@ export default function InviteNewHireModal({ open, onClose, onSuccess }: ModalPr
               className="p-3 border-2 border-blue-100 rounded-xl w-full bg-blue-50 focus:outline-none focus:border-blue-400"
               required
               min={new Date().toISOString().split("T")[0]}
+              aria-required="true"
             />
           </div>
           {/* Optional Manager */}
           <div>
-            <label className="block text-sm font-semibold text-blue-700 mb-1">Assign Manager (optional)</label>
+            <label className="block text-sm font-semibold text-blue-700 mb-1">
+              Assign Manager (optional)
+            </label>
             <select
               value={managerId}
               onChange={(e) => setManagerId(e.target.value)}
@@ -272,7 +323,7 @@ export default function InviteNewHireModal({ open, onClose, onSuccess }: ModalPr
         </form>
         {/* Success/Error Toast */}
         {toast && (
-          <Toast message={toast} type="success" onClose={() => setToast(null)} />
+          <Toast message={toast.msg} type={toast.type} onClose={() => setToast(null)} />
         )}
         <div className="mt-6 text-xs text-blue-400 text-center">
           New hires are invited as <b>inactive users</b>. They’ll get their onboarding checklist after activation.

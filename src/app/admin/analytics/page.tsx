@@ -3,7 +3,10 @@ import React, { useEffect, useState } from "react";
 import { useAuth } from "../../../context/AuthContext";
 import { db } from "../../../lib/firebase";
 import { collection, getDocs, query, where, orderBy } from "firebase/firestore";
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from "recharts";
+import {
+  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip,
+  ResponsiveContainer, PieChart, Pie, Cell,
+} from "recharts";
 
 const COLORS = ["#3b82f6", "#fbbf24", "#10b981", "#f472b6", "#6366f1", "#f87171", "#06b6d4", "#84cc16"];
 
@@ -34,13 +37,12 @@ export default function AnalyticsPage() {
   const [loading, setLoading] = useState(true);
   const [csvData, setCsvData] = useState<any[]>([]);
 
-  // Fetch users and kudos
   useEffect(() => {
     if (!companyId) return;
     setLoading(true);
     Promise.all([
       getDocs(query(collection(db, "users"), where("companyId", "==", companyId))),
-      getDocs(query(collection(db, "kudos"), where("companyId", "==", companyId), orderBy("createdAt", "desc")))
+      getDocs(query(collection(db, "kudos"), where("companyId", "==", companyId), orderBy("createdAt", "desc"))),
     ]).then(([userSnap, kudosSnap]) => {
       setUsers(userSnap.docs.map(d => ({ uid: d.id, ...d.data() })));
       setKudos(kudosSnap.docs.map(d => ({ id: d.id, ...d.data() })));
@@ -48,7 +50,7 @@ export default function AnalyticsPage() {
     });
   }, [companyId]);
 
-  // Calculate points by month (given/redeemed)
+  // Calculate analytics
   const pointsByMonth: Record<string, number> = {};
   const kudosByUser: Record<string, number> = {};
   const kudosReceivedByUser: Record<string, number> = {};
@@ -113,8 +115,9 @@ export default function AnalyticsPage() {
         <span role="img" aria-label="chart">📊</span> Points &amp; Recognition Analytics
       </h1>
 
-      <div className="mb-8">
-        <h2 className="text-xl font-semibold mb-3">Points Given Per Month</h2>
+      {/* Points Per Month */}
+      <section aria-labelledby="points-month" className="mb-8">
+        <h2 id="points-month" className="text-xl font-semibold mb-3">Points Given Per Month</h2>
         {chartData.length === 0 ? (
           <div className="text-gray-400">No data yet.</div>
         ) : (
@@ -128,72 +131,79 @@ export default function AnalyticsPage() {
             </BarChart>
           </ResponsiveContainer>
         )}
-      </div>
+      </section>
 
+      {/* Leaderboards */}
       <div className="mb-8 grid grid-cols-1 md:grid-cols-2 gap-6">
-        <div>
-          <h2 className="text-lg font-semibold mb-2">Most Points (All Time)</h2>
+        <section aria-labelledby="most-points">
+          <h2 id="most-points" className="text-lg font-semibold mb-2">Most Points (All Time)</h2>
           <ol className="list-decimal ml-6 text-base">
             {pointsLeaderboard.slice(0, 10).map((u, i) => (
-              <li key={u.uid}>
-                {users.find(us => us.uid === u.uid)?.fullName || u.uid} – <span className="font-bold">{u.points}</span>
+              <li key={u.uid} title={users.find(us => us.uid === u.uid)?.fullName || u.uid}>
+                {(users.find(us => us.uid === u.uid)?.fullName || u.uid).slice(0, 30)} – <span className="font-bold">{u.points}</span>
               </li>
             ))}
           </ol>
-        </div>
-        <div>
-          <h2 className="text-lg font-semibold mb-2">Most Kudos Given</h2>
+        </section>
+        <section aria-labelledby="most-given">
+          <h2 id="most-given" className="text-lg font-semibold mb-2">Most Kudos Given</h2>
           <ol className="list-decimal ml-6 text-base">
             {recognizedLeaderboard.slice(0, 10).map((u, i) => (
-              <li key={u.uid}>
-                {users.find(us => us.uid === u.uid)?.fullName || u.uid} – <span className="font-bold">{u.count}</span>
+              <li key={u.uid} title={users.find(us => us.uid === u.uid)?.fullName || u.uid}>
+                {(users.find(us => us.uid === u.uid)?.fullName || u.uid).slice(0, 30)} – <span className="font-bold">{u.count}</span>
               </li>
             ))}
           </ol>
-        </div>
-        <div>
-          <h2 className="text-lg font-semibold mb-2">Most Kudos Received</h2>
+        </section>
+        <section aria-labelledby="most-received">
+          <h2 id="most-received" className="text-lg font-semibold mb-2">Most Kudos Received</h2>
           <ol className="list-decimal ml-6 text-base">
             {receivedLeaderboard.slice(0, 10).map((u, i) => (
-              <li key={u.uid}>
-                {users.find(us => us.uid === u.uid)?.fullName || u.uid} – <span className="font-bold">{u.count}</span>
+              <li key={u.uid} title={users.find(us => us.uid === u.uid)?.fullName || u.uid}>
+                {(users.find(us => us.uid === u.uid)?.fullName || u.uid).slice(0, 30)} – <span className="font-bold">{u.count}</span>
               </li>
             ))}
           </ol>
-        </div>
-        <div>
-          <h2 className="text-lg font-semibold mb-2">Points by User (Pie)</h2>
-          <ResponsiveContainer width="100%" height={200}>
-            <PieChart>
-              <Pie
-                data={pointsLeaderboard.slice(0, 8)}
-                dataKey="points"
-                nameKey="uid"
-                cx="50%"
-                cy="50%"
-                outerRadius={70}
-                label={({ percent, index }: { percent: number; index: number }) =>
-                  `${users.find(us => us.uid === pointsLeaderboard[index].uid)?.fullName || pointsLeaderboard[index].uid
-                  }: ${Math.round(percent * 100)}%`
-                }
-              >
-                {pointsLeaderboard.slice(0, 8).map((entry, index) => (
-                  <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                ))}
-              </Pie>
-              <Tooltip
-                formatter={(value: any) =>
-                  [`${value} points`, "Points"]
-                }
-              />
-            </PieChart>
-          </ResponsiveContainer>
-        </div>
+        </section>
+        <section aria-labelledby="pie-chart">
+          <h2 id="pie-chart" className="text-lg font-semibold mb-2">Points by User (Pie)</h2>
+          {pointsLeaderboard.length === 0 ? (
+            <div className="text-gray-400">No data yet.</div>
+          ) : (
+            <ResponsiveContainer width="100%" height={200}>
+              <PieChart>
+                <Pie
+                  data={pointsLeaderboard.slice(0, 8)}
+                  dataKey="points"
+                  nameKey="uid"
+                  cx="50%"
+                  cy="50%"
+                  outerRadius={70}
+                  label={({ percent, index }: { percent: number; index: number }) => {
+                    const userObj = users.find(us => us.uid === pointsLeaderboard[index]?.uid);
+                    const name = userObj?.fullName || pointsLeaderboard[index]?.uid || "";
+                    return `${name.slice(0, 18)}: ${Math.round(percent * 100)}%`;
+                  }}
+                >
+                  {pointsLeaderboard.slice(0, 8).map((entry, index) => (
+                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                  ))}
+                </Pie>
+                <Tooltip
+                  formatter={(value: any, name: any, props: any) =>
+                    [`${value} points`, "Points"]
+                  }
+                />
+              </PieChart>
+            </ResponsiveContainer>
+          )}
+        </section>
       </div>
 
+      {/* CSV Export */}
       <div className="mb-8">
         <button
-          className="bg-blue-600 text-white px-5 py-2 rounded-lg font-bold hover:bg-blue-700"
+          className="bg-blue-600 text-white px-5 py-2 rounded-lg font-bold hover:bg-blue-700 transition disabled:opacity-60"
           onClick={() => downloadCSV("kudos_analytics.csv", csvData)}
           disabled={csvData.length === 0}
         >

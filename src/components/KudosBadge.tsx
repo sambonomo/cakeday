@@ -30,7 +30,11 @@ export default function KudosBadge({
 }: KudosBadgeProps) {
   return (
     <span
-      className={`inline-flex items-center gap-2 bg-green-50 border border-green-200 rounded-full px-2 py-1 shadow-sm hover:shadow-md transition ${className}`}
+      className={`
+        inline-flex items-center gap-2 bg-green-50 border border-green-200
+        rounded-full px-2 py-1 shadow-sm hover:shadow-md transition
+        outline-none focus-visible:ring-2 focus-visible:ring-green-400 ${className}
+      `}
       aria-label={label || "Kudos badge"}
       title={label}
       tabIndex={0}
@@ -40,10 +44,12 @@ export default function KudosBadge({
           {emoji}
         </span>
       )}
-      <Icon
-        className={sizeMap[size] + ` ${colorClass} flex-shrink-0`}
-        aria-hidden="true"
-      />
+      {Icon && (
+        <Icon
+          className={sizeMap[size] + ` ${colorClass} flex-shrink-0`}
+          aria-hidden="true"
+        />
+      )}
       {showLabel && label && (
         <span className="text-xs sm:text-sm text-green-800 font-semibold">{label}</span>
       )}

@@ -116,7 +116,7 @@ export default function IntegrationsAdminPage() {
         )}
 
         {/* Slack Integration */}
-        <fieldset className="mb-7" aria-labelledby="slack-integration-heading">
+        <fieldset className="mb-7" aria-labelledby="slack-integration-heading" disabled={loading || saving}>
           <legend
             id="slack-integration-heading"
             className="block text-base font-semibold mb-2 text-brand-700"
@@ -138,6 +138,7 @@ export default function IntegrationsAdminPage() {
               focus:ring-2 focus:ring-brand-400
             "
             autoComplete="off"
+            disabled={loading || saving}
           />
 
           <div className="flex flex-col gap-2 mb-2">
@@ -147,6 +148,7 @@ export default function IntegrationsAdminPage() {
                 checked={postKudosToSlack}
                 onChange={() => setPostKudosToSlack((v) => !v)}
                 className="accent-brand-600 h-4 w-4"
+                disabled={loading || saving}
               />
               Post Kudos to Slack
             </label>
@@ -156,6 +158,7 @@ export default function IntegrationsAdminPage() {
                 checked={postBirthdaysToSlack}
                 onChange={() => setPostBirthdaysToSlack((v) => !v)}
                 className="accent-brand-600 h-4 w-4"
+                disabled={loading || saving}
               />
               Post Birthdays & Anniversaries
             </label>
@@ -165,6 +168,7 @@ export default function IntegrationsAdminPage() {
                 checked={postNewHireToSlack}
                 onChange={() => setPostNewHireToSlack((v) => !v)}
                 className="accent-brand-600 h-4 w-4"
+                disabled={loading || saving}
               />
               Post New Hire Announcements
             </label>
@@ -172,7 +176,7 @@ export default function IntegrationsAdminPage() {
         </fieldset>
 
         {/* Teams Integration */}
-        <fieldset className="mb-8" aria-labelledby="teams-integration-heading">
+        <fieldset className="mb-8" aria-labelledby="teams-integration-heading" disabled={loading || saving}>
           <legend
             id="teams-integration-heading"
             className="block text-base font-semibold mb-2 text-brand-700"
@@ -194,6 +198,7 @@ export default function IntegrationsAdminPage() {
               focus:ring-2 focus:ring-brand-400
             "
             autoComplete="off"
+            disabled={loading || saving}
           />
 
           <div className="flex flex-col gap-2 mb-2">
@@ -203,6 +208,7 @@ export default function IntegrationsAdminPage() {
                 checked={postKudosToTeams}
                 onChange={() => setPostKudosToTeams((v) => !v)}
                 className="accent-brand-600 h-4 w-4"
+                disabled={loading || saving}
               />
               Post Kudos to Teams
             </label>
@@ -212,6 +218,7 @@ export default function IntegrationsAdminPage() {
                 checked={postBirthdaysToTeams}
                 onChange={() => setPostBirthdaysToTeams((v) => !v)}
                 className="accent-brand-600 h-4 w-4"
+                disabled={loading || saving}
               />
               Post Birthdays & Anniversaries
             </label>
@@ -221,6 +228,7 @@ export default function IntegrationsAdminPage() {
                 checked={postNewHireToTeams}
                 onChange={() => setPostNewHireToTeams((v) => !v)}
                 className="accent-brand-600 h-4 w-4"
+                disabled={loading || saving}
               />
               Post New Hire Announcements
             </label>
@@ -231,7 +239,7 @@ export default function IntegrationsAdminPage() {
         <button
           type="submit"
           disabled={saving || loading}
-          className="btn btn-primary disabled:opacity-50"
+          className="bg-brand-600 text-white rounded px-5 py-2 font-bold hover:bg-brand-700 transition disabled:opacity-50"
         >
           {saving ? "Saving..." : "Save Settings"}
         </button>

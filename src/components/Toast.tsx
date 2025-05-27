@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useEffect, useRef } from "react";
+import { CheckCircle2, XCircle } from "lucide-react";
 
 type ToastProps = {
   message: string;
@@ -48,6 +49,7 @@ export default function Toast({
         flex items-center gap-3
         transition-all duration-500 animate-fade-in-up
         ring-2 ring-opacity-25
+        max-w-xs w-[90vw] outline-none
         ${type === "success"
           ? "bg-green-600 text-white ring-green-300"
           : "bg-red-600 text-white ring-red-300"}
@@ -55,10 +57,20 @@ export default function Toast({
       role="alert"
       aria-live="assertive"
       aria-atomic="true"
-      style={{ minWidth: 220, maxWidth: 350, outline: "none" }}
+      style={{
+        minWidth: 220,
+        maxWidth: 350,
+      }}
       onClick={onClose}
       title="Click to dismiss"
     >
+      <span aria-hidden="true">
+        {type === "success" ? (
+          <CheckCircle2 className="w-5 h-5 text-white opacity-90" />
+        ) : (
+          <XCircle className="w-5 h-5 text-white opacity-90" />
+        )}
+      </span>
       <span className="flex-1">{message}</span>
       {onClose && (
         <button

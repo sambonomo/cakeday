@@ -24,7 +24,6 @@ import {
   Smile,
 } from "lucide-react";
 
-// Use Lucide icons for badge options
 const BADGES = [
   { label: "Team Player", Icon: Handshake, emoji: "🤝" },
   { label: "Innovator", Icon: Lightbulb, emoji: "💡" },
@@ -61,6 +60,7 @@ export default function GiveKudosForm({
 
   const toastTimer = useRef<NodeJS.Timeout | null>(null);
   const toastRef = useRef<HTMLDivElement | null>(null);
+  const messageInputRef = useRef<HTMLTextAreaElement | null>(null);
 
   useEffect(() => {
     if (!companyId || !user) return;
@@ -74,10 +74,17 @@ export default function GiveKudosForm({
         uid: doc.id,
         ...doc.data(),
       })) as UserProfile[];
-      setEmployees(list.filter((e) => e.uid !== user?.uid));
+      setEmployees(list.filter((e) => e.uid !== user?.uid)); // Don't allow sending to self
     };
     fetchEmployees();
   }, [user?.uid, companyId, user]);
+
+  // Focus message input after recipient change for fast sending
+  useEffect(() => {
+    if (toUid && messageInputRef.current) {
+      messageInputRef.current.focus();
+    }
+  }, [toUid]);
 
   const filteredEmployees = queryValue
     ? employees.filter((e) =>
@@ -107,6 +114,12 @@ export default function GiveKudosForm({
       return;
     }
 
+    if (recipient.uid === user.uid) {
+      setError("You can't send kudos to yourself!");
+      setLoading(false);
+      return;
+    }
+
     const fromName = user.fullName || user.email || "";
     const fromPhotoURL = user.photoURL || "";
     const toName = recipient.fullName || recipient.email;
@@ -126,7 +139,7 @@ export default function GiveKudosForm({
         toName,
         toPhotoURL,
       });
-      setSuccess("Kudos sent!");
+      setSuccess(`${BADGES[badge].emoji} Kudos sent!`);
       setShowToast(true);
       setToUid(null);
       setQueryValue("");
@@ -263,6 +276,7 @@ export default function GiveKudosForm({
       <div>
         <label className="block font-medium mb-1">Message</label>
         <textarea
+          ref={messageInputRef}
           placeholder="Say something awesome..."
           value={message}
           className="p-3 border-2 border-gray-200 rounded-xl w-full focus:outline-none focus:border-green-400 transition resize-none"

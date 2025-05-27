@@ -24,31 +24,30 @@ export default function Home(): React.ReactElement {
         transition-all px-4
       "
     >
-      {/* Skip Link for accessibility */}
+      {/* Accessible Skip Link */}
       <a
         href="#home-content"
         className="
           sr-only
           focus:not-sr-only
           absolute
-          top-4
-          left-4
+          top-4 left-4
           bg-blue-700
           text-white
-          px-4
-          py-2
+          px-4 py-2
           rounded
           z-50
+          font-bold
         "
       >
         Skip to main content
       </a>
 
-      {/* Hero SVG or Illustration */}
+      {/* Decorative Hero Illustration */}
       <div className="absolute inset-x-0 top-0 z-0 flex justify-center pointer-events-none select-none">
         <img
           src="/cakeday-hero.svg"
-          alt="Celebration illustration"
+          alt=""
           className="w-44 h-44 sm:w-60 sm:h-60 mt-8 opacity-60 blur-[1.5px] animate-fade-in"
           aria-hidden="true"
         />
@@ -64,6 +63,8 @@ export default function Home(): React.ReactElement {
           backdrop-blur-lg border border-brand-100 dark:border-slate-800
           animate-fade-in
         "
+        tabIndex={-1}
+        aria-label="Welcome to Cakeday HR"
       >
         <h1
           className="
@@ -89,7 +90,7 @@ export default function Home(): React.ReactElement {
           — all in one playful, easy-to-use hub.
         </p>
 
-        {/* Features Mini Grid */}
+        {/* Features mini-grid */}
         <div className="grid grid-cols-2 gap-3 w-full max-w-xs mt-2 animate-fade-in-up">
           <div className="bg-green-50 dark:bg-green-950/60 rounded-xl flex items-center gap-2 p-2 shadow text-green-700 dark:text-green-200">
             <CheckCircle2 className="w-5 h-5" aria-hidden="true" />
@@ -172,7 +173,7 @@ export default function Home(): React.ReactElement {
           </div>
         </div>
 
-        {/* How It Works (Optional) */}
+        {/* How It Works: visible on md+ */}
         <div className="w-full mt-5 border-t border-accent-100 pt-6 hidden md:block">
           <div className="flex items-center justify-center gap-8">
             <div className="flex flex-col items-center text-center">
@@ -199,29 +200,19 @@ export default function Home(): React.ReactElement {
         </div>
 
         <p className="mt-8 text-gray-400 text-xs text-center">
-          Built with{" "}
-          <span className="font-semibold">Next.js, Firebase &amp; Tailwind CSS</span>{" "}
-          • {new Date().getFullYear()}
+          Built with <span className="font-semibold">Next.js, Firebase &amp; Tailwind CSS</span> • {new Date().getFullYear()}
         </p>
       </main>
 
       {/* Floating bubbles for fun! */}
       <div className="absolute inset-0 -z-10 pointer-events-none animate-float-bubbles">
         <span
-          className="
-            absolute top-10 left-10 w-8 h-8
-            bg-brand-200 rounded-full opacity-40
-            animate-float
-          "
+          className="absolute top-10 left-10 w-8 h-8 bg-brand-200 rounded-full opacity-40 animate-float"
         />
         <span
-          className="
-            absolute bottom-14 right-16 w-6 h-6
-            bg-accent-200 rounded-full opacity-30
-            animate-float-slower
-          "
+          className="absolute bottom-14 right-16 w-6 h-6 bg-accent-200 rounded-full opacity-30 animate-float-slower"
         />
-        {/* Add more bubbles if you like! */}
+        {/* Add more bubbles for visual fun! */}
       </div>
     </div>
   );

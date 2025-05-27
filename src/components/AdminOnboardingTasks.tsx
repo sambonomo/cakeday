@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import {
   getOnboardingTemplates,
   createOnboardingTemplate,
@@ -15,7 +15,19 @@ import {
 } from "../lib/firestoreOnboarding";
 import { useAuth } from "../context/AuthContext";
 import { DragDropContext, Droppable, Draggable, DropResult } from "@hello-pangea/dnd";
-import { GripVertical, Plus, Loader2, X, Edit, Trash2, Sparkles, Calendar, Mail, Slack, FileText } from "lucide-react";
+import {
+  GripVertical,
+  Plus,
+  Loader2,
+  X,
+  Edit,
+  Trash2,
+  Sparkles,
+  Calendar,
+  Mail,
+  Slack,
+  FileText,
+} from "lucide-react";
 import { db } from "../lib/firebase";
 import { collection, query, where, getDocs } from "firebase/firestore";
 import Toast from "./Toast";
@@ -82,6 +94,8 @@ export default function AdminOnboardingTasks({ companyId: propCompanyId }: { com
   const [editId, setEditId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
+
+  const formRef = useRef<HTMLFormElement>(null);
 
   // Fetch templates
   useEffect(() => {
@@ -193,6 +207,7 @@ export default function AdminOnboardingTasks({ companyId: propCompanyId }: { com
     setTemplateDept(t.department || "");
     setTemplateEditId(t.id);
     setSelectedTemplateId(t.id);
+    setTimeout(() => formRef.current?.focus(), 50);
   }
 
   async function handleTemplateDelete(id: string) {
@@ -222,6 +237,7 @@ export default function AdminOnboardingTasks({ companyId: propCompanyId }: { com
     setDefaultAssigneeRole("user");
     setDueOffsetDays(0);
     setEditId(null);
+    setTimeout(() => formRef.current?.focus(), 50);
   }
 
   const startEdit = (task: OnboardingTaskType) => {
@@ -239,6 +255,7 @@ export default function AdminOnboardingTasks({ companyId: propCompanyId }: { com
     setDueOffsetDays(Number(task.dueOffsetDays) || 0);
     setSuccess(null);
     setError(null);
+    setTimeout(() => formRef.current?.focus(), 50);
   };
 
   // Add/update task for template
@@ -330,14 +347,19 @@ export default function AdminOnboardingTasks({ companyId: propCompanyId }: { com
 
   return (
     <div className="bg-gradient-to-tr from-white via-blue-50 to-blue-100 rounded-3xl shadow-2xl p-8 w-full max-w-3xl mt-10">
+      {/* Toasts */}
+      {error && <Toast message={error} type="error" onClose={() => setError(null)} />}
+      {success && <Toast message={success} type="success" onClose={() => setSuccess(null)} />}
+
       {/* --- Template Picker --- */}
-      <div className="mb-8">
+      <section className="mb-8">
         <h2 className="text-2xl font-bold text-blue-800 mb-2">Onboarding Templates</h2>
         <div className="flex flex-wrap gap-2 mb-4">
           {templates.map((t) => (
             <button
               key={t.id}
-              className={`rounded-lg px-4 py-2 font-semibold border transition ${selectedTemplateId === t.id ? "bg-blue-600 text-white border-blue-700" : "bg-white text-blue-700 border-blue-200 hover:bg-blue-50"}`}
+              className={`rounded-lg px-4 py-2 font-semibold border transition outline-none
+                ${selectedTemplateId === t.id ? "bg-blue-600 text-white border-blue-700 shadow" : "bg-white text-blue-700 border-blue-200 hover:bg-blue-50"}`}
               onClick={() => handleTemplateSelect(t.id)}
               title={t.description || ""}
             >
@@ -364,7 +386,7 @@ export default function AdminOnboardingTasks({ companyId: propCompanyId }: { com
           </button>
         </div>
         {(templateEditId !== null || !selectedTemplateId) && (
-          <form onSubmit={handleTemplateSave} className="bg-white p-4 rounded-xl shadow flex gap-3 flex-wrap mb-4 border">
+          <form onSubmit={handleTemplateSave} className="bg-white p-4 rounded-xl shadow flex gap-3 flex-wrap mb-4 border" ref={formRef} tabIndex={-1}>
             <input
               type="text"
               className="p-2 border rounded w-52"
@@ -421,7 +443,7 @@ export default function AdminOnboardingTasks({ companyId: propCompanyId }: { com
             Delete this template
           </button>
         )}
-      </div>
+      </section>
 
       {/* --- Tasks for selected template --- */}
       {selectedTemplateId ? (
@@ -429,7 +451,12 @@ export default function AdminOnboardingTasks({ companyId: propCompanyId }: { com
           <form
             onSubmit={handleSubmit}
             className="flex flex-col gap-4 bg-white/90 border border-blue-100 rounded-xl p-5 shadow mb-8"
+            ref={formRef}
+            tabIndex={-1}
           >
+            <legend className="text-lg font-bold text-blue-700 mb-1">
+              {editId ? "Edit Step" : "Add a New Onboarding Step"}
+            </legend>
             <div className="flex flex-col md:flex-row items-start md:items-center gap-4">
               <input
                 type="text"
@@ -439,11 +466,14 @@ export default function AdminOnboardingTasks({ companyId: propCompanyId }: { com
                 onChange={e => setTitle(e.target.value)}
                 required
                 maxLength={60}
+                autoFocus
+                aria-label="Task title"
               />
               <select
                 value={type}
                 onChange={e => setType(e.target.value as any)}
                 className="border border-blue-200 rounded-lg p-2 bg-blue-50 font-semibold text-blue-700"
+                aria-label="Task type"
               >
                 {TASK_TYPE_OPTIONS.map(opt => (
                   <option key={opt.value} value={opt.value}>
@@ -455,6 +485,7 @@ export default function AdminOnboardingTasks({ companyId: propCompanyId }: { com
                 type="submit"
                 className="bg-blue-600 text-white rounded-lg px-4 py-2 flex items-center gap-2 font-semibold shadow hover:bg-blue-700 transition disabled:opacity-50"
                 disabled={loading || !title.trim()}
+                aria-label={editId ? "Update step" : "Add step"}
               >
                 {loading ? <Loader2 className="animate-spin w-5 h-5" /> : editId ? <Edit className="w-5 h-5" /> : <Plus className="w-5 h-5" />}
                 {editId ? "Update" : "Add"}
@@ -477,6 +508,7 @@ export default function AdminOnboardingTasks({ companyId: propCompanyId }: { com
               onChange={e => setDescription(e.target.value)}
               rows={2}
               maxLength={120}
+              aria-label="Task description"
             />
             <div className="flex flex-wrap gap-4 items-center">
               <label className="font-medium">
@@ -523,6 +555,7 @@ export default function AdminOnboardingTasks({ companyId: propCompanyId }: { com
                   value={attachedDocId}
                   onChange={e => setAttachedDocId(e.target.value)}
                   className="p-2 border border-blue-200 rounded ml-2 bg-white min-w-[150px]"
+                  aria-label="Attach document"
                 >
                   <option value="">-- None --</option>
                   {docs.map((d) => (
@@ -632,11 +665,11 @@ export default function AdminOnboardingTasks({ companyId: propCompanyId }: { com
                               ref={provided.innerRef}
                               {...provided.draggableProps}
                               className={`transition-all duration-200 p-4 border-2 rounded-2xl bg-white shadow-lg flex flex-col group
-                          ${
-                            snapshot.isDragging
-                              ? "border-blue-400 shadow-2xl scale-[1.03] bg-blue-50"
-                              : "border-gray-200"
-                          }`}
+                                ${
+                                  snapshot.isDragging
+                                    ? "border-blue-400 shadow-2xl scale-[1.03] bg-blue-50"
+                                    : "border-gray-200"
+                                }`}
                               style={{
                                 boxShadow: snapshot.isDragging
                                   ? "0 4px 24px 0 #93c5fd66"
@@ -653,8 +686,16 @@ export default function AdminOnboardingTasks({ companyId: propCompanyId }: { com
                                   <GripVertical className="w-6 h-6 text-blue-300" />
                                 </span>
                                 <div className="flex-1 min-w-0">
-                                  <div className="font-bold text-blue-900 truncate text-lg">{task.title}</div>
-                                  <div className="text-xs text-blue-500 font-medium capitalize mb-1">
+                                  <div className="font-bold text-blue-900 truncate text-lg flex items-center gap-2">
+                                    {task.title}
+                                    {!task.enabled && (
+                                      <span className="inline-block ml-2 px-2 py-0.5 text-xs font-bold text-red-500 bg-red-50 border border-red-200 rounded">
+                                        Disabled
+                                      </span>
+                                    )}
+                                  </div>
+                                  <div className="text-xs text-blue-500 font-medium capitalize mb-1 flex items-center gap-1">
+                                    {TASK_TYPE_OPTIONS.find(o => o.value === task.type)?.icon}
                                     {TASK_TYPE_OPTIONS.find(o => o.value === task.type)?.label || "Manual"}
                                     {task.department && (
                                       <span className="ml-3 text-xs text-pink-500 bg-pink-50 rounded px-2">{task.department}</span>
@@ -698,9 +739,6 @@ export default function AdminOnboardingTasks({ companyId: propCompanyId }: { com
                                         {docs.find(d => d.id === task.documentId)?.title || "Document"}
                                       </a>
                                     </div>
-                                  )}
-                                  {!task.enabled && (
-                                    <span className="inline-block mt-1 text-xs font-bold text-red-500">Disabled</span>
                                   )}
                                 </div>
                                 <div className="flex gap-2">

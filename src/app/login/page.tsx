@@ -1,5 +1,5 @@
 "use client";
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "../../context/AuthContext";
 import { sendPasswordResetEmail } from "firebase/auth";
@@ -21,12 +21,22 @@ export default function LoginPage(): React.ReactElement {
   const { login, user, loading: authLoading } = useAuth();
   const router = useRouter();
 
+  // Ref for password reset email input (focus trap)
+  const resetEmailRef = useRef<HTMLInputElement | null>(null);
+
   // Redirect logged-in users to dashboard
   useEffect(() => {
     if (!authLoading && user) {
       router.replace("/dashboard");
     }
   }, [authLoading, user, router]);
+
+  // Focus on the reset email field when entering reset mode
+  useEffect(() => {
+    if (resetMode && resetEmailRef.current) {
+      resetEmailRef.current.focus();
+    }
+  }, [resetMode]);
 
   const handleLogin = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -70,26 +80,15 @@ export default function LoginPage(): React.ReactElement {
   // Loading auth state
   if (authLoading) {
     return (
-      <div
-        className="
-          flex items-center justify-center min-h-screen
-          bg-gradient-to-br from-white via-brand-50 to-accent-50
-        "
-      >
+      <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-white via-brand-50 to-accent-50">
         <div className="text-lg text-brand-600 animate-pulse">Loading...</div>
       </div>
     );
   }
 
   return (
-    <div
-      className="
-        flex flex-col items-center justify-center min-h-screen
-        bg-gradient-to-br from-white via-brand-50 to-accent-50
-        px-4
-      "
-    >
-      <main className="w-full max-w-md">
+    <div className="flex flex-col items-center justify-center min-h-screen bg-gradient-to-br from-white via-brand-50 to-accent-50 px-4">
+      <main className="w-full max-w-md" aria-label="Sign in form">
         <div className="flex flex-col items-center mb-4">
           <Cake className="text-pink-400 text-5xl mb-2 animate-bounce w-12 h-12" aria-hidden="true" />
           <h1 className="text-3xl font-extrabold text-brand-700 text-center drop-shadow">
@@ -104,40 +103,39 @@ export default function LoginPage(): React.ReactElement {
         {!resetMode ? (
           <form
             onSubmit={handleLogin}
-            className="
-              bg-white/95 p-8 rounded-2xl shadow-xl w-full
-              animate-fade-in
-            "
+            className="bg-white/95 p-8 rounded-2xl shadow-xl w-full animate-fade-in"
+            aria-label="Login form"
+            autoComplete="on"
           >
             <h2 className="text-xl font-semibold mb-5 text-center text-brand-700 flex items-center gap-2 justify-center">
               <LogIn className="w-6 h-6" /> Sign In
             </h2>
             {error && (
-              <div className="text-red-600 mb-4 text-center font-medium">
+              <div className="text-red-600 mb-4 text-center font-medium" role="alert">
                 {error}
               </div>
             )}
+            <label className="sr-only" htmlFor="login-email">
+              Email
+            </label>
             <input
+              id="login-email"
               type="email"
               placeholder="Email"
-              className="
-                mb-4 w-full p-3 border-2 border-brand-100
-                focus:border-brand-500 rounded-xl
-                transition
-              "
+              className="mb-4 w-full p-3 border-2 border-brand-100 focus:border-brand-500 rounded-xl transition"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
               autoComplete="email"
             />
+            <label className="sr-only" htmlFor="login-password">
+              Password
+            </label>
             <input
+              id="login-password"
               type="password"
               placeholder="Password"
-              className="
-                mb-4 w-full p-3 border-2 border-brand-100
-                focus:border-brand-500 rounded-xl
-                transition
-              "
+              className="mb-4 w-full p-3 border-2 border-brand-100 focus:border-brand-500 rounded-xl transition"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
@@ -145,11 +143,9 @@ export default function LoginPage(): React.ReactElement {
             />
             <button
               type="submit"
-              className="
-                btn btn-primary w-full text-lg flex items-center justify-center gap-2
-                disabled:opacity-50
-              "
+              className="btn btn-primary w-full text-lg flex items-center justify-center gap-2 disabled:opacity-50"
               disabled={loading}
+              aria-disabled={loading}
             >
               <LogIn className="w-5 h-5" />
               {loading ? "Logging In..." : "Log In"}
@@ -164,6 +160,7 @@ export default function LoginPage(): React.ReactElement {
                   setResetError(null);
                   setResetSent(false);
                 }}
+                aria-label="Forgot password?"
               >
                 <KeyRound className="w-4 h-4" /> Forgot password?
               </button>
@@ -172,6 +169,7 @@ export default function LoginPage(): React.ReactElement {
                 <a
                   href="/signup"
                   className="text-brand-600 hover:underline font-semibold flex items-center gap-1"
+                  aria-label="Sign up"
                 >
                   <UserPlus className="w-4 h-4" /> Sign Up
                 </a>
@@ -182,26 +180,25 @@ export default function LoginPage(): React.ReactElement {
           /* Password Reset Form */
           <form
             onSubmit={handlePasswordReset}
-            className="
-              bg-white/95 p-8 rounded-2xl shadow-xl w-full
-              animate-fade-in
-            "
+            className="bg-white/95 p-8 rounded-2xl shadow-xl w-full animate-fade-in"
+            aria-label="Password reset form"
+            autoComplete="off"
           >
             <h2 className="text-xl font-semibold mb-4 text-center text-brand-700 flex items-center gap-2 justify-center">
               <KeyRound className="w-6 h-6" /> Reset Password
             </h2>
             <p className="mb-4 text-center text-gray-700 text-sm">
-              Enter your account email and we&apos;ll send you a password reset
-              link.
+              Enter your account email and we&apos;ll send you a password reset link.
             </p>
+            <label className="sr-only" htmlFor="reset-email">
+              Reset email
+            </label>
             <input
+              id="reset-email"
+              ref={resetEmailRef}
               type="email"
               placeholder="Your email"
-              className="
-                mb-4 w-full p-3 border-2 border-brand-100
-                focus:border-brand-500 rounded-xl
-                transition
-              "
+              className="mb-4 w-full p-3 border-2 border-brand-100 focus:border-brand-500 rounded-xl transition"
               value={resetEmail}
               onChange={(e) => setResetEmail(e.target.value)}
               required
@@ -209,46 +206,34 @@ export default function LoginPage(): React.ReactElement {
             />
             <button
               type="submit"
-              className="
-                btn btn-primary w-full text-lg flex items-center justify-center gap-2
-                disabled:opacity-50
-              "
+              className="btn btn-primary w-full text-lg flex items-center justify-center gap-2 disabled:opacity-50"
               disabled={!resetEmail}
+              aria-disabled={!resetEmail}
             >
               <KeyRound className="w-5 h-5" /> Send Reset Email
             </button>
             <button
               type="button"
-              className="
-                w-full mt-3 bg-gray-100 text-brand-700
-                py-2 rounded-xl font-semibold flex items-center justify-center gap-2
-                hover:bg-gray-200 transition
-              "
+              className="w-full mt-3 bg-gray-100 text-brand-700 py-2 rounded-xl font-semibold flex items-center justify-center gap-2 hover:bg-gray-200 transition"
               onClick={() => setResetMode(false)}
+              aria-label="Back to login"
             >
               <ArrowLeft className="w-5 h-5" /> Back to Login
             </button>
             {resetSent && (
-              <div className="text-green-600 mt-4 text-center font-semibold">
+              <div className="text-green-600 mt-4 text-center font-semibold" role="status">
                 Password reset email sent!
               </div>
             )}
             {resetError && (
-              <div className="text-red-600 mt-4 text-center font-medium">
+              <div className="text-red-600 mt-4 text-center font-medium" role="alert">
                 {resetError}
               </div>
             )}
           </form>
         )}
       </main>
-
-      <footer
-        className="
-          py-6 text-center text-xs text-gray-500
-          bg-gradient-to-br from-brand-100 via-accent-50 to-white
-          border-t border-brand-100 mt-10 w-full
-        "
-      >
+      <footer className="py-6 text-center text-xs text-gray-500 bg-gradient-to-br from-brand-100 via-accent-50 to-white border-t border-brand-100 mt-10 w-full">
         &copy; {new Date().getFullYear()} Cakeday HR Onboarding &amp; Recognition
       </footer>
     </div>

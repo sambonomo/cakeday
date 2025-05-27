@@ -82,7 +82,6 @@ export default function AdminRedemptionsPage() {
       const redemption = redemptions.find(r => r.id === id);
       if (!redemption) throw new Error("Redemption not found.");
       // 1. Deduct points if not already deducted (fulfilled)
-      // Find user doc
       const usersSnap = await getDocs(
         query(
           collection(db, "users"),
@@ -92,7 +91,6 @@ export default function AdminRedemptionsPage() {
       );
       if (!usersSnap.empty) {
         const userDocRef = doc(db, "users", usersSnap.docs[0].id);
-        // Reduce points (never negative)
         await updateDoc(userDocRef, {
           points: increment(-Math.abs(redemption.pointsCost)),
         });
@@ -215,10 +213,15 @@ export default function AdminRedemptionsPage() {
           Review and process all reward redemptions.
         </div>
         <div>
+          <label htmlFor="status-filter" className="sr-only">
+            Filter by status
+          </label>
           <select
+            id="status-filter"
             className="border rounded p-2 text-sm"
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value)}
+            aria-label="Filter by status"
           >
             <option value="pending">Pending</option>
             <option value="approved">Approved</option>
@@ -239,90 +242,97 @@ export default function AdminRedemptionsPage() {
       ) : filtered.length === 0 ? (
         <div className="text-gray-400 italic">No redemption requests found.</div>
       ) : (
-        <table className="min-w-full border text-sm">
-          <thead>
-            <tr className="bg-gray-100">
-              <th className="py-2 px-3">User</th>
-              <th className="py-2 px-3">Reward</th>
-              <th className="py-2 px-3">Points</th>
-              <th className="py-2 px-3">Requested</th>
-              <th className="py-2 px-3">Status</th>
-              <th className="py-2 px-3">Note</th>
-              <th className="py-2 px-3"></th>
-            </tr>
-          </thead>
-          <tbody>
-            {filtered.map((r) => (
-              <tr key={r.id} className="border-t">
-                <td className="py-2 px-3">
-                  <div className="font-semibold">{r.userEmail}</div>
-                  <div className="text-xs text-gray-400">{r.userId}</div>
-                </td>
-                <td className="py-2 px-3 font-bold">{r.rewardName}</td>
-                <td className="py-2 px-3">{r.pointsCost}</td>
-                <td className="py-2 px-3">
-                  {r.requestedAt && r.requestedAt.toDate
-                    ? r.requestedAt.toDate().toLocaleDateString()
-                    : ""}
-                </td>
-                <td className="py-2 px-3 font-semibold">
-                  {r.status.charAt(0).toUpperCase() + r.status.slice(1)}
-                </td>
-                <td className="py-2 px-3">
-                  <textarea
-                    className="w-32 p-1 border rounded text-xs"
-                    value={noteEdit[r.id] ?? r.notes ?? ""}
-                    onChange={(e) => handleNoteChange(r.id, e.target.value)}
-                    placeholder="Add note..."
-                    rows={2}
-                  />
-                </td>
-                <td className="py-2 px-3 flex gap-2 flex-col min-w-[140px]">
-                  {r.status === "pending" && (
-                    <>
+        <div className="overflow-x-auto">
+          <table className="min-w-full border text-sm" aria-label="Redemption Requests Table">
+            <thead>
+              <tr className="bg-gray-100">
+                <th className="py-2 px-3">User</th>
+                <th className="py-2 px-3">Reward</th>
+                <th className="py-2 px-3">Points</th>
+                <th className="py-2 px-3">Requested</th>
+                <th className="py-2 px-3">Status</th>
+                <th className="py-2 px-3">Note</th>
+                <th className="py-2 px-3"></th>
+              </tr>
+            </thead>
+            <tbody>
+              {filtered.map((r) => (
+                <tr key={r.id} className="border-t">
+                  <td className="py-2 px-3 min-w-[100px]">
+                    <div className="font-semibold">{r.userEmail}</div>
+                    <div className="text-xs text-gray-400">{r.userId}</div>
+                  </td>
+                  <td className="py-2 px-3 font-bold min-w-[100px]">{r.rewardName}</td>
+                  <td className="py-2 px-3">{r.pointsCost}</td>
+                  <td className="py-2 px-3 min-w-[100px]">
+                    {r.requestedAt && r.requestedAt.toDate
+                      ? r.requestedAt.toDate().toLocaleDateString()
+                      : ""}
+                  </td>
+                  <td className="py-2 px-3 font-semibold min-w-[80px]">
+                    {r.status.charAt(0).toUpperCase() + r.status.slice(1)}
+                  </td>
+                  <td className="py-2 px-3 min-w-[140px]">
+                    <textarea
+                      className="w-32 p-1 border rounded text-xs"
+                      value={noteEdit[r.id] ?? r.notes ?? ""}
+                      onChange={(e) => handleNoteChange(r.id, e.target.value)}
+                      placeholder="Add note..."
+                      rows={2}
+                      aria-label={`Admin note for redemption ${r.id}`}
+                    />
+                  </td>
+                  <td className="py-2 px-3 flex gap-2 flex-col min-w-[140px]">
+                    {r.status === "pending" && (
+                      <>
+                        <button
+                          className="bg-green-600 text-white px-3 py-1 rounded text-xs font-bold hover:bg-green-700 transition"
+                          disabled={processingId === r.id}
+                          onClick={() => markFulfilled(r.id)}
+                          aria-label="Mark Fulfilled"
+                        >
+                          {processingId === r.id ? "Processing..." : "Mark Fulfilled"}
+                        </button>
+                        <button
+                          className="bg-red-500 text-white px-3 py-1 rounded text-xs font-bold hover:bg-red-600 transition"
+                          disabled={processingId === r.id}
+                          onClick={() => markDenied(r)}
+                          aria-label="Deny and Refund"
+                        >
+                          Deny + Refund
+                        </button>
+                        <button
+                          className="bg-blue-500 text-white px-3 py-1 rounded text-xs font-bold hover:bg-blue-600 transition"
+                          disabled={processingId === r.id}
+                          onClick={() => markApproved(r.id)}
+                          aria-label="Approve Redemption"
+                        >
+                          Approve (optional)
+                        </button>
+                      </>
+                    )}
+                    {r.status === "approved" && (
                       <button
                         className="bg-green-600 text-white px-3 py-1 rounded text-xs font-bold hover:bg-green-700 transition"
                         disabled={processingId === r.id}
                         onClick={() => markFulfilled(r.id)}
+                        aria-label="Mark Fulfilled"
                       >
-                        {processingId === r.id ? "Processing..." : "Mark Fulfilled"}
+                        Mark Fulfilled
                       </button>
-                      <button
-                        className="bg-red-500 text-white px-3 py-1 rounded text-xs font-bold hover:bg-red-600 transition"
-                        disabled={processingId === r.id}
-                        onClick={() => markDenied(r)}
-                      >
-                        Deny + Refund
-                      </button>
-                      <button
-                        className="bg-blue-500 text-white px-3 py-1 rounded text-xs font-bold hover:bg-blue-600 transition"
-                        disabled={processingId === r.id}
-                        onClick={() => markApproved(r.id)}
-                      >
-                        Approve (optional)
-                      </button>
-                    </>
-                  )}
-                  {r.status === "approved" && (
-                    <button
-                      className="bg-green-600 text-white px-3 py-1 rounded text-xs font-bold hover:bg-green-700 transition"
-                      disabled={processingId === r.id}
-                      onClick={() => markFulfilled(r.id)}
-                    >
-                      Mark Fulfilled
-                    </button>
-                  )}
-                  {r.status === "fulfilled" && (
-                    <span className="text-green-600 text-xs font-bold">Fulfilled</span>
-                  )}
-                  {r.status === "denied" && (
-                    <span className="text-red-600 text-xs font-bold">Denied</span>
-                  )}
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+                    )}
+                    {r.status === "fulfilled" && (
+                      <span className="text-green-600 text-xs font-bold">Fulfilled</span>
+                    )}
+                    {r.status === "denied" && (
+                      <span className="text-red-600 text-xs font-bold">Denied</span>
+                    )}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       )}
     </div>
   );

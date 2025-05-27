@@ -29,38 +29,17 @@ import {
   Mail,
   Slack,
   Calendar,
-  UserX2,
   Sparkles,
 } from "lucide-react";
 import Toast from "../../../components/Toast";
 
 // Step type options (expand as needed)
 const TASK_TYPE_OPTIONS = [
-  {
-    value: "manual",
-    label: "Manual Task",
-    icon: <Sparkles className="w-4 h-4 mr-1" />,
-  },
-  {
-    value: "auto-email",
-    label: "Auto Email",
-    icon: <Mail className="w-4 h-4 mr-1" />,
-  },
-  {
-    value: "calendar",
-    label: "Calendar Event",
-    icon: <Calendar className="w-4 h-4 mr-1" />,
-  },
-  {
-    value: "slack",
-    label: "Slack Message",
-    icon: <Slack className="w-4 h-4 mr-1" />,
-  },
-  {
-    value: "teams",
-    label: "Teams Message",
-    icon: <Slack className="w-4 h-4 mr-1 rotate-90" />,
-  },
+  { value: "manual", label: "Manual Task", icon: <Sparkles className="w-4 h-4 mr-1" /> },
+  { value: "auto-email", label: "Auto Email", icon: <Mail className="w-4 h-4 mr-1" /> },
+  { value: "calendar", label: "Calendar Event", icon: <Calendar className="w-4 h-4 mr-1" /> },
+  { value: "slack", label: "Slack Message", icon: <Slack className="w-4 h-4 mr-1" /> },
+  { value: "teams", label: "Teams Message", icon: <Slack className="w-4 h-4 mr-1 rotate-90" /> },
 ];
 
 const SEND_WHEN_OPTIONS = [
@@ -69,7 +48,6 @@ const SEND_WHEN_OPTIONS = [
   { value: "custom_date", label: "Custom Date" },
 ];
 
-// Firestore OffboardingTask model
 export type OffboardingTask = {
   id: string;
   title: string;
@@ -86,7 +64,6 @@ export type OffboardingTask = {
 export default function AdminOffboardingPage() {
   const { companyId, role } = useAuth();
 
-  // Builder state
   const [tasks, setTasks] = useState<OffboardingTask[]>([]);
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
@@ -284,6 +261,8 @@ export default function AdminOffboardingPage() {
             onChange={(e) => setTitle(e.target.value)}
             required
             maxLength={60}
+            disabled={loading}
+            aria-label="Step Title"
           />
 
           {/* Step Type */}
@@ -294,6 +273,8 @@ export default function AdminOffboardingPage() {
               border border-accent-200 rounded-lg p-2
               bg-accent-50 font-semibold text-accent-700
             "
+            disabled={loading}
+            aria-label="Task Type"
           >
             {TASK_TYPE_OPTIONS.map((opt) => (
               <option key={opt.value} value={opt.value}>
@@ -306,7 +287,8 @@ export default function AdminOffboardingPage() {
           <button
             type="submit"
             disabled={loading}
-            className="btn btn-secondary flex items-center gap-2 disabled:opacity-50"
+            className="bg-accent-600 text-white rounded-lg px-4 py-2 flex items-center gap-2 font-semibold shadow hover:bg-accent-700 transition disabled:opacity-50"
+            aria-disabled={loading}
           >
             {loading ? (
               <Loader2 className="animate-spin w-5 h-5" />
@@ -329,6 +311,7 @@ export default function AdminOffboardingPage() {
               "
               onClick={cancelEdit}
               aria-label="Cancel Edit"
+              disabled={loading}
             >
               <X className="w-5 h-5" />
             </button>
@@ -346,6 +329,8 @@ export default function AdminOffboardingPage() {
           onChange={(e) => setDescription(e.target.value)}
           rows={2}
           maxLength={120}
+          disabled={loading}
+          aria-label="Description"
         />
 
         {/* Automation fields */}
@@ -363,6 +348,8 @@ export default function AdminOffboardingPage() {
                 onChange={(e) => setAutoMessageTemplate(e.target.value)}
                 rows={2}
                 maxLength={200}
+                disabled={loading}
+                aria-label="Automation Message Template"
               />
             </label>
             <div className="flex flex-col sm:flex-row gap-2">
@@ -375,6 +362,8 @@ export default function AdminOffboardingPage() {
                     p-2 border border-accent-200 rounded ml-2
                     bg-white
                   "
+                  disabled={loading}
+                  aria-label="Automation Send When"
                 >
                   {SEND_WHEN_OPTIONS.map((opt) => (
                     <option key={opt.value} value={opt.value}>
@@ -395,6 +384,8 @@ export default function AdminOffboardingPage() {
                       w-full
                     "
                     onChange={(e) => setTargetEmail(e.target.value)}
+                    disabled={loading}
+                    aria-label="Automation Recipient Email"
                   />
                 </label>
               )}
@@ -410,6 +401,8 @@ export default function AdminOffboardingPage() {
               checked={enabled}
               onChange={() => setEnabled((v) => !v)}
               className="accent-accent-600 h-4 w-4"
+              disabled={loading}
+              aria-label="Step Enabled"
             />
             <span className="text-sm">Step Enabled</span>
           </label>
@@ -477,11 +470,9 @@ export default function AdminOffboardingPage() {
                             className={`
                               transition-all duration-200 p-4 border-2 rounded-2xl bg-white
                               shadow-lg flex flex-col group
-                              ${
-                                isDragging
-                                  ? "border-accent-400 shadow-2xl scale-[1.03] bg-accent-50"
-                                  : "border-gray-200"
-                              }
+                              ${isDragging
+                                ? "border-accent-400 shadow-2xl scale-[1.03] bg-accent-50"
+                                : "border-gray-200"}
                             `}
                             style={{
                               boxShadow: isDragging
@@ -533,8 +524,7 @@ export default function AdminOffboardingPage() {
                                       <b>When:</b>{" "}
                                       {
                                         SEND_WHEN_OPTIONS.find(
-                                          (s) =>
-                                            s.value === task.sendWhen
+                                          (s) => s.value === task.sendWhen
                                         )?.label || "Immediately"
                                       }
                                     </div>
@@ -564,6 +554,7 @@ export default function AdminOffboardingPage() {
                                   onClick={() => startEdit(task)}
                                   type="button"
                                   aria-label="Edit"
+                                  disabled={loading}
                                 >
                                   <Edit className="w-5 h-5" />
                                 </button>
@@ -575,6 +566,7 @@ export default function AdminOffboardingPage() {
                                   onClick={() => handleDelete(task.id)}
                                   type="button"
                                   aria-label="Delete"
+                                  disabled={loading}
                                 >
                                   <Trash2 className="w-5 h-5" />
                                 </button>

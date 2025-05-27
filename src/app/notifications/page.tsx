@@ -2,7 +2,15 @@
 import React, { useEffect, useState } from "react";
 import { useAuth } from "../../context/AuthContext";
 import { db } from "../../lib/firebase";
-import { collection, query, where, orderBy, onSnapshot, updateDoc, doc } from "firebase/firestore";
+import {
+  collection,
+  query,
+  where,
+  orderBy,
+  onSnapshot,
+  updateDoc,
+  doc,
+} from "firebase/firestore";
 import {
   Bell,
   Sparkles,
@@ -21,7 +29,6 @@ type Notification = {
   message: string;
   sentAt: any;
   read: boolean;
-  // optional:
   rewardName?: string;
   docTitle?: string;
   docUrl?: string;
@@ -68,27 +75,49 @@ export default function NotificationsPage() {
   }
 
   if (loading || notifLoading) {
-    return <div className="mt-10 text-blue-600 animate-pulse text-center">Loading notifications...</div>;
+    return (
+      <div className="mt-10 text-blue-600 animate-pulse text-center">
+        Loading notifications...
+      </div>
+    );
   }
 
   // Helper to choose the correct icon per notification type
   function getNotifIcon(type: string) {
-    if (type === "kudos") return <Sparkles className="w-5 h-5 text-green-400" aria-label="Kudos" />;
-    if (type === "document") return <FileText className="w-5 h-5 text-blue-400" aria-label="Document" />;
-    if (type === "redemption") return <Gift className="w-5 h-5 text-pink-400" aria-label="Reward" />;
+    if (type === "kudos")
+      return (
+        <Sparkles className="w-5 h-5 text-green-400" aria-label="Kudos" />
+      );
+    if (type === "document")
+      return (
+        <FileText className="w-5 h-5 text-blue-400" aria-label="Document" />
+      );
+    if (type === "redemption")
+      return <Gift className="w-5 h-5 text-pink-400" aria-label="Reward" />;
     return <Bell className="w-5 h-5 text-blue-300" aria-label="Notification" />;
   }
+
+  // Count of unread notifications
+  const unreadCount = notifs.filter((n) => !n.read).length;
 
   return (
     <div className="max-w-2xl mx-auto mt-12 mb-10 bg-white p-8 rounded-3xl shadow-2xl">
       <h1 className="text-2xl font-bold text-blue-700 mb-6 flex items-center gap-2">
-        <Bell className="w-7 h-7 text-yellow-400" /> Your Notifications
+        <Bell className="w-7 h-7 text-yellow-400" />
+        Your Notifications
+        {unreadCount > 0 && (
+          <span className="ml-2 px-2 py-1 bg-yellow-300 text-yellow-900 text-xs font-bold rounded-full animate-pulse">
+            {unreadCount} unread
+          </span>
+        )}
       </h1>
       <div className="mb-6 flex justify-end">
         <button
-          className="text-xs bg-blue-100 text-blue-700 px-3 py-1 rounded hover:bg-blue-200 font-semibold"
+          className="text-xs bg-blue-100 text-blue-700 px-3 py-1 rounded hover:bg-blue-200 font-semibold focus:outline-none"
           onClick={markAllAsRead}
           disabled={notifs.every((n) => n.read)}
+          aria-disabled={notifs.every((n) => n.read)}
+          aria-label="Mark all notifications as read"
         >
           Mark all as read
         </button>
@@ -98,27 +127,38 @@ export default function NotificationsPage() {
           <Bell className="w-5 h-5" /> No notifications yet.
         </div>
       ) : (
-        <ul className="space-y-4">
+        <ul className="space-y-4" aria-label="Notifications list">
           {notifs.map((n) => (
             <li
               key={n.id}
-              className={`rounded-xl border-2 p-4 shadow flex flex-col gap-2 ${
-                n.read ? "bg-gray-50" : "bg-yellow-50 border-yellow-200"
-              }`}
+              className={`rounded-xl border-2 p-4 shadow flex flex-col gap-2 transition-all duration-300 group
+                ${n.read ? "bg-gray-50 border-gray-200" : "bg-yellow-50 border-yellow-200 animate-fade-in"}
+              `}
+              tabIndex={0}
+              aria-label={
+                !n.read ? "Unread notification" : "Read notification"
+              }
+              aria-live="polite"
             >
               <div className="flex items-center gap-2">
                 {!n.read && (
-                  <span className="w-2 h-2 rounded-full bg-yellow-400 inline-block mr-2"></span>
+                  <span
+                    className="w-2 h-2 rounded-full bg-yellow-400 inline-block mr-2"
+                    aria-label="Unread"
+                  />
                 )}
                 {getNotifIcon(n.type)}
                 <span className="font-semibold">
                   {n.type === "kudos" && "Kudos Received"}
                   {n.type === "document" && "Document Sent"}
                   {n.type === "redemption" && "Reward Redemption"}
-                  {!["kudos", "document", "redemption"].includes(n.type) && n.type}
+                  {!["kudos", "document", "redemption"].includes(n.type) &&
+                    n.type}
                 </span>
                 <span className="text-xs text-gray-400 ml-auto">
-                  {n.sentAt?.toDate ? n.sentAt.toDate().toLocaleString() : ""}
+                  {n.sentAt?.toDate
+                    ? n.sentAt.toDate().toLocaleString()
+                    : ""}
                 </span>
               </div>
               <div>
@@ -137,6 +177,7 @@ export default function NotificationsPage() {
                           target="_blank"
                           rel="noopener noreferrer"
                           className="text-blue-600 underline text-xs ml-1"
+                          aria-label={`Open document: ${n.docTitle}`}
                         >
                           Download/Preview
                         </a>
@@ -164,23 +205,32 @@ export default function NotificationsPage() {
                               : ""
                           }
                         >
-                          {n.status.charAt(0).toUpperCase() + n.status.slice(1)}
+                          {n.status.charAt(0).toUpperCase() +
+                            n.status.slice(1)}
                         </span>
-                        {n.status === "fulfilled" && <CheckCircle2 className="w-4 h-4 text-green-600" />}
-                        {n.status === "denied" && <Ban className="w-4 h-4 text-red-600" />}
-                        {n.status === "approved" && <Hourglass className="w-4 h-4 text-blue-400" />}
+                        {n.status === "fulfilled" && (
+                          <CheckCircle2 className="w-4 h-4 text-green-600" />
+                        )}
+                        {n.status === "denied" && (
+                          <Ban className="w-4 h-4 text-red-600" />
+                        )}
+                        {n.status === "approved" && (
+                          <Hourglass className="w-4 h-4 text-blue-400" />
+                        )}
                       </div>
                     )}
                     {n.message && <div>{n.message}</div>}
                   </div>
                 )}
-                {!["kudos", "document", "redemption"].includes(n.type) && n.message}
+                {!["kudos", "document", "redemption"].includes(n.type) &&
+                  n.message}
               </div>
               {!n.read && (
-                <div className="mt-2">
+                <div className="mt-2 flex justify-end">
                   <button
-                    className="text-xs px-3 py-1 rounded bg-blue-600 text-white font-bold hover:bg-blue-700"
+                    className="text-xs px-3 py-1 rounded bg-blue-600 text-white font-bold hover:bg-blue-700 focus:outline-none"
                     onClick={() => markAsRead(n.id)}
+                    aria-label="Mark notification as read"
                   >
                     Mark as read
                   </button>

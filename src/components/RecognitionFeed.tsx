@@ -50,7 +50,6 @@ type KudosWithProfile = {
   reactions?: string[]; // Array of user UIDs who reacted
 };
 
-// Map badge labels to Lucide icons
 const BADGE_ICONS: Record<string, React.ElementType> = {
   "Team Player": Handshake,
   Innovator: Lightbulb,
@@ -116,7 +115,7 @@ export default function RecognitionFeed({ companyId: propCompanyId }: Recognitio
         reactions: hasReacted ? arrayRemove(user.uid) : arrayUnion(user.uid),
       });
     } catch (err) {
-      // optional: add toast for error
+      // You could show a toast here if you want
     }
   };
 
@@ -132,7 +131,7 @@ export default function RecognitionFeed({ companyId: propCompanyId }: Recognitio
     );
 
   return (
-    <ul className="flex flex-col gap-4">
+    <ul className="flex flex-col gap-4" aria-live="polite">
       {kudos.map((kudo) => {
         const created =
           kudo.createdAt?.seconds !== undefined
@@ -146,11 +145,17 @@ export default function RecognitionFeed({ companyId: propCompanyId }: Recognitio
           ? kudo.reactions
           : [];
         const userReacted = !!user && reactions.includes(user.uid);
+        // Disallow the sender and receiver from reacting to their own kudo
+        const disableReaction = user
+          ? user.uid === kudo.fromEmail || user.uid === kudo.toEmail
+          : true;
 
         return (
           <li
             key={kudo.id}
             className="bg-white/90 border border-blue-100 rounded-2xl shadow-lg p-4 flex flex-col sm:flex-row sm:items-center gap-2 animate-fade-in group"
+            tabIndex={0}
+            aria-label={`${kudo.fromName || kudo.fromEmail} gave kudos to ${kudo.toName || kudo.toEmail}: ${kudo.message}`}
           >
             {/* Giver */}
             <div className="flex items-center gap-2 min-w-[150px]">
@@ -191,7 +196,7 @@ export default function RecognitionFeed({ companyId: propCompanyId }: Recognitio
             </span>
 
             {/* Time */}
-            <span className="ml-auto text-xs text-gray-400">
+            <span className="ml-auto text-xs text-gray-400 whitespace-nowrap">
               {timeAgo(created)}
             </span>
 
@@ -199,12 +204,16 @@ export default function RecognitionFeed({ companyId: propCompanyId }: Recognitio
             {user && (
               <button
                 aria-label={userReacted ? "Remove reaction" : "Give kudos a thumbs up"}
-                className={`flex items-center gap-1 rounded-full px-2 py-1 ml-2 text-xs font-bold 
-                  ${userReacted ? "bg-blue-200 text-blue-700" : "bg-gray-100 text-gray-500 hover:bg-blue-100 hover:text-blue-800"}
+                className={`flex items-center gap-1 rounded-full px-2 py-1 ml-2 text-xs font-bold
+                  ${userReacted
+                    ? "bg-blue-200 text-blue-700"
+                    : "bg-gray-100 text-gray-500 hover:bg-blue-100 hover:text-blue-800"}
                   border border-gray-200 transition shadow-sm`}
                 onClick={() => toggleReaction(kudo.id, userReacted)}
-                disabled={user.uid === kudo.fromEmail}
+                disabled={disableReaction}
                 tabIndex={0}
+                type="button"
+                title={disableReaction ? "You can't react to your own kudos." : "Give a thumbs up"}
               >
                 <ThumbsUp className="w-4 h-4 mr-1 inline" />
                 {reactions.length}

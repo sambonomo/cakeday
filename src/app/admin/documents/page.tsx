@@ -45,28 +45,28 @@ export default function AdminDocumentsPage() {
   const [previewDoc, setPreviewDoc] = useState<string | null>(null);
   const [sendTo, setSendTo] = useState<{ [docId: string]: string }>({}); // {docId: selectedUserUid}
 
-  // Load all documents for this company
+  // Load all documents and users for this company
   useEffect(() => {
     if (!companyId) return;
     setLoading(true);
-    getDocs(
-      query(
-        collection(db, "documents"),
-        where("companyId", "==", companyId),
-        orderBy("createdAt", "desc")
+    Promise.all([
+      getDocs(
+        query(
+          collection(db, "documents"),
+          where("companyId", "==", companyId),
+          orderBy("createdAt", "desc")
+        )
+      ),
+      getDocs(
+        query(
+          collection(db, "users"),
+          where("companyId", "==", companyId)
+        )
       )
-    ).then((snap) => {
-      setDocs(snap.docs.map((d) => ({ id: d.id, ...d.data() })));
+    ]).then(([docSnap, userSnap]) => {
+      setDocs(docSnap.docs.map((d) => ({ id: d.id, ...d.data() })));
+      setUsers(userSnap.docs.map((d) => ({ uid: d.id, ...d.data() })));
       setLoading(false);
-    });
-    // Fetch users for "send to user"
-    getDocs(
-      query(
-        collection(db, "users"),
-        where("companyId", "==", companyId)
-      )
-    ).then((snap) => {
-      setUsers(snap.docs.map((d) => ({ uid: d.id, ...d.data() })));
     });
   }, [companyId, uploading, success]);
 
@@ -192,14 +192,16 @@ export default function AdminDocumentsPage() {
       d.fileName?.toLowerCase().includes(filter.toLowerCase())
   );
 
-  // Inline PDF preview (for .pdf only)
+  // Inline PDF preview (for .pdf only) with accessible close
   function renderPreview(url: string) {
     return (
-      <div className="fixed inset-0 z-50 bg-black bg-opacity-60 flex items-center justify-center">
-        <div className="bg-white p-6 rounded-2xl shadow-2xl max-w-3xl w-full relative">
+      <div className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center">
+        <div className="bg-white p-6 rounded-2xl shadow-2xl max-w-3xl w-full relative animate-fade-in">
           <button
             onClick={() => setPreviewDoc(null)}
-            className="absolute top-2 right-2 bg-gray-200 rounded-full px-3 py-1 text-gray-700 font-bold hover:bg-gray-300"
+            className="absolute top-2 right-2 bg-gray-200 rounded-full px-3 py-1 text-gray-700 font-bold hover:bg-gray-300 focus:outline-none"
+            aria-label="Close document preview"
+            tabIndex={0}
           >
             Close
           </button>
@@ -207,6 +209,7 @@ export default function AdminDocumentsPage() {
             src={url}
             className="w-full h-[500px] rounded-lg border"
             title="Document Preview"
+            aria-label="PDF Preview"
           />
         </div>
       </div>
@@ -218,7 +221,7 @@ export default function AdminDocumentsPage() {
       <h1 className="text-3xl font-bold text-blue-700 mb-6 flex items-center gap-2">
         <span>📄</span> Company Documents
       </h1>
-      <form onSubmit={handleUpload} className="flex flex-col md:flex-row gap-6 mb-8">
+      <form onSubmit={handleUpload} className="flex flex-col md:flex-row gap-6 mb-8" aria-label="Upload new document">
         <div className="flex-1 flex flex-col gap-2">
           <input
             type="text"
@@ -228,6 +231,7 @@ export default function AdminDocumentsPage() {
             onChange={e => setTitle(e.target.value)}
             required
             maxLength={100}
+            disabled={uploading}
           />
           <input
             type="text"
@@ -236,11 +240,14 @@ export default function AdminDocumentsPage() {
             value={desc}
             onChange={e => setDesc(e.target.value)}
             maxLength={160}
+            disabled={uploading}
           />
           <select
             value={category}
             onChange={e => setCategory(e.target.value)}
             className="p-3 border rounded-lg"
+            disabled={uploading}
+            aria-label="Document category"
           >
             {CATEGORIES.map(c => (
               <option value={c.value} key={c.value}>{c.label}</option>
@@ -255,11 +262,13 @@ export default function AdminDocumentsPage() {
             onChange={handleFileChange}
             ref={fileInputRef}
             required
+            disabled={uploading}
+            aria-label="Select file"
           />
           <button
             type="submit"
-            className="bg-blue-600 text-white px-5 py-2 rounded-lg font-bold hover:bg-blue-700 mt-2"
-            disabled={uploading}
+            className="bg-blue-600 text-white px-5 py-2 rounded-lg font-bold hover:bg-blue-700 mt-2 transition disabled:opacity-60"
+            disabled={uploading || !file || !title.trim()}
           >
             {uploading ? "Uploading..." : "Upload"}
           </button>
@@ -272,6 +281,7 @@ export default function AdminDocumentsPage() {
           placeholder="Search documents (title, desc, file, tag)..."
           value={filter}
           onChange={e => setFilter(e.target.value)}
+          aria-label="Filter documents"
         />
       </div>
       {error && <Toast message={error} type="error" onClose={() => setError(null)} />}
@@ -283,85 +293,94 @@ export default function AdminDocumentsPage() {
       ) : filteredDocs.length === 0 ? (
         <div className="text-gray-400 italic">No documents uploaded yet.</div>
       ) : (
-        <table className="min-w-full border text-sm">
-          <thead>
-            <tr className="bg-gray-100">
-              <th className="py-2 px-3">Title &amp; Description</th>
-              <th className="py-2 px-3">File</th>
-              <th className="py-2 px-3">Category</th>
-              <th className="py-2 px-3">Uploaded</th>
-              <th className="py-2 px-3">Send To</th>
-              <th className="py-2 px-3"></th>
-            </tr>
-          </thead>
-          <tbody>
-            {filteredDocs.map((d) => (
-              <tr key={d.id} className="border-t">
-                <td className="py-2 px-3 font-semibold">
-                  {d.title}
-                  {d.description && (
-                    <div className="text-xs text-gray-500">{d.description}</div>
-                  )}
-                </td>
-                <td className="py-2 px-3 flex flex-col gap-1">
-                  <a
-                    href={d.url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-blue-700 underline"
-                  >
-                    {d.fileName}
-                  </a>
-                  {d.fileName && d.fileName.toLowerCase().endsWith(".pdf") && (
-                    <button
-                      className="text-xs text-blue-500 underline ml-1"
-                      onClick={() => setPreviewDoc(d.url)}
-                    >
-                      Preview
-                    </button>
-                  )}
-                  <button
-                    className="text-xs bg-yellow-100 text-yellow-700 px-2 py-1 rounded hover:bg-yellow-200 mt-1"
-                    onClick={() => handleCopy(d.url, d.id)}
-                  >
-                    {copiedDocId === d.id ? "Link Copied!" : "Copy Link"}
-                  </button>
-                </td>
-                <td className="py-2 px-3 capitalize">{d.category}</td>
-                <td className="py-2 px-3 text-xs">{d.createdAt?.toDate ? d.createdAt.toDate().toLocaleString() : ""}</td>
-                <td className="py-2 px-3">
-                  <select
-                    className="p-1 border rounded text-xs"
-                    value={sendTo[d.id] || ""}
-                    onChange={e => setSendTo({ ...sendTo, [d.id]: e.target.value })}
-                  >
-                    <option value="">Send to...</option>
-                    {users.map(u => (
-                      <option key={u.uid} value={u.uid}>
-                        {u.fullName || u.email}
-                      </option>
-                    ))}
-                  </select>
-                  <button
-                    className="text-xs bg-green-100 text-green-700 px-2 py-1 rounded hover:bg-green-200 mt-1"
-                    disabled={!sendTo[d.id]}
-                    onClick={() => handleSendToUser(d, sendTo[d.id])}
-                  >
-                    Send
-                  </button>
-                </td>
-                <td className="py-2 px-3">
-                  <button
-                    onClick={() => handleDelete(d.id, d.url)}
-                    className="text-red-500 hover:underline text-xs"
-                  >
-                    Delete
-                  </button>
-                </td>
+        <div className="overflow-x-auto">
+          <table className="min-w-full border text-sm">
+            <thead>
+              <tr className="bg-gray-100">
+                <th className="py-2 px-3">Title &amp; Description</th>
+                <th className="py-2 px-3">File</th>
+                <th className="py-2 px-3">Category</th>
+                <th className="py-2 px-3">Uploaded</th>
+                <th className="py-2 px-3">Send To</th>
+                <th className="py-2 px-3"></th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {filteredDocs.map((d) => (
+                <tr key={d.id} className="border-t">
+                  <td className="py-2 px-3 font-semibold">
+                    {d.title}
+                    {d.description && (
+                      <div className="text-xs text-gray-500">{d.description}</div>
+                    )}
+                  </td>
+                  <td className="py-2 px-3 flex flex-col gap-1">
+                    <a
+                      href={d.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-blue-700 underline"
+                    >
+                      {d.fileName}
+                    </a>
+                    {d.fileName && d.fileName.toLowerCase().endsWith(".pdf") && (
+                      <button
+                        className="text-xs text-blue-500 underline ml-1"
+                        onClick={() => setPreviewDoc(d.url)}
+                        aria-label={`Preview PDF ${d.title}`}
+                      >
+                        Preview
+                      </button>
+                    )}
+                    <button
+                      className="text-xs bg-yellow-100 text-yellow-700 px-2 py-1 rounded hover:bg-yellow-200 mt-1"
+                      onClick={() => handleCopy(d.url, d.id)}
+                      aria-label={`Copy link for ${d.title}`}
+                    >
+                      {copiedDocId === d.id ? "Link Copied!" : "Copy Link"}
+                    </button>
+                  </td>
+                  <td className="py-2 px-3 capitalize">{d.category}</td>
+                  <td className="py-2 px-3 text-xs">{d.createdAt?.toDate ? d.createdAt.toDate().toLocaleString() : ""}</td>
+                  <td className="py-2 px-3">
+                    <select
+                      className="p-1 border rounded text-xs"
+                      value={sendTo[d.id] || ""}
+                      onChange={e => setSendTo({ ...sendTo, [d.id]: e.target.value })}
+                      aria-label={`Select recipient for ${d.title}`}
+                      disabled={uploading}
+                    >
+                      <option value="">Send to...</option>
+                      {users.map(u => (
+                        <option key={u.uid} value={u.uid}>
+                          {u.fullName || u.email}
+                        </option>
+                      ))}
+                    </select>
+                    <button
+                      className="text-xs bg-green-100 text-green-700 px-2 py-1 rounded hover:bg-green-200 mt-1 transition disabled:opacity-60"
+                      disabled={!sendTo[d.id] || uploading}
+                      onClick={() => handleSendToUser(d, sendTo[d.id])}
+                      aria-label={`Send ${d.title} to user`}
+                    >
+                      Send
+                    </button>
+                  </td>
+                  <td className="py-2 px-3">
+                    <button
+                      onClick={() => handleDelete(d.id, d.url)}
+                      className="text-red-500 hover:underline text-xs"
+                      disabled={uploading}
+                      aria-label={`Delete ${d.title}`}
+                    >
+                      Delete
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       )}
       {previewDoc && renderPreview(previewDoc)}
     </div>

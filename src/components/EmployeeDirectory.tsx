@@ -2,16 +2,13 @@
 
 import React, { useEffect, useState } from "react";
 import { fetchAllUsers, UserProfile } from "../lib/firestoreUsers";
-// Optional: only if you already have a UserAvatar component
 import UserAvatar from "./UserAvatar";
 
 interface EmployeeDirectoryProps {
   companyId: string;
 }
 
-export default function EmployeeDirectory({
-  companyId,
-}: EmployeeDirectoryProps) {
+export default function EmployeeDirectory({ companyId }: EmployeeDirectoryProps) {
   const [employees, setEmployees] = useState<UserProfile[]>([]);
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(true);
@@ -65,6 +62,7 @@ export default function EmployeeDirectory({
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           className="w-full p-2 border border-gray-300 rounded"
+          aria-label="Search employee directory"
         />
       </div>
 
@@ -75,7 +73,7 @@ export default function EmployeeDirectory({
 
       {/* Desktop Table */}
       <div className="hidden md:block overflow-x-auto">
-        <table className="min-w-full border text-left text-sm">
+        <table className="min-w-full border text-left text-sm bg-white rounded">
           <thead>
             <tr className="bg-gray-100 text-gray-700">
               <th className="py-2 px-3">Name</th>
@@ -90,18 +88,14 @@ export default function EmployeeDirectory({
           </thead>
           <tbody>
             {filtered.map((e) => (
-              <tr key={e.uid} className="border-t hover:bg-gray-50">
+              <tr key={e.uid} className="border-t hover:bg-gray-50 transition">
                 <td className="py-2 px-3 font-medium">
                   <div className="flex items-center gap-2">
-                    {/* Avatar (optional) */}
-                    {/** If you have a photoURL or a custom avatar: **/}
-                    {e.photoURL && (
-                      <UserAvatar
-                        nameOrEmail={e.fullName || e.email}
-                        photoURL={e.photoURL}
-                        size={32}
-                      />
-                    )}
+                    <UserAvatar
+                      nameOrEmail={e.fullName || e.email}
+                      photoURL={typeof e.photoURL === "string" ? e.photoURL : undefined}
+                      size={32}
+                    />
                     <span>{e.fullName || <span className="text-gray-400">—</span>}</span>
                   </div>
                 </td>
@@ -126,7 +120,7 @@ export default function EmployeeDirectory({
                     <span className="text-gray-400">—</span>
                   )}
                 </td>
-                <td className="py-2 px-3">
+                <td className="py-2 px-3 capitalize">
                   {e.department || <span className="text-gray-400">—</span>}
                 </td>
                 <td className="py-2 px-3 capitalize">{e.role || "user"}</td>
@@ -143,23 +137,15 @@ export default function EmployeeDirectory({
           return (
             <div
               key={e.uid}
-              className="rounded-lg border border-gray-200 p-4 shadow-sm"
+              className="rounded-lg border border-gray-200 p-4 shadow-sm bg-white flex flex-col gap-2"
             >
               {/* Header Row: Avatar + Name */}
               <div className="flex items-center gap-3 mb-2">
-                {/** If you have a photoURL or custom avatar: **/}
-                {e.photoURL ? (
-                  <UserAvatar
-                    nameOrEmail={displayName}
-                    photoURL={e.photoURL}
-                    size={40}
-                  />
-                ) : (
-                  /* fallback icon or initials if no photo? */
-                  <div className="bg-gray-300 text-gray-700 rounded-full w-10 h-10 flex items-center justify-center uppercase font-semibold">
-                    {displayName?.charAt(0) ?? "?"}
-                  </div>
-                )}
+                <UserAvatar
+                  nameOrEmail={displayName}
+                  photoURL={typeof e.photoURL === "string" ? e.photoURL : undefined}
+                  size={40}
+                />
                 <div className="font-semibold text-base text-blue-800">
                   {e.fullName || e.email}
                 </div>
@@ -201,7 +187,7 @@ export default function EmployeeDirectory({
                 </div>
                 <div>
                   <span className="font-medium">Role: </span>
-                  {e.role ? e.role.toLowerCase() : "user"}
+                  {e.role ? e.role.charAt(0).toUpperCase() + e.role.slice(1) : "User"}
                 </div>
               </div>
             </div>

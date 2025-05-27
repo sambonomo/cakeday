@@ -18,7 +18,6 @@ import {
   ClipboardList,
 } from "lucide-react";
 
-// Helper: Maps role to icon/pill
 const ROLE_PILLS: Record<
   string,
   { label: string; Icon: React.ElementType; color: string }
@@ -51,7 +50,6 @@ function groupByDepartment(tasks: any[]) {
   return grouped;
 }
 
-// Mini Confetti Burst
 function ConfettiBurst() {
   const [show, setShow] = useState(true);
   useEffect(() => {
@@ -82,7 +80,6 @@ export default function OnboardingChecklist({ companyId: propCompanyId }: Onboar
   const [showConfetti, setShowConfetti] = useState(false);
   const [showCongrats, setShowCongrats] = useState(false);
 
-  // Ref for checklist accessibility
   const checklistRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -90,7 +87,6 @@ export default function OnboardingChecklist({ companyId: propCompanyId }: Onboar
     const fetchData = async () => {
       setLoading(true);
 
-      // 1. Find best template for user (dept/role/fallback)
       const templates = await getOnboardingTemplates(companyId);
       let found: any = null;
       if (user.department && user.role) {
@@ -111,18 +107,15 @@ export default function OnboardingChecklist({ companyId: propCompanyId }: Onboar
       }
       setTemplate(found);
 
-      // 2. Fetch tasks for that template
       let tasksData: any[] = [];
       if (found) {
         tasksData = await getTemplateTasks(found.id);
       }
       setTasks(tasksData);
 
-      // 3. Fetch progress
       const progressData = await getUserProgress(user.uid, companyId);
       setProgress(progressData || {});
 
-      // 4. Docs (for task.documentId)
       const docsSnap = await getDocs(
         query(collection(db, "documents"), where("companyId", "==", companyId))
       );
@@ -134,7 +127,6 @@ export default function OnboardingChecklist({ companyId: propCompanyId }: Onboar
       );
 
       setLoading(false);
-      // Focus for accessibility
       setTimeout(() => {
         checklistRef.current?.focus();
       }, 200);
@@ -149,7 +141,6 @@ export default function OnboardingChecklist({ companyId: propCompanyId }: Onboar
 
     await setUserTaskProgress(user.uid, taskId, completed, companyId);
 
-    // Show confetti if ALL tasks are done!
     if (!progress[taskId] && completed) {
       const completedNow = tasks.filter((t) =>
         t.id === taskId ? true : progress[t.id]
@@ -162,7 +153,6 @@ export default function OnboardingChecklist({ companyId: propCompanyId }: Onboar
     }
   };
 
-  // Scroll to first incomplete task on load
   useEffect(() => {
     if (!loading && tasks.length > 0 && progress) {
       const firstIncomplete = tasks.find(t => !progress[t.id]);
@@ -175,20 +165,26 @@ export default function OnboardingChecklist({ companyId: propCompanyId }: Onboar
     }
   }, [loading, tasks, progress]);
 
-  // Group tasks by department for UI
   const groupedTasks = groupByDepartment(tasks);
 
-  // Progress calculation
   const totalTasks = tasks.length;
   const completedTasks = tasks.filter((t) => progress[t.id]).length;
   const progressPercent = totalTasks === 0 ? 0 : Math.round((completedTasks / totalTasks) * 100);
 
-  // Helper for overdue detection
+  // Helper for overdue detection (strict-safe)
   const isOverdue = (task: any) => {
-    if (!task.dueOffsetDays || !user?.startDate) return false;
-    const due = new Date(user.startDate);
+    if (
+      typeof task.dueOffsetDays !== "number" ||
+      !user ||
+      !("startDate" in user) ||
+      !user.startDate
+    )
+      return false;
+    const due = new Date(user.startDate as string);
     due.setDate(due.getDate() + task.dueOffsetDays);
     const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    due.setHours(0, 0, 0, 0);
     return !progress[task.id] && due < today;
   };
 
@@ -217,7 +213,6 @@ export default function OnboardingChecklist({ companyId: propCompanyId }: Onboar
   return (
     <div className="relative" tabIndex={-1} ref={checklistRef}>
       {showConfetti && <ConfettiBurst />}
-      {/* Celebratory Modal when all complete */}
       {showCongrats && (
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
           <div className="bg-white rounded-2xl shadow-xl p-8 max-w-sm w-full flex flex-col items-center">
@@ -330,7 +325,6 @@ export default function OnboardingChecklist({ companyId: propCompanyId }: Onboar
                     </div>
                     <div className="flex-1">
                       <div className="font-semibold flex items-center gap-2 flex-wrap">
-                        {/* Task Title */}
                         <span
                           className={`transition-colors duration-200 ${
                             taskCompleted ? "line-through text-gray-400" : "text-brand-900"
@@ -338,7 +332,6 @@ export default function OnboardingChecklist({ companyId: propCompanyId }: Onboar
                         >
                           {task.title}
                         </span>
-                        {/* Role pill */}
                         <span
                           className={`ml-1 px-2 py-0.5 text-xs rounded-full font-semibold flex items-center gap-1 ${pill.color}`}
                           title={pill.label}
@@ -346,14 +339,12 @@ export default function OnboardingChecklist({ companyId: propCompanyId }: Onboar
                           <pill.Icon className="w-4 h-4" />
                           {pill.label}
                         </span>
-                        {/* Due date */}
                         {typeof task.dueOffsetDays === "number" && task.dueOffsetDays > 0 && (
                           <span className={`ml-2 px-2 py-0.5 text-xs rounded-full font-medium
                             ${overdue ? "bg-red-200 text-red-700 animate-pulse" : "bg-yellow-50 text-yellow-700"}`}>
                             {overdue ? "Overdue" : `Due +${task.dueOffsetDays}d`}
                           </span>
                         )}
-                        {/* Doc link */}
                         {doc && (
                           <a
                             href={doc.url}
@@ -367,7 +358,6 @@ export default function OnboardingChecklist({ companyId: propCompanyId }: Onboar
                             {doc.title || "Document"}
                           </a>
                         )}
-                        {/* Lock icon for non-user tasks */}
                         {!isSelfTask && (
                           <span className="ml-2 text-gray-400" title="This task is for another role">
                             <Lock className="inline w-4 h-4" />
