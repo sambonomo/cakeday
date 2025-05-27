@@ -307,7 +307,6 @@ export default function DashboardPage(): React.ReactElement {
         {/* Task panels & Events */}
         <section className="grid grid-cols-1 md:grid-cols-2 gap-10">
           <div>
-            {/* Onboarding checklist always shown for new users until complete */}
             {showOnboarding && leftPanel}
             {isExiting && leftPanel}
             {assignedSection}
@@ -315,16 +314,28 @@ export default function DashboardPage(): React.ReactElement {
           <div>{eventsSection}</div>
         </section>
 
-        {/* Employee Recognition Feed */}
-        <section className="card-panel border-accent-100 mt-2">
-          <h2 className="text-2xl font-bold mb-2 text-accent-600 flex items-center gap-2">
-            <Handshake className="w-6 h-6 text-accent-400" aria-hidden="true" />
-            Employee Recognition Feed
-          </h2>
-          <div className="mb-4">
+        {/* Recognition Form + Feed as ONE Card */}
+        <section
+          className="
+            border border-accent-100 rounded-2xl mt-2 shadow-xl
+            max-w-3xl mx-auto bg-white/90
+            p-0 overflow-hidden
+            flex flex-col
+          "
+          aria-label="Kudos recognition section"
+        >
+          <div className="px-8 pt-8 pb-4 bg-gradient-to-r from-accent-50 via-white to-accent-100">
+            <h2 className="text-2xl font-bold mb-1 text-accent-700 flex items-center gap-2">
+              <Handshake className="w-6 h-6 text-accent-400" aria-hidden="true" />
+              Employee Recognition
+            </h2>
+            <p className="text-accent-500 text-sm mb-2">Give kudos and celebrate wins across your team!</p>
             <GiveKudosForm companyId={companyId} />
           </div>
-          <RecognitionFeed companyId={companyId} />
+          <div className="h-px w-full bg-accent-100" />
+          <div className="px-6 pb-7 pt-6 bg-white/85">
+            <RecognitionFeed companyId={companyId} />
+          </div>
         </section>
 
         {/* Admin panel (onboarding tasks) */}
