@@ -1,9 +1,10 @@
 import { initializeApp } from "firebase-admin/app";
 import { getFirestore, FieldValue } from "firebase-admin/firestore";
-import { onDocumentCreated } from "firebase-functions/v2/firestore";
+import { onDocumentCreated, HttpsError, onCall } from "firebase-functions/v2/firestore";
 import { setGlobalOptions } from "firebase-functions/v2/options";
 import * as sgMail from "@sendgrid/mail";
 import { buildInviteEmail } from "./emailTemplates";
+import * as functions from "firebase-functions/v2";
 
 // ------------- 1. Initialize -------------
 initializeApp();
@@ -44,13 +45,13 @@ export const sendInviteEmail = onDocumentCreated("users/{userId}", async (event)
     return;
   }
 
-  // Compose activation URL
-  const activationUrl = `${APP_BASE_URL}/activate?email=${encodeURIComponent(user.email)}`;
+  // Compose activation URL (include inviteId for seamless merge)
+  const activationUrl = `${APP_BASE_URL}/activate?inviteId=${event.params.userId}&email=${encodeURIComponent(user.email)}`;
 
   // Use centralized template
   const msg = buildInviteEmail({
     to: user.email,
-    fullName: user.fullName,
+    fullName: user.fullName || user.name || "", // fallback if field varies
     activationUrl,
     from: { email: FROM_EMAIL, name: FROM_NAME },
   });
@@ -77,5 +78,77 @@ export const sendInviteEmail = onDocumentCreated("users/{userId}", async (event)
   }
 });
 
-// TODO: Next steps — Add callable functions for password reset and welcome emails
+// ------------- 4. Accept Invite Callable -------------
+// Called by the frontend after user signs up using invite
+export const acceptInvite = functions.https.onCall(async (data, context) => {
+  // Requires inviteId (doc ID) OR email
+  const { inviteId, email } = data;
+  const uid = context.auth?.uid;
+  const userEmail = context.auth?.token?.email;
 
+  if (!uid) throw new HttpsError("unauthenticated", "You must be logged in");
+
+  // 1. Find invite doc (by inviteId if present, else by email)
+  let inviteDocSnap: FirebaseFirestore.DocumentSnapshot | undefined;
+  if (inviteId) {
+    inviteDocSnap = await db.doc(`users/${inviteId}`).get();
+  } else if (email || userEmail) {
+    // fallback: find by email (case-insensitive)
+    const snap = await db.collection("users")
+      .where("email", "==", (email || userEmail).toLowerCase())
+      .where("status", "==", "invited")
+      .limit(1).get();
+    if (!snap.empty) inviteDocSnap = snap.docs[0];
+  }
+  if (!inviteDocSnap || !inviteDocSnap.exists) {
+    throw new HttpsError("not-found", "Invite not found.");
+  }
+  const inviteData = inviteDocSnap.data()!;
+  const inviteDocId = inviteDocSnap.id;
+
+  // 2. Create/update real user profile at users/{uid}
+  const userDocRef = db.doc(`users/${uid}`);
+  await userDocRef.set({
+    ...inviteData,
+    status: "active",
+    disabled: false,
+    email: userEmail || inviteData.email,
+    authUid: uid,
+    activatedAt: FieldValue.serverTimestamp(),
+  }, { merge: true });
+
+  // 3. Move any userTaskAssignments (newHireId or assignedTo == inviteDocId) to uid
+  const assignmentSnap = await db.collection("userTaskAssignments")
+    .where("newHireId", "==", inviteDocId).get();
+  const batch = db.batch();
+  assignmentSnap.forEach(docSnap => {
+    batch.update(docSnap.ref, { newHireId: uid });
+  });
+
+  // Optionally: update any assignments where assignedTo is inviteDocId (rare but safe)
+  const asg2 = await db.collection("userTaskAssignments")
+    .where("assignedTo", "==", inviteDocId).get();
+  asg2.forEach(docSnap => {
+    batch.update(docSnap.ref, { assignedTo: uid });
+  });
+
+  // 4. Migrate userTaskProgress from old ID to new UID
+  const companyId = inviteData.companyId;
+  const oldProgressDoc = db.doc(`userTaskProgress/${companyId}_${inviteDocId}`);
+  const newProgressDoc = db.doc(`userTaskProgress/${companyId}_${uid}`);
+  const progressSnap = await oldProgressDoc.get();
+  if (progressSnap.exists) {
+    batch.set(newProgressDoc, progressSnap.data());
+    batch.delete(oldProgressDoc);
+  }
+
+  // 5. Delete the old invite user doc
+  batch.delete(inviteDocSnap.ref);
+
+  await batch.commit();
+
+  return { success: true };
+});
+
+// ------------- 5. (Future) Welcome/Password Reset Callables -------------
+// TODO: Add welcome or password reset functions here as needed
