@@ -1,10 +1,10 @@
 import { initializeApp } from "firebase-admin/app";
 import { getFirestore, FieldValue } from "firebase-admin/firestore";
-import { onDocumentCreated, HttpsError, onCall } from "firebase-functions/v2/firestore";
+import { onDocumentCreated } from "firebase-functions/v2/firestore";
 import { setGlobalOptions } from "firebase-functions/v2/options";
 import * as sgMail from "@sendgrid/mail";
 import { buildInviteEmail } from "./emailTemplates";
-import * as functions from "firebase-functions/v2";
+import { onCall, HttpsError } from "firebase-functions/v2/https";
 
 // ------------- 1. Initialize -------------
 initializeApp();
@@ -15,7 +15,7 @@ setGlobalOptions({ region: "us-central1" });
 const SENDGRID_KEY =
   process.env.SENDGRID_API_KEY ||
   process.env.SENDGRID_KEY ||
-  ""; // fallback, warn if not set
+  "";
 const APP_BASE_URL =
   process.env.APP_BASE_URL ||
   "https://yourdomain.com";
@@ -51,7 +51,7 @@ export const sendInviteEmail = onDocumentCreated("users/{userId}", async (event)
   // Use centralized template
   const msg = buildInviteEmail({
     to: user.email,
-    fullName: user.fullName || user.name || "", // fallback if field varies
+    fullName: user.fullName || user.name || "",
     activationUrl,
     from: { email: FROM_EMAIL, name: FROM_NAME },
   });
@@ -79,12 +79,12 @@ export const sendInviteEmail = onDocumentCreated("users/{userId}", async (event)
 });
 
 // ------------- 4. Accept Invite Callable -------------
-// Called by the frontend after user signs up using invite
-export const acceptInvite = functions.https.onCall(async (data, context) => {
-  // Requires inviteId (doc ID) OR email
-  const { inviteId, email } = data;
-  const uid = context.auth?.uid;
-  const userEmail = context.auth?.token?.email;
+// v2 HTTPS callable signature: (request) => {...}
+export const acceptInvite = onCall(async (request) => {
+  // Get inviteId/email from request.data
+  const { inviteId, email } = request.data || {};
+  const uid = request.auth?.uid;
+  const userEmail = request.auth?.token?.email;
 
   if (!uid) throw new HttpsError("unauthenticated", "You must be logged in");
 

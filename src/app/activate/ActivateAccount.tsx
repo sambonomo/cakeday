@@ -1,26 +1,23 @@
+"use client";
 import React, { useState, useEffect } from "react";
-import { useLocation, useNavigate } from "react-router-dom";
+import { useRouter, useSearchParams } from "next/navigation";
 import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword } from "firebase/auth";
 import { httpsCallable } from "firebase/functions";
-import { functions } from "../lib/firebase"; // adjust import as needed
-
-function useQuery() {
-  return new URLSearchParams(useLocation().search);
-}
+import { functions } from "../../lib/firebase";
 
 export default function ActivateAccount() {
-  const query = useQuery();
-  const navigate = useNavigate();
-  const inviteId = query.get("inviteId");
-  const emailFromLink = query.get("email") || "";
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const inviteId = searchParams.get("inviteId");
+  const emailFromLink = searchParams.get("email") || "";
   const [email, setEmail] = useState(emailFromLink);
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
-  const [step, setStep] = useState<"signup"|"done">("signup");
+  const [step, setStep] = useState<"signup" | "done">("signup");
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (emailFromLink) setEmail(emailFromLink);
+    setEmail(emailFromLink);
   }, [emailFromLink]);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -35,22 +32,19 @@ export default function ActivateAccount() {
       try {
         userCredential = await createUserWithEmailAndPassword(auth, email, password);
       } catch (err: any) {
-        // If account exists, try login
         if (err.code === "auth/email-already-in-use") {
           userCredential = await signInWithEmailAndPassword(auth, email, password);
         } else {
           throw err;
         }
       }
-      const user = userCredential.user;
-
       // 2. Call Cloud Function to accept invite & merge profile
       const acceptInvite = httpsCallable(functions, "acceptInvite");
       await acceptInvite({ inviteId, email });
 
       setStep("done");
       setTimeout(() => {
-        navigate("/dashboard"); // or your onboarding/checklist page
+        router.push("/dashboard"); // or your onboarding/checklist page
       }, 1500);
     } catch (err: any) {
       setError(
