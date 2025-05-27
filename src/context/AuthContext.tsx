@@ -17,7 +17,7 @@ import {
 } from "firebase/auth";
 import { doc, setDoc, getDoc } from "firebase/firestore";
 
-// ----- User profile type, now includes onboardingTemplateId and more -----
+// ----- User profile type, now includes onboardingTemplateId, startDate and more -----
 export type AuthUser = {
   uid: string;
   email: string;
@@ -32,8 +32,9 @@ export type AuthUser = {
   department?: string;
   status?: string; // "newHire" | "active" | "exiting"
   companyId?: string;
-  onboardingTemplateId?: string; // <-- Added!
-  // You can add: managerId, reportsTo, custom fields, etc.
+  onboardingTemplateId?: string; // <-- Included!
+  startDate?: string; // <-- NEW: Start date for onboarding/overdue logic
+  // Add managerId, reportsTo, or other fields as needed!
 };
 
 // Type for the context value
@@ -78,7 +79,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           const data = userSnap.data();
           mergedUser = {
             ...mergedUser,
-            ...data, // All fields: onboardingTemplateId, status, gender, etc.
+            ...data, // All fields: onboardingTemplateId, status, gender, startDate, etc.
           };
           setRole(data.role || "user");
           setCompanyId(data.companyId || null);
@@ -108,7 +109,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // Add Firestore user doc with extra fields
     await setDoc(doc(db, "users", userCred.user.uid), {
       email,
-      ...extra, // includes companyId, role, onboardingTemplateId, etc.
+      ...extra, // includes companyId, role, onboardingTemplateId, startDate, etc.
       createdAt: new Date(),
     });
     setRole(extra.role);

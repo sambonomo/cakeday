@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { getUserProgress, setUserTaskProgress, getOnboardingTemplates, getTemplateTasks } from "../lib/firestoreOnboarding";
 import { useAuth } from "../context/AuthContext";
 import { collection, query, where, getDocs } from "firebase/firestore";
@@ -18,7 +18,7 @@ import {
   ClipboardList,
 } from "lucide-react";
 
-// Helper: Maps role to icon/pill (no emoji, just Lucide icons)
+// Helper: Maps role to icon/pill
 const ROLE_PILLS: Record<
   string,
   { label: string; Icon: React.ElementType; color: string }
@@ -80,6 +80,10 @@ export default function OnboardingChecklist({ companyId: propCompanyId }: Onboar
   const [docs, setDocs] = useState<DocInfo[]>([]);
   const [template, setTemplate] = useState<any>(null);
   const [showConfetti, setShowConfetti] = useState(false);
+  const [showCongrats, setShowCongrats] = useState(false);
+
+  // Ref for checklist accessibility
+  const checklistRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (!user || !companyId) return;
@@ -130,11 +134,15 @@ export default function OnboardingChecklist({ companyId: propCompanyId }: Onboar
       );
 
       setLoading(false);
+      // Focus for accessibility
+      setTimeout(() => {
+        checklistRef.current?.focus();
+      }, 200);
     };
     fetchData();
   }, [user, companyId]);
 
-  // Handler with feedback: show confetti when last task marked complete
+  // Handler with feedback: show confetti and modal when all tasks marked complete
   const toggleTask = async (taskId: string, completed: boolean) => {
     if (!user || !companyId) return;
     setProgress((prev) => ({ ...prev, [taskId]: completed }));
@@ -149,9 +157,23 @@ export default function OnboardingChecklist({ companyId: propCompanyId }: Onboar
       if (completedNow === tasks.length) {
         setShowConfetti(true);
         setTimeout(() => setShowConfetti(false), 2500);
+        setTimeout(() => setShowCongrats(true), 2000);
       }
     }
   };
+
+  // Scroll to first incomplete task on load
+  useEffect(() => {
+    if (!loading && tasks.length > 0 && progress) {
+      const firstIncomplete = tasks.find(t => !progress[t.id]);
+      if (firstIncomplete) {
+        const el = document.getElementById(`task-${firstIncomplete.id}`);
+        if (el) {
+          el.scrollIntoView({ behavior: "smooth", block: "center" });
+        }
+      }
+    }
+  }, [loading, tasks, progress]);
 
   // Group tasks by department for UI
   const groupedTasks = groupByDepartment(tasks);
@@ -160,6 +182,15 @@ export default function OnboardingChecklist({ companyId: propCompanyId }: Onboar
   const totalTasks = tasks.length;
   const completedTasks = tasks.filter((t) => progress[t.id]).length;
   const progressPercent = totalTasks === 0 ? 0 : Math.round((completedTasks / totalTasks) * 100);
+
+  // Helper for overdue detection
+  const isOverdue = (task: any) => {
+    if (!task.dueOffsetDays || !user?.startDate) return false;
+    const due = new Date(user.startDate);
+    due.setDate(due.getDate() + task.dueOffsetDays);
+    const today = new Date();
+    return !progress[task.id] && due < today;
+  };
 
   if (loading) return <div className="text-gray-600">Loading checklist...</div>;
 
@@ -184,8 +215,26 @@ export default function OnboardingChecklist({ companyId: propCompanyId }: Onboar
   }
 
   return (
-    <div className="relative">
+    <div className="relative" tabIndex={-1} ref={checklistRef}>
       {showConfetti && <ConfettiBurst />}
+      {/* Celebratory Modal when all complete */}
+      {showCongrats && (
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
+          <div className="bg-white rounded-2xl shadow-xl p-8 max-w-sm w-full flex flex-col items-center">
+            <PartyPopper className="w-16 h-16 mb-4 text-green-500 animate-bounce" />
+            <div className="font-bold text-lg text-green-700 text-center mb-2">
+              All tasks complete! Welcome to the team — you're officially onboarded!
+            </div>
+            <button
+              className="mt-4 px-6 py-2 bg-green-600 text-white rounded-lg shadow hover:bg-green-700 font-semibold"
+              onClick={() => setShowCongrats(false)}
+            >
+              Continue to Dashboard
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Progress Bar */}
       <div className="mb-5">
         <div className="flex items-end justify-between mb-1">
@@ -242,12 +291,14 @@ export default function OnboardingChecklist({ companyId: propCompanyId }: Onboar
                 const isSelfTask = !task.defaultAssigneeRole || task.defaultAssigneeRole === "user";
                 const pill = ROLE_PILLS[task.defaultAssigneeRole || "user"] || ROLE_PILLS.undefined;
                 const taskCompleted = !!progress[task.id];
+                const overdue = isOverdue(task);
 
                 return (
                   <li
+                    id={`task-${task.id}`}
                     key={task.id}
                     className={`flex items-start gap-3 p-4 rounded-xl border transition-all duration-300 group shadow-sm
-                      ${taskCompleted ? "bg-green-50 border-green-300 opacity-80" : "bg-white/90 border-gray-200"}
+                      ${taskCompleted ? "bg-green-50 border-green-300 opacity-80" : overdue ? "bg-red-50 border-red-300" : "bg-white/90 border-gray-200"}
                       ${taskCompleted ? "line-through text-gray-400" : ""}
                       hover:shadow-md`}
                   >
@@ -297,8 +348,9 @@ export default function OnboardingChecklist({ companyId: propCompanyId }: Onboar
                         </span>
                         {/* Due date */}
                         {typeof task.dueOffsetDays === "number" && task.dueOffsetDays > 0 && (
-                          <span className="ml-2 px-2 py-0.5 bg-yellow-50 text-yellow-700 text-xs rounded-full font-medium">
-                            Due +{task.dueOffsetDays}d
+                          <span className={`ml-2 px-2 py-0.5 text-xs rounded-full font-medium
+                            ${overdue ? "bg-red-200 text-red-700 animate-pulse" : "bg-yellow-50 text-yellow-700"}`}>
+                            {overdue ? "Overdue" : `Due +${task.dueOffsetDays}d`}
                           </span>
                         )}
                         {/* Doc link */}
@@ -335,14 +387,6 @@ export default function OnboardingChecklist({ companyId: propCompanyId }: Onboar
           </div>
         ))}
       </div>
-
-      {/* Final celebratory message */}
-      {progressPercent === 100 && (
-        <div className="mt-6 text-center text-green-700 font-bold text-lg flex flex-col items-center gap-2 animate-fade-in-up">
-          <PartyPopper className="w-10 h-10 mx-auto mb-2 text-green-500" />
-          <span>All tasks complete! Welcome to the team — you're officially onboarded!</span>
-        </div>
-      )}
     </div>
   );
 }

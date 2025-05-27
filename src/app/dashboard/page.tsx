@@ -44,6 +44,14 @@ export default function DashboardPage(): React.ReactElement {
   const [todayEvents, setTodayEvents] = useState<UserEvent[]>([]);
   const [showTodayToast, setShowTodayToast] = useState<boolean>(true);
 
+  // Onboarding visibility & progress
+  const [showOnboarding, setShowOnboarding] = useState(false);
+  const [onboardingIncomplete, setOnboardingIncomplete] = useState(false);
+  const [showOnboardingNudge, setShowOnboardingNudge] = useState(false);
+
+  // Confirm logout dialog
+  const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
+
   useEffect(() => {
     async function fetchInviteCode() {
       if (role === "admin" && companyId) {
@@ -73,6 +81,35 @@ export default function DashboardPage(): React.ReactElement {
     }
   }, [loading, user, companyId]);
 
+  // --- Onboarding visibility logic (High impact improvement) ---
+  useEffect(() => {
+    async function checkOnboarding() {
+      if (user && companyId && (user.status === "newHire" || user.status === "active")) {
+        // Check if there are incomplete onboarding tasks for the user (from Firestore)
+        // We assume you have a userTaskProgress doc: userTaskProgress/{companyId}_{user.uid}
+        const progressDoc = await getDoc(doc(db, "userTaskProgress", `${companyId}_${user.uid}`));
+        if (progressDoc.exists()) {
+          const data = progressDoc.data() || {};
+          // If there are incomplete tasks (value === false), show checklist
+          const hasIncomplete = Object.values(data).some(v => v === false);
+          setOnboardingIncomplete(hasIncomplete);
+          setShowOnboarding(hasIncomplete);
+          setShowOnboardingNudge(hasIncomplete);
+        } else {
+          // No progress doc: assume onboarding not started
+          setOnboardingIncomplete(true);
+          setShowOnboarding(true);
+          setShowOnboardingNudge(true);
+        }
+      } else {
+        setOnboardingIncomplete(false);
+        setShowOnboarding(false);
+        setShowOnboardingNudge(false);
+      }
+    }
+    checkOnboarding();
+  }, [user, companyId]);
+
   if (loading || !user || !companyId) {
     return (
       <div className="flex items-center justify-center min-h-screen bg-gradient-to-tr from-white via-brand-50 to-accent-50">
@@ -97,18 +134,21 @@ export default function DashboardPage(): React.ReactElement {
         .join("  ")
     : "";
 
-  // Determine user status for left panel
-  const isNewHire = user.status === "newHire";
   const isExiting = user.status === "exiting";
   const displayName = user.fullName || user.email || "User";
 
   // Left panel: Onboarding or Offboarding
-  const leftPanel = isNewHire ? (
-    <section className="card-panel border-brand-100">
+  const leftPanel = showOnboarding ? (
+    <section className="card-panel border-brand-100 relative">
       <h2 className="text-2xl font-bold flex items-center gap-2 text-brand-700">
         <ClipboardList className="w-6 h-6 text-brand-500" aria-hidden="true" />
         Onboarding Checklist
       </h2>
+      {showOnboardingNudge && (
+        <div className="absolute right-4 top-2 bg-yellow-200 text-yellow-900 rounded px-3 py-1 text-xs font-semibold animate-bounce shadow-lg">
+          👋 Start here!
+        </div>
+      )}
       <OnboardingChecklist companyId={companyId} />
     </section>
   ) : isExiting ? (
@@ -154,6 +194,9 @@ export default function DashboardPage(): React.ReactElement {
     </section>
   );
 
+  // Highlight active nav link (Directory as an example)
+  const isActiveRoute = (path: string) => typeof window !== "undefined" && window.location.pathname === path;
+
   return (
     <div className="flex flex-col min-h-screen bg-gradient-to-tr from-white via-brand-50 to-accent-50">
       {/* Invite Code Bar for Admins */}
@@ -195,18 +238,47 @@ export default function DashboardPage(): React.ReactElement {
         <div className="flex gap-4 items-center mt-4">
           <a
             href="/directory"
-            className="text-brand-600 underline text-base font-medium hover:text-brand-800 transition"
+            className={`text-brand-600 underline text-base font-medium hover:text-brand-800 transition ${isActiveRoute("/directory") ? "font-bold text-accent-600" : ""}`}
           >
             Directory
           </a>
           <button
-            onClick={logout}
+            onClick={() => setShowLogoutConfirm(true)}
             className="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded transition"
           >
             Log Out
           </button>
         </div>
       </header>
+
+      {/* Confirm Logout Dialog */}
+      {showLogoutConfirm && (
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50" onClick={() => setShowLogoutConfirm(false)}>
+          <div
+            className="bg-white rounded-lg shadow-xl p-8 max-w-sm w-full"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h3 className="text-xl font-bold mb-4">Are you sure you want to log out?</h3>
+            <div className="flex gap-4 justify-end">
+              <button
+                className="px-4 py-2 bg-gray-200 rounded"
+                onClick={() => setShowLogoutConfirm(false)}
+              >
+                Cancel
+              </button>
+              <button
+                className="px-4 py-2 bg-red-500 text-white rounded"
+                onClick={() => {
+                  setShowLogoutConfirm(false);
+                  logout();
+                }}
+              >
+                Log Out
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Today’s Event Toast/Banner */}
       {todayMsg && showTodayToast && (
@@ -226,11 +298,9 @@ export default function DashboardPage(): React.ReactElement {
         {/* Task panels & Events */}
         <section className="grid grid-cols-1 md:grid-cols-2 gap-10">
           <div>
-            {/* If newHire or exiting, show the leftPanel with the checklist */}
-            {isNewHire && leftPanel}
+            {/* Onboarding checklist always shown for new users until complete */}
+            {showOnboarding && leftPanel}
             {isExiting && leftPanel}
-
-            {/* Assigned tasks is always displayed */}
             {assignedSection}
           </div>
           <div>{eventsSection}</div>

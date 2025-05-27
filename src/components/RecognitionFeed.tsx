@@ -1,12 +1,35 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { collection, query, where, orderBy, onSnapshot } from "firebase/firestore";
+import {
+  collection,
+  query,
+  where,
+  orderBy,
+  onSnapshot,
+  doc,
+  updateDoc,
+  arrayUnion,
+  arrayRemove,
+} from "firebase/firestore";
 import { db } from "../lib/firebase";
 import { useAuth } from "../context/AuthContext";
 import KudosBadge from "./KudosBadge";
 import UserAvatar from "./UserAvatar";
-import { PartyPopper, Handshake, Lightbulb, Users, Star, Award, Smile, Trophy, UserCheck, Target, HeartHandshake } from "lucide-react";
+import {
+  PartyPopper,
+  Handshake,
+  Lightbulb,
+  Users,
+  Star,
+  Award,
+  Smile,
+  Trophy,
+  UserCheck,
+  Target,
+  HeartHandshake,
+  ThumbsUp,
+} from "lucide-react";
 
 interface RecognitionFeedProps {
   companyId?: string;
@@ -24,6 +47,7 @@ type KudosWithProfile = {
   badgeLabel?: string;
   message: string;
   createdAt?: { seconds: number };
+  reactions?: string[]; // Array of user UIDs who reacted
 };
 
 // Map badge labels to Lucide icons
@@ -50,7 +74,7 @@ function timeAgo(date: Date) {
 }
 
 export default function RecognitionFeed({ companyId: propCompanyId }: RecognitionFeedProps) {
-  const { companyId: contextCompanyId } = useAuth();
+  const { user, companyId: contextCompanyId } = useAuth();
   const companyId = propCompanyId || contextCompanyId;
 
   const [kudos, setKudos] = useState<KudosWithProfile[]>([]);
@@ -68,16 +92,33 @@ export default function RecognitionFeed({ companyId: propCompanyId }: Recognitio
     );
 
     const unsubscribe = onSnapshot(q, async (snapshot) => {
-      const result: KudosWithProfile[] = snapshot.docs.map((doc) => ({
-        id: doc.id,
-        ...doc.data(),
-      })) as KudosWithProfile[];
+      const result: KudosWithProfile[] = snapshot.docs.map((doc) => {
+        const data = doc.data();
+        return {
+          id: doc.id,
+          ...data,
+          reactions: Array.isArray(data.reactions) ? data.reactions : [],
+        } as KudosWithProfile;
+      });
       setKudos(result);
       setLoading(false);
     });
 
     return () => unsubscribe();
   }, [companyId]);
+
+  // React to kudos (like 👍)
+  const toggleReaction = async (kudoId: string, hasReacted: boolean) => {
+    if (!user) return;
+    const ref = doc(db, "kudos", kudoId);
+    try {
+      await updateDoc(ref, {
+        reactions: hasReacted ? arrayRemove(user.uid) : arrayUnion(user.uid),
+      });
+    } catch (err) {
+      // optional: add toast for error
+    }
+  };
 
   if (loading)
     return <div className="text-gray-600">Loading recognition feed...</div>;
@@ -99,10 +140,17 @@ export default function RecognitionFeed({ companyId: propCompanyId }: Recognitio
             : new Date();
         const badgeLabel = kudo.badgeLabel || kudo.badge;
         const IconComponent = BADGE_ICONS[badgeLabel] || Star;
+
+        // Reaction logic
+        const reactions: string[] = Array.isArray(kudo.reactions)
+          ? kudo.reactions
+          : [];
+        const userReacted = !!user && reactions.includes(user.uid);
+
         return (
           <li
             key={kudo.id}
-            className="bg-white/90 border border-blue-100 rounded-2xl shadow-lg p-4 flex flex-col sm:flex-row sm:items-center gap-2 animate-fade-in"
+            className="bg-white/90 border border-blue-100 rounded-2xl shadow-lg p-4 flex flex-col sm:flex-row sm:items-center gap-2 animate-fade-in group"
           >
             {/* Giver */}
             <div className="flex items-center gap-2 min-w-[150px]">
@@ -146,6 +194,22 @@ export default function RecognitionFeed({ companyId: propCompanyId }: Recognitio
             <span className="ml-auto text-xs text-gray-400">
               {timeAgo(created)}
             </span>
+
+            {/* Reaction Button */}
+            {user && (
+              <button
+                aria-label={userReacted ? "Remove reaction" : "Give kudos a thumbs up"}
+                className={`flex items-center gap-1 rounded-full px-2 py-1 ml-2 text-xs font-bold 
+                  ${userReacted ? "bg-blue-200 text-blue-700" : "bg-gray-100 text-gray-500 hover:bg-blue-100 hover:text-blue-800"}
+                  border border-gray-200 transition shadow-sm`}
+                onClick={() => toggleReaction(kudo.id, userReacted)}
+                disabled={user.uid === kudo.fromEmail}
+                tabIndex={0}
+              >
+                <ThumbsUp className="w-4 h-4 mr-1 inline" />
+                {reactions.length}
+              </button>
+            )}
           </li>
         );
       })}

@@ -26,16 +26,16 @@ import {
 
 // Use Lucide icons for badge options
 const BADGES = [
-  { label: "Team Player", Icon: Handshake },
-  { label: "Innovator", Icon: Lightbulb },
-  { label: "Leadership", Icon: Users },
-  { label: "Extra Mile", Icon: Star },
-  { label: "Problem Solver", Icon: Award },
-  { label: "Cheerleader", Icon: Smile },
-  { label: "Rockstar", Icon: Trophy },
-  { label: "Customer Hero", Icon: UserCheck },
-  { label: "Sharp Shooter", Icon: Target },
-  { label: "Kindness", Icon: HeartHandshake },
+  { label: "Team Player", Icon: Handshake, emoji: "🤝" },
+  { label: "Innovator", Icon: Lightbulb, emoji: "💡" },
+  { label: "Leadership", Icon: Users, emoji: "🧑‍💼" },
+  { label: "Extra Mile", Icon: Star, emoji: "⭐" },
+  { label: "Problem Solver", Icon: Award, emoji: "🏅" },
+  { label: "Cheerleader", Icon: Smile, emoji: "🎉" },
+  { label: "Rockstar", Icon: Trophy, emoji: "🎸" },
+  { label: "Customer Hero", Icon: UserCheck, emoji: "🙌" },
+  { label: "Sharp Shooter", Icon: Target, emoji: "🎯" },
+  { label: "Kindness", Icon: HeartHandshake, emoji: "💚" },
 ];
 
 interface GiveKudosFormProps {
@@ -60,6 +60,7 @@ export default function GiveKudosForm({
   const [sent, setSent] = useState(false);
 
   const toastTimer = useRef<NodeJS.Timeout | null>(null);
+  const toastRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     if (!companyId || !user) return;
@@ -137,6 +138,7 @@ export default function GiveKudosForm({
       toastTimer.current = setTimeout(() => {
         setShowToast(false);
         setSent(false);
+        toastRef.current?.focus();
       }, 2000);
     } catch (err) {
       if (err instanceof Error) {
@@ -160,8 +162,12 @@ export default function GiveKudosForm({
         max-w-xl w-full
         animate-fade-in
       "
+      aria-labelledby="kudos-header"
     >
-      <h3 className="font-extrabold text-xl flex items-center gap-2 text-green-700 mb-1">
+      <h3
+        id="kudos-header"
+        className="font-extrabold text-xl flex items-center gap-2 text-green-700 mb-1"
+      >
         {sent ? (
           <PartyPopper className="w-6 h-6 text-pink-400 animate-bounce" />
         ) : (
@@ -189,6 +195,7 @@ export default function GiveKudosForm({
               title={b.label}
               onClick={() => setBadge(idx)}
             >
+              <span className="text-2xl mb-1">{b.emoji}</span>
               <b.Icon className="w-7 h-7 mb-1" />
               <span className="text-xs text-gray-600">{b.label}</span>
             </button>
@@ -211,6 +218,8 @@ export default function GiveKudosForm({
               onChange={(e) => setQueryValue(e.target.value)}
               required
               autoComplete="off"
+              aria-autocomplete="list"
+              aria-label="Select a teammate"
             />
             <Combobox.Options className="absolute z-10 mt-1 bg-white rounded-xl shadow-lg w-full border border-gray-100 max-h-56 overflow-auto animate-fade-in-up">
               {filteredEmployees.length === 0 && (
@@ -261,6 +270,7 @@ export default function GiveKudosForm({
           rows={3}
           required
           maxLength={200}
+          aria-label="Kudos message"
         />
       </div>
 
@@ -268,25 +278,28 @@ export default function GiveKudosForm({
         type="submit"
         className="bg-gradient-to-r from-green-600 via-green-500 to-green-700 text-white rounded-xl px-5 py-2 font-bold shadow-md hover:from-green-700 hover:to-green-800 transition-transform hover:scale-105 disabled:opacity-60"
         disabled={loading}
+        aria-disabled={loading}
       >
         {loading ? "Sending..." : sent ? "Kudos Sent!" : "Send Kudos"}
       </button>
 
       {/* Success/Error Toast */}
-      {showToast && success && (
-        <Toast
-          message={success}
-          type="success"
-          onClose={() => setShowToast(false)}
-        />
-      )}
-      {showToast && error && (
-        <Toast
-          message={error}
-          type="error"
-          onClose={() => setShowToast(false)}
-        />
-      )}
+      <div ref={toastRef} tabIndex={-1} aria-live="polite">
+        {showToast && success && (
+          <Toast
+            message={success}
+            type="success"
+            onClose={() => setShowToast(false)}
+          />
+        )}
+        {showToast && error && (
+          <Toast
+            message={error}
+            type="error"
+            onClose={() => setShowToast(false)}
+          />
+        )}
+      </div>
     </form>
   );
 }

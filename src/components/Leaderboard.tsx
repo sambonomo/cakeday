@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { fetchAllUsers, UserProfile } from "../lib/firestoreUsers";
 import { useAuth } from "../context/AuthContext";
 import { Crown, Star, Sparkles, Medal, Award } from "lucide-react";
+import UserAvatar from "./UserAvatar";
 
 // Map badge codes to readable labels and Lucide icons
 const BADGE_DEFS: Record<string, { label: string; Icon: React.ElementType }> = {
@@ -22,7 +23,7 @@ export default function Leaderboard({
   companyId: propCompanyId,
   limit = 10,
 }: LeaderboardProps) {
-  const { companyId: contextCompanyId } = useAuth();
+  const { companyId: contextCompanyId, user: loggedInUser } = useAuth();
   const companyId = propCompanyId || contextCompanyId;
 
   const [users, setUsers] = useState<UserProfile[]>([]);
@@ -35,11 +36,18 @@ export default function Leaderboard({
       // Filter disabled users, sort by points desc, then name
       const ranked = all
         .filter((u) => !u.disabled)
-        .sort((a, b) => (b.points || 0) - (a.points || 0) || (a.fullName || "").localeCompare(b.fullName || ""));
+        .sort(
+          (a, b) =>
+            (b.points || 0) - (a.points || 0) ||
+            (a.fullName || "").localeCompare(b.fullName || "")
+        );
       setUsers(ranked.slice(0, limit));
       setLoading(false);
     });
   }, [companyId, limit]);
+
+  // See if the current user is in the leaderboard list
+  const userOnBoard = loggedInUser && users.find((u) => u.uid === loggedInUser.uid);
 
   if (loading)
     return <div className="text-gray-500">Loading leaderboard...</div>;
@@ -57,60 +65,84 @@ export default function Leaderboard({
         <Crown className="w-7 h-7 text-yellow-400 drop-shadow" /> Kudos Leaderboard
       </h2>
       <ul className="divide-y divide-blue-100">
-        {users.map((u, idx) => (
-          <li
-            key={u.uid}
-            className={`flex items-center gap-4 py-4 px-2 transition-all group ${
-              idx === 0
-                ? "bg-gradient-to-r from-yellow-50 via-blue-50 to-white rounded-xl border-2 border-yellow-300 shadow-lg"
-                : ""
-            }`}
-          >
-            {/* Position / Crown */}
-            <span className="text-xl font-bold w-8 flex-shrink-0 text-center">
-              {idx === 0 ? <Crown className="inline w-7 h-7 text-yellow-400" /> : idx + 1}
-            </span>
-            {/* Avatar */}
-            <span className="w-12 h-12 rounded-full bg-blue-100 flex items-center justify-center font-bold text-lg border-2 border-blue-300 shadow-sm select-none">
-              {u.fullName
-                ? u.fullName
-                    .split(" ")
-                    .map((n) => n[0])
-                    .join("")
-                    .slice(0, 2)
-                    .toUpperCase()
-                : (u.email || "?")[0].toUpperCase()}
-            </span>
-            {/* User Info */}
-            <div className="flex-1 min-w-0">
-              <div className="font-semibold text-blue-800 truncate">{u.fullName || u.email}</div>
-              <div className="text-xs text-gray-400">{u.email}</div>
-              {/* Badges */}
-              <div className="flex gap-2 flex-wrap mt-1">
-                {(u.badges || []).map((b) => {
-                  const badgeDef = BADGE_DEFS[b];
-                  return badgeDef ? (
-                    <span
-                      key={b}
-                      className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-yellow-100 text-yellow-800 border border-yellow-200 gap-1"
-                      title={badgeDef.label}
-                    >
-                      <badgeDef.Icon className="w-4 h-4 text-yellow-400" />
-                      {badgeDef.label}
-                    </span>
-                  ) : null;
-                })}
-              </div>
-            </div>
-            {/* Points */}
-            <div className="flex flex-col items-end justify-center min-w-[60px]">
-              <span className="font-bold text-lg text-blue-900 flex items-center gap-1">
-                <Star className="w-4 h-4 text-yellow-400" /> {u.points || 0}
+        {users.map((u, idx) => {
+          const isTop = idx === 0;
+          const isSelf = loggedInUser && u.uid === loggedInUser.uid;
+          return (
+            <li
+              key={u.uid}
+              className={`
+                flex items-center gap-4 py-4 px-2 transition-all group outline-none
+                ${isTop
+                  ? "bg-gradient-to-r from-yellow-50 via-blue-50 to-white rounded-xl border-2 border-yellow-300 shadow-lg"
+                  : ""}
+                ${isSelf && !isTop
+                  ? "bg-green-50 border border-green-300 rounded-lg shadow"
+                  : ""}
+                focus:ring-2 focus:ring-accent-400
+              `}
+              tabIndex={0}
+              aria-label={
+                `${idx === 0 ? "First place: " : ""}` +
+                (u.fullName || u.email) +
+                `. ${u.points || 0} points.`
+              }
+              title={isSelf ? "You" : u.fullName || u.email}
+            >
+              {/* Position / Crown */}
+              <span className="text-xl font-bold w-8 flex-shrink-0 text-center select-none">
+                {isTop ? (
+                  <Crown className="inline w-7 h-7 text-yellow-400" aria-label="First place" />
+                ) : (
+                  idx + 1
+                )}
               </span>
-              <span className="text-xs text-gray-400">pts</span>
-            </div>
-          </li>
-        ))}
+              {/* Avatar */}
+              <UserAvatar
+                nameOrEmail={u.fullName || u.email}
+                photoURL={typeof u.photoURL === "string" ? u.photoURL : undefined}
+                size={48}
+                className={isSelf ? "ring-2 ring-green-500" : ""}
+              />
+              {/* User Info */}
+              <div className="flex-1 min-w-0">
+                <div className="font-semibold text-blue-800 truncate flex gap-1 items-center">
+                  {u.fullName || u.email}
+                  {isSelf && (
+                    <span className="ml-1 px-2 py-0.5 bg-green-100 text-green-700 rounded text-xs font-bold">
+                      You
+                    </span>
+                  )}
+                </div>
+                <div className="text-xs text-gray-400">{u.email}</div>
+                {/* Badges */}
+                <div className="flex gap-2 flex-wrap mt-1">
+                  {(u.badges || []).map((b) => {
+                    const badgeDef = BADGE_DEFS[b];
+                    return badgeDef ? (
+                      <span
+                        key={b}
+                        className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-yellow-100 text-yellow-800 border border-yellow-200 gap-1"
+                        title={badgeDef.label}
+                        aria-label={badgeDef.label}
+                      >
+                        <badgeDef.Icon className="w-4 h-4 text-yellow-400" />
+                        {badgeDef.label}
+                      </span>
+                    ) : null;
+                  })}
+                </div>
+              </div>
+              {/* Points */}
+              <div className="flex flex-col items-end justify-center min-w-[60px]">
+                <span className="font-bold text-lg text-blue-900 flex items-center gap-1">
+                  <Star className="w-4 h-4 text-yellow-400" /> {u.points || 0}
+                </span>
+                <span className="text-xs text-gray-400">pts</span>
+              </div>
+            </li>
+          );
+        })}
       </ul>
       <div className="mt-4 text-center text-xs text-gray-400">
         Keep sending kudos to climb the leaderboard!

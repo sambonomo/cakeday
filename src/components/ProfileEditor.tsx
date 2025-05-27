@@ -1,9 +1,10 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useAuth } from "../context/AuthContext";
 import { fetchUserProfile, updateUserProfile, UserProfile } from "../lib/firestoreUsers";
 import { getStorage, ref, uploadBytes, getDownloadURL } from "firebase/storage";
+import UserAvatar from "./UserAvatar";
 
 export default function ProfileEditor({
   onDone,
@@ -25,6 +26,7 @@ export default function ProfileEditor({
   const [saving, setSaving] = useState(false);
   const [success, setSuccess] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Fetch profile info on mount
   useEffect(() => {
@@ -100,6 +102,7 @@ export default function ProfileEditor({
       setSuccess("Profile updated!");
       setProfile({ ...profile!, ...form, photoURL: uploadedPhotoURL });
       setPhotoFile(null);
+      if (fileInputRef.current) fileInputRef.current.value = "";
       if (onDone) onDone(true);
     } catch (err) {
       const errMsg = err instanceof Error ? err.message : "Error saving profile.";
@@ -115,31 +118,33 @@ export default function ProfileEditor({
     <form
       onSubmit={handleSave}
       className="flex flex-col gap-4 mb-6 bg-white border rounded-lg p-4 w-full max-w-md shadow"
+      aria-label="Edit your profile"
+      autoComplete="off"
     >
-      <h2 className="text-xl font-semibold text-blue-700">Edit Your Profile</h2>
+      <h2 className="text-xl font-semibold text-blue-700 mb-2">Edit Your Profile</h2>
       {/* Profile Photo Upload */}
-      <label className="font-medium flex flex-col gap-2">
+      <label className="font-medium flex flex-col gap-2" htmlFor="photo-upload">
         Profile Photo
         <div className="flex items-center gap-4">
           {preview ? (
             <img
               src={preview}
               alt="Profile Preview"
-              className="rounded-full border object-cover"
+              className={`rounded-full border object-cover ${saving ? "opacity-50" : ""}`}
               style={{ width: 64, height: 64 }}
             />
           ) : (
-            <div
-              className="rounded-full bg-gray-200 border"
-              style={{ width: 64, height: 64 }}
-            />
+            <UserAvatar nameOrEmail={user?.fullName || user?.email || "?"} size={64} />
           )}
           <input
+            id="photo-upload"
+            ref={fileInputRef}
             type="file"
             accept="image/*"
             onChange={handlePhotoChange}
             className="text-sm"
             disabled={saving}
+            aria-label="Upload profile photo"
           />
         </div>
       </label>
@@ -184,7 +189,6 @@ export default function ProfileEditor({
           className="p-2 border border-gray-300 rounded w-full mt-1"
           onChange={handleChange}
           max={new Date().toISOString().split("T")[0]}
-          required
         />
       </label>
       <label className="font-medium">
@@ -196,18 +200,22 @@ export default function ProfileEditor({
           className="p-2 border border-gray-300 rounded w-full mt-1"
           onChange={handleChange}
           max={new Date().toISOString().split("T")[0]}
-          required
         />
       </label>
       <button
         type="submit"
         className="bg-blue-600 text-white rounded px-4 py-2 hover:bg-blue-700 transition disabled:opacity-60"
         disabled={saving || !hasChanges}
+        aria-disabled={saving || !hasChanges}
       >
         {saving ? "Saving..." : "Save"}
       </button>
-      {!onDone && success && <div className="text-green-600">{success}</div>}
-      {!onDone && error && <div className="text-red-600">{error}</div>}
+      {!onDone && success && (
+        <div className="text-green-600" role="status">{success}</div>
+      )}
+      {!onDone && error && (
+        <div className="text-red-600" role="alert">{error}</div>
+      )}
     </form>
   );
 }

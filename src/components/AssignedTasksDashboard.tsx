@@ -19,6 +19,7 @@ import {
   Users2,
   PartyPopper,
   ClipboardCheck,
+  AlertTriangle,
 } from "lucide-react";
 
 type UserTaskAssignment = {
@@ -64,6 +65,7 @@ export default function AssignedTasksDashboard() {
   const [docs, setDocs] = useState<DocInfo[]>([]);
   const [loading, setLoading] = useState(true);
   const [toast, setToast] = useState<string | null>(null);
+  const [markingId, setMarkingId] = useState<string | null>(null);
 
   useEffect(() => {
     if (!user || !companyId) return;
@@ -112,11 +114,12 @@ export default function AssignedTasksDashboard() {
       setLoading(false);
     };
     fetchData();
-  }, [user, companyId, toast]);
+    // eslint-disable-next-line
+  }, [user, companyId]);
 
   // Mark task complete
   async function markComplete(assignmentId: string) {
-    setLoading(true);
+    setMarkingId(assignmentId);
     try {
       await updateDoc(doc(db, "userTaskAssignments", assignmentId), {
         completed: true,
@@ -133,7 +136,7 @@ export default function AssignedTasksDashboard() {
     } catch (err: any) {
       setToast(err.message || "Could not update task.");
     }
-    setLoading(false);
+    setMarkingId(null);
   }
 
   // Group tasks by new hire
@@ -142,6 +145,26 @@ export default function AssignedTasksDashboard() {
     if (!grouped[a.newHireId]) grouped[a.newHireId] = [];
     grouped[a.newHireId].push(a);
   });
+
+  // Helper for overdue detection
+  const isOverdue = (t: UserTaskAssignment) => {
+    if (!t.dueDate || t.completed) return false;
+    // Firestore Timestamp or JS Date or string
+    let due: Date | null = null;
+    if (typeof t.dueDate?.toDate === "function") {
+      due = t.dueDate.toDate();
+    } else if (typeof t.dueDate === "string" || t.dueDate instanceof Date) {
+      due = new Date(t.dueDate);
+    }
+    if (!due) return false;
+    const now = new Date();
+    now.setHours(0,0,0,0);
+    due.setHours(0,0,0,0);
+    return due < now;
+  };
+
+  const totalAssigned = assignments.length;
+  const totalCompleted = assignments.filter(t => t.completed).length;
 
   if (loading) {
     return (
@@ -170,6 +193,13 @@ export default function AssignedTasksDashboard() {
       <div className="text-sm text-gray-500 mb-6">
         These are onboarding steps you are responsible for (as manager, IT, or assignee).
       </div>
+
+      {totalAssigned === totalCompleted && (
+        <div className="flex items-center gap-2 mb-4 p-3 bg-green-50 rounded-lg border border-green-200 text-green-700 font-semibold shadow">
+          <CheckCircle2 className="w-5 h-5" />
+          🎉 All assigned onboarding tasks are complete!
+        </div>
+      )}
 
       {Object.entries(grouped).map(([newHireId, tasks]) => {
         const newHire =
@@ -201,12 +231,15 @@ export default function AssignedTasksDashboard() {
                   const docLink = t.documentId
                     ? docs.find((d) => d.id === t.documentId)
                     : null;
+                  const overdue = isOverdue(t);
                   return (
                     <li
                       key={t.id}
                       className={`flex flex-col md:flex-row md:items-center gap-3 p-3 rounded border ${
                         t.completed
                           ? "bg-green-50 border-green-300 opacity-80"
+                          : overdue
+                          ? "bg-red-50 border-red-300 animate-pulse"
                           : "bg-white border-gray-200"
                       }`}
                     >
@@ -214,6 +247,8 @@ export default function AssignedTasksDashboard() {
                         <div className="font-semibold flex items-center gap-2">
                           {t.completed ? (
                             <CheckCircle2 className="text-green-500 w-5 h-5" />
+                          ) : overdue ? (
+                            <AlertTriangle className="text-red-500 w-5 h-5" />
                           ) : (
                             <Clock8 className="text-yellow-400 w-5 h-5" />
                           )}
@@ -223,9 +258,23 @@ export default function AssignedTasksDashboard() {
                               {t.department}
                             </span>
                           )}
-                          {typeof t.dueDate === "object" && t.dueDate?.toDate && (
-                            <span className="ml-2 px-2 py-0.5 bg-yellow-50 text-yellow-700 text-xs rounded">
-                              Due: {t.dueDate.toDate().toLocaleDateString()}
+                          {t.dueDate && (
+                            <span className={`ml-2 px-2 py-0.5 text-xs rounded
+                              ${overdue
+                                ? "bg-red-200 text-red-700 font-bold"
+                                : "bg-yellow-50 text-yellow-700"}`}>
+                              {overdue
+                                ? "Overdue"
+                                : (() => {
+                                    if (typeof t.dueDate?.toDate === "function") {
+                                      return `Due: ${t.dueDate.toDate().toLocaleDateString()}`;
+                                    }
+                                    if (typeof t.dueDate === "string" || t.dueDate instanceof Date) {
+                                      return `Due: ${new Date(t.dueDate).toLocaleDateString()}`;
+                                    }
+                                    return "";
+                                  })()
+                              }
                             </span>
                           )}
                           {docLink && (
@@ -249,8 +298,10 @@ export default function AssignedTasksDashboard() {
                           <button
                             className="bg-green-600 text-white px-4 py-2 rounded font-bold hover:bg-green-700 transition text-xs"
                             onClick={() => markComplete(t.id)}
+                            disabled={!!markingId}
+                            aria-disabled={!!markingId}
                           >
-                            Mark Complete
+                            {markingId === t.id ? "Marking..." : "Mark Complete"}
                           </button>
                         )}
                         {t.completed && t.completedAt && (
