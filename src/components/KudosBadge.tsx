@@ -8,11 +8,9 @@ interface KudosBadgeProps {
   size?: "sm" | "md" | "lg";
   className?: string;
   showLabel?: boolean;
-  emoji?: string; // Optional emoji for visual fun
   colorClass?: string; // Optional custom color
 }
 
-// Icon size mapping for consistency
 const sizeMap = {
   sm: "w-4 h-4",
   md: "w-6 h-6",
@@ -25,25 +23,18 @@ export default function KudosBadge({
   size = "md",
   className = "",
   showLabel = false,
-  emoji,
   colorClass = "text-green-600",
 }: KudosBadgeProps) {
   return (
     <span
       className={`
-        inline-flex items-center gap-2 bg-green-50 border border-green-200
-        rounded-full px-2 py-1 shadow-sm hover:shadow-md transition
-        outline-none focus-visible:ring-2 focus-visible:ring-green-400 ${className}
+        inline-flex items-center gap-2
+        ${className}
       `}
       aria-label={label || "Kudos badge"}
       title={label}
       tabIndex={0}
     >
-      {emoji && (
-        <span className="text-lg" aria-hidden="true">
-          {emoji}
-        </span>
-      )}
       {Icon && (
         <Icon
           className={sizeMap[size] + ` ${colorClass} flex-shrink-0`}

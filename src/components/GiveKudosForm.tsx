@@ -9,6 +9,7 @@ import { db } from "../lib/firebase";
 import type { UserProfile } from "../lib/firestoreUsers";
 import UserAvatar from "./UserAvatar";
 import Toast from "./Toast";
+import KudosBadge from "./KudosBadge";
 import {
   Sparkles,
   PartyPopper,
@@ -24,17 +25,18 @@ import {
   Smile,
 } from "lucide-react";
 
+// NO emoji in the picker (only Lucide icons)
 const BADGES = [
-  { label: "Team Player", Icon: Handshake, emoji: "🤝" },
-  { label: "Innovator", Icon: Lightbulb, emoji: "💡" },
-  { label: "Leadership", Icon: Users, emoji: "🧑‍💼" },
-  { label: "Extra Mile", Icon: Star, emoji: "⭐" },
-  { label: "Problem Solver", Icon: Award, emoji: "🏅" },
-  { label: "Cheerleader", Icon: Smile, emoji: "🎉" },
-  { label: "Rockstar", Icon: Trophy, emoji: "🎸" },
-  { label: "Customer Hero", Icon: UserCheck, emoji: "🙌" },
-  { label: "Sharp Shooter", Icon: Target, emoji: "🎯" },
-  { label: "Kindness", Icon: HeartHandshake, emoji: "💚" },
+  { label: "Team Player", Icon: Handshake },
+  { label: "Innovator", Icon: Lightbulb },
+  { label: "Leadership", Icon: Users },
+  { label: "Extra Mile", Icon: Star },
+  { label: "Problem Solver", Icon: Award },
+  { label: "Cheerleader", Icon: Smile },
+  { label: "Rockstar", Icon: Trophy },
+  { label: "Customer Hero", Icon: UserCheck },
+  { label: "Sharp Shooter", Icon: Target },
+  { label: "Kindness", Icon: HeartHandshake },
 ];
 
 interface GiveKudosFormProps {
@@ -74,12 +76,11 @@ export default function GiveKudosForm({
         uid: doc.id,
         ...doc.data(),
       })) as UserProfile[];
-      setEmployees(list.filter((e) => e.uid !== user?.uid)); // Don't allow sending to self
+      setEmployees(list.filter((e) => e.uid !== user?.uid));
     };
     fetchEmployees();
   }, [user?.uid, companyId, user]);
 
-  // Focus message input after recipient change for fast sending
   useEffect(() => {
     if (toUid && messageInputRef.current) {
       messageInputRef.current.focus();
@@ -139,7 +140,7 @@ export default function GiveKudosForm({
         toName,
         toPhotoURL,
       });
-      setSuccess(`${BADGES[badge].emoji} Kudos sent!`);
+      setSuccess("Kudos sent!");
       setShowToast(true);
       setToUid(null);
       setQueryValue("");
@@ -170,53 +171,47 @@ export default function GiveKudosForm({
     <form
       onSubmit={handleSubmit}
       className="
-        flex flex-col gap-6 mb-8 bg-white/90 rounded-2xl shadow-lg p-6
-        border border-green-100 backdrop-blur-sm
-        max-w-xl w-full
-        animate-fade-in
+        flex flex-col gap-6 mb-8 bg-white/90 rounded-2xl shadow p-7
+        border border-gray-100 max-w-lg w-full animate-fade-in
       "
       aria-labelledby="kudos-header"
     >
       <h3
         id="kudos-header"
-        className="font-extrabold text-xl flex items-center gap-2 text-green-700 mb-1"
+        className="font-extrabold text-xl flex items-center gap-2 text-green-700 mb-2"
       >
-        {sent ? (
-          <PartyPopper className="w-6 h-6 text-pink-400 animate-bounce" />
-        ) : (
-          <Sparkles className="w-6 h-6 text-yellow-400" />
-        )}
+        <Sparkles className="w-6 h-6 text-yellow-400" />
         Give Kudos
       </h3>
 
       {/* Badge Picker */}
       <div>
-        <label className="block font-medium mb-1">Badge</label>
-        <div className="grid grid-cols-5 gap-2 mb-1">
+        <label className="block font-medium mb-2">Badge</label>
+        <div className="flex flex-wrap gap-2">
           {BADGES.map((b, idx) => (
             <button
               key={b.label}
               type="button"
-              className={`flex flex-col items-center justify-center rounded-xl px-0.5 py-2 border-2 cursor-pointer transition-all duration-150 focus:outline-none text-green-700
-                ${
-                  badge === idx
-                    ? "bg-green-100 border-green-600 scale-105 shadow"
-                    : "bg-gray-50 border-gray-200 hover:scale-105 hover:border-green-400"
-                }`}
+              className={`
+                flex flex-col items-center justify-center
+                rounded-lg px-2 py-2 border-2 transition-all duration-150 focus:outline-none
+                ${badge === idx
+                  ? "bg-green-50 border-green-600 shadow-md scale-105"
+                  : "bg-white border-gray-200 hover:border-green-400"}
+              `}
               aria-label={b.label}
               tabIndex={0}
               title={b.label}
               onClick={() => setBadge(idx)}
             >
-              <span className="text-2xl mb-1">{b.emoji}</span>
-              <b.Icon className="w-7 h-7 mb-1" />
-              <span className="text-xs text-gray-600">{b.label}</span>
+              <KudosBadge Icon={b.Icon} size="lg" />
+              <span className="text-xs mt-1 font-semibold text-gray-700">{b.label}</span>
             </button>
           ))}
         </div>
       </div>
 
-      {/* Recipient Selection (Combobox) */}
+      {/* Recipient Selection */}
       <div>
         <label className="block font-medium mb-1">Recipient</label>
         <Combobox value={toUid} onChange={setToUid} nullable>
