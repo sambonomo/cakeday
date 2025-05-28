@@ -90,7 +90,7 @@ export default function RecognitionFeed({ companyId: propCompanyId }: Recognitio
       orderBy("createdAt", "desc")
     );
 
-    const unsubscribe = onSnapshot(q, async (snapshot) => {
+    const unsubscribe = onSnapshot(q, (snapshot) => {
       const result: KudosWithProfile[] = snapshot.docs.map((doc) => {
         const data = doc.data();
         return {
@@ -120,18 +120,20 @@ export default function RecognitionFeed({ companyId: propCompanyId }: Recognitio
   };
 
   if (loading)
-    return <div className="text-gray-600 py-8">Loading recognition feed...</div>;
+    return (
+      <div className="text-gray-600 py-8 text-center">Loading recognition feed...</div>
+    );
 
   if (kudos.length === 0)
     return (
-      <div className="text-gray-500 flex flex-col items-center py-8">
-        <PartyPopper className="w-8 h-8 mb-2 text-blue-400" />
+      <div className="text-gray-400 flex flex-col items-center py-10 text-base">
+        <PartyPopper className="w-8 h-8 mb-2 text-accent-400" />
         No kudos given yet. Be the first to celebrate a teammate!
       </div>
     );
 
   return (
-    <ul className="flex flex-col gap-2" aria-live="polite">
+    <ul className="flex flex-col gap-1" aria-live="polite">
       {kudos.map((kudo) => {
         const created =
           kudo.createdAt?.seconds !== undefined
@@ -152,33 +154,33 @@ export default function RecognitionFeed({ companyId: propCompanyId }: Recognitio
           <li
             key={kudo.id}
             className={`
-              rounded-xl group px-3 py-4 transition
               flex flex-col sm:flex-row sm:items-center gap-2
-              hover:bg-blue-50 focus-within:bg-blue-50
-              border-b border-blue-50 last:border-b-0
-              outline-none
+              px-0 py-3 transition
+              hover:bg-accent-50 focus-within:bg-accent-50
+              border-b border-accent-100 last:border-b-0
+              outline-none group
             `}
             tabIndex={0}
             aria-label={`${kudo.fromName || kudo.fromEmail} gave kudos to ${kudo.toName || kudo.toEmail}: ${kudo.message}`}
           >
             {/* Giver */}
-            <div className="flex items-center gap-2 min-w-[140px]">
+            <div className="flex items-center gap-2 min-w-[120px]">
               <UserAvatar
                 nameOrEmail={kudo.fromName || kudo.fromEmail}
                 photoURL={kudo.fromPhotoURL}
-                size={34}
+                size={32}
               />
-              <span className="font-semibold text-blue-700">{kudo.fromName || kudo.fromEmail}</span>
+              <span className="font-semibold text-blue-700 truncate max-w-[110px]">{kudo.fromName || kudo.fromEmail}</span>
             </div>
             <span className="text-gray-500 text-xs font-medium px-1">gave kudos to</span>
             {/* Recipient */}
-            <div className="flex items-center gap-2 min-w-[140px]">
+            <div className="flex items-center gap-2 min-w-[120px]">
               <UserAvatar
                 nameOrEmail={kudo.toName || kudo.toEmail}
                 photoURL={kudo.toPhotoURL}
-                size={34}
+                size={32}
               />
-              <span className="font-semibold text-green-700">{kudo.toName || kudo.toEmail}</span>
+              <span className="font-semibold text-green-700 truncate max-w-[110px]">{kudo.toName || kudo.toEmail}</span>
             </div>
 
             {/* Badge */}
@@ -199,7 +201,7 @@ export default function RecognitionFeed({ companyId: propCompanyId }: Recognitio
             </span>
 
             {/* Time */}
-            <span className="ml-auto text-xs text-gray-400 whitespace-nowrap">
+            <span className="ml-auto text-xs text-gray-400 whitespace-nowrap min-w-[60px] text-right">
               {timeAgo(created)}
             </span>
 

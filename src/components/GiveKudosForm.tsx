@@ -24,6 +24,7 @@ import {
   Smile,
 } from "lucide-react";
 
+// BADGES: No emoji in grid, only in toast
 const BADGES = [
   { label: "Team Player", Icon: Handshake, emoji: "🤝" },
   { label: "Innovator", Icon: Lightbulb, emoji: "💡" },
@@ -74,12 +75,11 @@ export default function GiveKudosForm({
         uid: doc.id,
         ...doc.data(),
       })) as UserProfile[];
-      setEmployees(list.filter((e) => e.uid !== user?.uid)); // Don't allow sending to self
+      setEmployees(list.filter((e) => e.uid !== user?.uid)); // Can't send to self
     };
     fetchEmployees();
   }, [user?.uid, companyId, user]);
 
-  // Focus message input after recipient change
   useEffect(() => {
     if (toUid && messageInputRef.current) {
       messageInputRef.current.focus();
@@ -138,7 +138,7 @@ export default function GiveKudosForm({
         toName,
         toPhotoURL,
       });
-      setSuccess(`${BADGES[badge].emoji || "🎉"} Kudos sent to ${toName}!`);
+      setSuccess(`${BADGES[badge].emoji || "🎉"} Kudos sent!`);
       setShowToast(true);
       setToUid(null);
       setQueryValue("");

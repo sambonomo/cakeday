@@ -4,7 +4,7 @@ import React, { useEffect, useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "../../context/AuthContext";
 import dynamic from "next/dynamic";
-import { doc, getDoc } from "firebase/firestore";
+import { doc, getDoc, collection, query, where, getDocs } from "firebase/firestore";
 import { db } from "../../lib/firebase";
 import { fetchAllUsers, getUpcomingEvents, UserEvent } from "../../lib/firestoreUsers";
 import Toast from "../../components/Toast";
@@ -20,7 +20,6 @@ import {
   Wrench,
 } from "lucide-react";
 
-// Dynamic imports for client-side only components
 const OnboardingChecklist = dynamic(() => import("../../components/OnboardingChecklist"), { ssr: false });
 const OffboardingChecklist = dynamic(() => import("../../components/OffboardingChecklist"), { ssr: false });
 const AssignedTasksDashboard = dynamic(() => import("../../components/AssignedTasksDashboard"), { ssr: false });
@@ -33,18 +32,18 @@ export default function DashboardPage(): React.ReactElement {
   const { user, role, logout, loading, companyId } = useAuth();
   const router = useRouter();
 
-  // Invite Code State (for admins)
   const [inviteCode, setInviteCode] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
 
-  // Today’s Event Toast state
   const [todayEvents, setTodayEvents] = useState<UserEvent[]>([]);
   const [showTodayToast, setShowTodayToast] = useState<boolean>(true);
 
-  // Onboarding visibility & progress
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [onboardingIncomplete, setOnboardingIncomplete] = useState(false);
   const [showOnboardingNudge, setShowOnboardingNudge] = useState(false);
+
+  // For assigned tasks panel visibility
+  const [hasAssignedTasks, setHasAssignedTasks] = useState(false);
 
   // Confirm logout dialog & focus trap
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
@@ -82,19 +81,25 @@ export default function DashboardPage(): React.ReactElement {
   // --- Onboarding visibility logic ---
   useEffect(() => {
     async function checkOnboarding() {
-      if (user && companyId && (user.status === "newHire" || user.status === "active")) {
-        // userTaskProgress/{companyId}_{user.uid}
+      // Only admins, managers, or new hires should see onboarding checklist
+      const isManager = role === "manager";
+      const isAdmin = role === "admin";
+      const isNewHire = user?.status === "newHire";
+      const isActive = user?.status === "active";
+
+      if (user && companyId && (isAdmin || isManager || isNewHire || isActive)) {
+        // Only show for admins, managers, or the user if status is newHire or active
         const progressDoc = await getDoc(doc(db, "userTaskProgress", `${companyId}_${user.uid}`));
         if (progressDoc.exists()) {
           const data = progressDoc.data() || {};
-          const hasIncomplete = Object.values(data).some(v => v === false);
+          const hasIncomplete = Object.values(data).some((v) => v === false);
           setOnboardingIncomplete(hasIncomplete);
-          setShowOnboarding(hasIncomplete);
-          setShowOnboardingNudge(hasIncomplete);
+          setShowOnboarding((isAdmin || isManager || isNewHire) && hasIncomplete);
+          setShowOnboardingNudge((isAdmin || isManager || isNewHire) && hasIncomplete);
         } else {
           setOnboardingIncomplete(true);
-          setShowOnboarding(true);
-          setShowOnboardingNudge(true);
+          setShowOnboarding(isAdmin || isManager || isNewHire);
+          setShowOnboardingNudge(isAdmin || isManager || isNewHire);
         }
       } else {
         setOnboardingIncomplete(false);
@@ -103,9 +108,28 @@ export default function DashboardPage(): React.ReactElement {
       }
     }
     checkOnboarding();
-  }, [user, companyId]);
+  }, [user, companyId, role]);
 
-  // Focus trap for logout modal
+  // Determine if user has assigned onboarding/offboarding tasks
+  useEffect(() => {
+    async function checkAssignedTasks() {
+      if (!user?.uid || !companyId) {
+        setHasAssignedTasks(false);
+        return;
+      }
+      // Check onboarding assignments
+      const onboardingQ = query(
+        collection(db, "userTaskAssignments"),
+        where("companyId", "==", companyId),
+        where("assignedTo", "==", user.uid)
+      );
+      const onboardingSnap = await getDocs(onboardingQ);
+      // Check offboarding assignments (if you use a similar collection, add it here)
+      setHasAssignedTasks(onboardingSnap.size > 0);
+    }
+    checkAssignedTasks();
+  }, [user, companyId, onboardingIncomplete]);
+
   useEffect(() => {
     if (showLogoutConfirm && logoutConfirmRef.current) {
       logoutConfirmRef.current.focus();
@@ -138,6 +162,8 @@ export default function DashboardPage(): React.ReactElement {
 
   const isExiting = user.status === "exiting";
   const displayName = user.fullName || user.email || "User";
+  const isAdmin = role === "admin";
+  const isManager = role === "manager";
 
   // Left panel: Onboarding or Offboarding
   const leftPanel = showOnboarding ? (
@@ -163,8 +189,8 @@ export default function DashboardPage(): React.ReactElement {
     </section>
   ) : null;
 
-  // Assigned tasks (for all users)
-  const assignedSection = (
+  // Only show assigned tasks if the user has any assigned
+  const assignedSection = hasAssignedTasks ? (
     <section className="card-panel border-blue-100">
       <h2 className="text-2xl font-bold flex items-center gap-2 text-blue-700">
         <FolderKanban className="w-6 h-6 text-blue-400" aria-hidden="true" />
@@ -172,9 +198,8 @@ export default function DashboardPage(): React.ReactElement {
       </h2>
       <AssignedTasksDashboard />
     </section>
-  );
+  ) : null;
 
-  // Events / Celebrations
   const eventsSection = (
     <section className="card-panel border-accent-100">
       <h2 className="text-2xl font-bold flex items-center gap-2 text-accent-700">
@@ -185,7 +210,6 @@ export default function DashboardPage(): React.ReactElement {
     </section>
   );
 
-  // Admin Onboarding Tasks panel
   const adminPanel = (
     <section className="w-full card-panel border-brand-200 shadow-2xl items-center mt-8">
       <h2 className="text-xl font-semibold mb-3 text-brand-800 flex items-center gap-2">
@@ -196,14 +220,12 @@ export default function DashboardPage(): React.ReactElement {
     </section>
   );
 
-  // Highlight active nav link (Directory as an example)
   const isActiveRoute = (path: string) =>
     typeof window !== "undefined" && window.location.pathname === path;
 
   return (
     <div className="flex flex-col min-h-screen bg-gradient-to-tr from-white via-brand-50 to-accent-50">
-      {/* Invite Code Bar for Admins */}
-      {role === "admin" && inviteCode && (
+      {isAdmin && inviteCode && (
         <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-4 mb-5 max-w-2xl mx-auto mt-6 flex flex-col sm:flex-row items-center justify-between gap-3 shadow">
           <div>
             <span className="font-bold text-yellow-700">Company Invite Code:</span>{" "}
@@ -307,8 +329,10 @@ export default function DashboardPage(): React.ReactElement {
         {/* Task panels & Events */}
         <section className="grid grid-cols-1 md:grid-cols-2 gap-10">
           <div>
+            {/* Only show onboarding for admin/manager/newHire, not basic users */}
             {showOnboarding && leftPanel}
             {isExiting && leftPanel}
+            {/* Assigned tasks only if you have some */}
             {assignedSection}
           </div>
           <div>{eventsSection}</div>
@@ -339,7 +363,7 @@ export default function DashboardPage(): React.ReactElement {
         </section>
 
         {/* Admin panel (onboarding tasks) */}
-        {role === "admin" && adminPanel}
+        {isAdmin && adminPanel}
       </main>
 
       <footer className="py-6 text-center text-xs text-gray-500 bg-gradient-to-br from-brand-100 via-accent-50 to-white border-t border-brand-100 mt-10 w-full">

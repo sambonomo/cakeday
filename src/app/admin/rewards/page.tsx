@@ -168,17 +168,28 @@ export default function AdminRewardsPage() {
   }
 
   return (
-    <div className="max-w-3xl mx-auto mt-12 mb-10 bg-white p-8 rounded-3xl shadow-2xl">
-      <h1 className="text-3xl font-bold text-blue-700 mb-6 flex items-center gap-2">
-        🎁 Company Rewards Catalog
-      </h1>
-      <form onSubmit={handleSubmit} className="flex flex-col md:flex-row gap-6 mb-8" aria-label={editId ? "Edit Reward" : "Add Reward"}>
+    <div className="max-w-3xl mx-auto mt-12 mb-10 bg-white/90 border border-blue-100 rounded-2xl shadow-lg p-0 animate-fade-in">
+      <div className="px-8 pt-8 pb-3 border-b border-blue-50 bg-gradient-to-r from-blue-50 via-white to-blue-100 rounded-t-2xl">
+        <h1 className="text-2xl font-bold text-blue-700 flex items-center gap-2 mb-1">
+          🎁 Company Rewards Catalog
+        </h1>
+        <div className="text-sm text-blue-500 mb-2">
+          Add, update, and remove available rewards for your team.
+        </div>
+      </div>
+
+      {/* Add/Edit form */}
+      <form
+        onSubmit={handleSubmit}
+        className="flex flex-col md:flex-row gap-6 p-8 pb-4"
+        aria-label={editId ? "Edit Reward" : "Add Reward"}
+      >
         <div className="flex-1 flex flex-col gap-2">
           <input
             type="text"
             name="name"
             placeholder="Reward Name (e.g. $10 Gift Card)"
-            className="p-3 border rounded-lg"
+            className="p-2 border border-gray-200 rounded"
             value={form.name || ""}
             onChange={handleFormChange}
             required
@@ -189,7 +200,7 @@ export default function AdminRewardsPage() {
           <textarea
             name="description"
             placeholder="Description (optional)"
-            className="p-3 border rounded-lg"
+            className="p-2 border border-gray-200 rounded"
             value={form.description || ""}
             onChange={handleFormChange}
             maxLength={160}
@@ -201,7 +212,7 @@ export default function AdminRewardsPage() {
             type="text"
             name="imageUrl"
             placeholder="Image URL (optional)"
-            className="p-3 border rounded-lg"
+            className="p-2 border border-gray-200 rounded"
             value={form.imageUrl || ""}
             onChange={handleFormChange}
             maxLength={300}
@@ -209,13 +220,13 @@ export default function AdminRewardsPage() {
             aria-label="Image URL"
           />
         </div>
-        <div className="flex flex-col gap-2 md:w-52">
+        <div className="flex flex-col gap-2 md:w-48">
           <input
             type="number"
             name="pointsCost"
             min={1}
             placeholder="Points"
-            className="p-3 border rounded-lg"
+            className="p-2 border border-gray-200 rounded"
             value={form.pointsCost === undefined ? "" : form.pointsCost}
             onChange={handleFormChange}
             required
@@ -227,7 +238,7 @@ export default function AdminRewardsPage() {
             name="quantity"
             min={0}
             placeholder="Quantity (leave blank = unlimited)"
-            className="p-3 border rounded-lg"
+            className="p-2 border border-gray-200 rounded"
             value={form.quantity === undefined || form.quantity === null ? "" : form.quantity}
             onChange={handleFormChange}
             disabled={saving}
@@ -235,7 +246,7 @@ export default function AdminRewardsPage() {
           />
           <button
             type="submit"
-            className="bg-blue-600 text-white px-5 py-2 rounded-lg font-bold hover:bg-blue-700 mt-2 transition disabled:opacity-60"
+            className="bg-blue-600 text-white rounded-lg px-4 py-2 font-bold shadow hover:bg-blue-700 transition disabled:opacity-60 mt-1"
             disabled={saving}
             aria-disabled={saving}
           >
@@ -244,7 +255,7 @@ export default function AdminRewardsPage() {
           {editId && (
             <button
               type="button"
-              className="border border-gray-300 text-gray-700 rounded-lg px-4 py-2 font-semibold hover:bg-gray-200 transition mt-1"
+              className="border border-gray-300 text-gray-700 rounded-lg px-4 py-2 font-semibold hover:bg-gray-100 transition mt-1"
               onClick={cancelEdit}
               aria-label="Cancel Edit"
               disabled={saving}
@@ -254,31 +265,34 @@ export default function AdminRewardsPage() {
           )}
         </div>
       </form>
+
       {error && <Toast message={error} type="error" onClose={() => setError(null)} />}
       {success && <Toast message={success} type="success" onClose={() => setSuccess(null)} />}
 
-      <h2 className="text-xl font-semibold mb-3 mt-6">All Rewards</h2>
-      {loading ? (
-        <div className="text-gray-600">Loading rewards...</div>
-      ) : rewards.length === 0 ? (
-        <div className="text-gray-400 italic">No rewards created yet.</div>
-      ) : (
-        <div className="overflow-x-auto">
-          <table className="min-w-full border text-sm" aria-label="Company Rewards Table">
+      <div className="px-8 pb-3 pt-4 border-b border-blue-50 bg-blue-50/40">
+        <h2 className="text-lg font-semibold mb-1">All Rewards</h2>
+      </div>
+      <div className="overflow-x-auto px-2 pb-6 pt-2">
+        {loading ? (
+          <div className="text-gray-600 px-2 py-8">Loading rewards...</div>
+        ) : rewards.length === 0 ? (
+          <div className="text-gray-400 italic px-2 py-6">No rewards created yet.</div>
+        ) : (
+          <table className="min-w-full text-sm bg-transparent" aria-label="Company Rewards Table">
             <thead>
-              <tr className="bg-gray-100">
-                <th className="py-2 px-3">Reward</th>
-                <th className="py-2 px-3">Cost</th>
-                <th className="py-2 px-3">Qty</th>
+              <tr className="bg-white border-b border-blue-50">
+                <th className="py-2 px-3 text-left font-semibold text-blue-700">Reward</th>
+                <th className="py-2 px-3 text-left font-semibold text-blue-700">Cost</th>
+                <th className="py-2 px-3 text-left font-semibold text-blue-700">Qty</th>
                 <th className="py-2 px-3"></th>
               </tr>
             </thead>
             <tbody>
               {rewards.map((r) => (
-                <tr key={r.id} className="border-t">
-                  <td className="py-2 px-3 font-semibold flex items-center gap-2 min-w-[140px]">
+                <tr key={r.id} className="border-b border-blue-50 last:border-b-0 hover:bg-blue-50/30 transition">
+                  <td className="py-2 px-3 font-medium flex items-center gap-2 min-w-[140px]">
                     {r.imageUrl && (
-                      <img src={r.imageUrl} alt="" className="w-9 h-9 rounded object-cover border" />
+                      <img src={r.imageUrl} alt="" className="w-8 h-8 rounded object-cover border" />
                     )}
                     <div>
                       <div>{r.name}</div>
@@ -293,7 +307,7 @@ export default function AdminRewardsPage() {
                       <span className="text-gray-500">Unlimited</span>
                     ) : r.quantity}
                   </td>
-                  <td className="py-2 px-3 flex gap-2 min-w-[100px]">
+                  <td className="py-2 px-3 flex gap-2 min-w-[90px]">
                     <button
                       className="text-blue-600 hover:underline text-xs"
                       onClick={() => startEdit(r)}
@@ -315,8 +329,8 @@ export default function AdminRewardsPage() {
               ))}
             </tbody>
           </table>
-        </div>
-      )}
+        )}
+      </div>
     </div>
   );
 }

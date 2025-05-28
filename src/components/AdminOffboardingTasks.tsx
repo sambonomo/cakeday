@@ -29,7 +29,7 @@ import {
   FileText,
   ClipboardCheck,
   PartyPopper,
-  Download,
+  Shield,
 } from "lucide-react";
 import Toast from "./Toast";
 
@@ -70,8 +70,10 @@ const SEND_WHEN_OPTIONS = [
 ];
 
 export default function AdminOffboardingTasks({ companyId: propCompanyId }: { companyId?: string }) {
-  const { companyId: contextCompanyId } = useAuth();
+  const { companyId: contextCompanyId, role, loading: authLoading } = useAuth();
   const companyId = propCompanyId || contextCompanyId;
+
+  const isAdmin = role === "admin";
 
   const [tasks, setTasks] = useState<OffboardingTask[]>([]);
   const [docs, setDocs] = useState<DocInfo[]>([]);
@@ -96,7 +98,7 @@ export default function AdminOffboardingTasks({ companyId: propCompanyId }: { co
 
   // Fetch company docs (offboarding/general)
   useEffect(() => {
-    if (!companyId) return;
+    if (!companyId || !isAdmin) return;
     getDocs(
       query(
         collection(db, "documents"),
@@ -112,11 +114,14 @@ export default function AdminOffboardingTasks({ companyId: propCompanyId }: { co
           .filter((d) => d.category === "offboarding" || d.category === "general")
       );
     });
-  }, [companyId]);
+  }, [companyId, isAdmin]);
 
   // Real-time Firestore subscription for offboarding tasks
   useEffect(() => {
-    if (!companyId) return;
+    if (!companyId || !isAdmin) {
+      setTasks([]);
+      return;
+    }
     setLoading(true);
     const q = query(
       collection(db, "offboardingTasks"),
@@ -131,7 +136,7 @@ export default function AdminOffboardingTasks({ companyId: propCompanyId }: { co
       setLoading(false);
     });
     return () => unsubscribe();
-  }, [companyId]);
+  }, [companyId, isAdmin]);
 
   // Edit, cancel, form
   const startEdit = (task: OffboardingTask) => {
@@ -171,6 +176,7 @@ export default function AdminOffboardingTasks({ companyId: propCompanyId }: { co
   // Add or update
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!isAdmin) return;
     setError(null);
     setSuccess(null);
     setLoading(true);
@@ -217,6 +223,7 @@ export default function AdminOffboardingTasks({ companyId: propCompanyId }: { co
 
   // Delete a task
   const handleDelete = async (id: string) => {
+    if (!isAdmin) return;
     if (!window.confirm("Delete this task?")) return;
     setError(null);
     setSuccess(null);
@@ -232,6 +239,7 @@ export default function AdminOffboardingTasks({ companyId: propCompanyId }: { co
 
   // Drag-and-drop reorder
   const handleDragEnd = async (result: DropResult) => {
+    if (!isAdmin) return;
     if (!result.destination || result.destination.index === result.source.index) return;
     const newTasks = Array.from(tasks);
     const [moved] = newTasks.splice(result.source.index, 1);
@@ -253,6 +261,28 @@ export default function AdminOffboardingTasks({ companyId: propCompanyId }: { co
     setLoading(false);
   };
 
+  // ---------------- RENDER ----------------
+  if (authLoading) {
+    return (
+      <div className="flex flex-col items-center py-16">
+        <Loader2 className="w-8 h-8 animate-spin text-pink-400 mb-2" />
+        <div className="text-pink-600 text-lg font-semibold">Loading...</div>
+      </div>
+    );
+  }
+
+  if (!isAdmin) {
+    return (
+      <div className="flex flex-col items-center py-20 gap-4 text-pink-800">
+        <Shield className="w-10 h-10 text-pink-300 mb-2" />
+        <div className="text-2xl font-bold">Admin Only</div>
+        <div className="text-base text-gray-500 max-w-sm text-center">
+          Only company admins can manage offboarding steps. Please contact your admin for access.
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="bg-gradient-to-tr from-white via-pink-50 to-pink-100 rounded-3xl shadow-2xl p-8 w-full max-w-2xl mt-10">
       {/* Success/Error toasts */}
@@ -268,10 +298,6 @@ export default function AdminOffboardingTasks({ companyId: propCompanyId }: { co
           <Sparkles className="w-4 h-4 text-yellow-400" />
           Drag, edit, and automate offboarding. You can attach important docs!
         </p>
-        {/* Optional "import steps" future feature */}
-        {/* <button className="flex items-center gap-2 text-xs text-pink-600 font-semibold hover:underline mt-2">
-          <Download className="w-4 h-4" /> Import Standard Offboarding Steps
-        </button> */}
       </div>
       <section>
         <form

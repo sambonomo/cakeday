@@ -178,216 +178,223 @@ export default function RewardsPage() {
     return <div className="text-gray-500 mt-12">Please log in.</div>;
 
   return (
-    <div className="max-w-3xl mx-auto mt-12 mb-10 bg-white p-8 rounded-3xl shadow-2xl">
+    <div className="max-w-3xl mx-auto mt-12 mb-10 bg-white/90 border border-blue-100 rounded-2xl shadow-lg p-0 animate-fade-in">
       {/* Toasts */}
       <div className="fixed top-6 left-1/2 transform -translate-x-1/2 z-50">
         {error && <Toast message={error} type="error" onClose={() => setError(null)} />}
         {success && <Toast message={success} type="success" onClose={() => setSuccess(null)} />}
       </div>
-      <h1 className="text-3xl font-bold text-blue-700 mb-6 flex items-center gap-2">
-        <Gift className="w-8 h-8 text-pink-400" /> Rewards Store
-      </h1>
-      <div className="mb-8 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-        <div className="text-lg font-semibold text-blue-800 flex items-center gap-2">
-          <Star className="w-5 h-5 text-yellow-400" />
-          Your Points: <span className="font-bold">{points}</span>
-        </div>
-        <div className="text-sm text-gray-500">
-          Use your points to redeem any available reward!
+      {/* Header */}
+      <div className="px-8 pt-8 pb-3 border-b border-blue-50 bg-gradient-to-r from-blue-50 via-white to-blue-100 rounded-t-2xl">
+        <h1 className="text-2xl font-bold text-blue-700 flex items-center gap-2 mb-1">
+          <Gift className="w-7 h-7 text-pink-400" /> Rewards Store
+        </h1>
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 mb-2">
+          <div className="text-base font-semibold text-blue-800 flex items-center gap-2">
+            <Star className="w-5 h-5 text-yellow-400" />
+            Your Points: <span className="font-bold">{points}</span>
+          </div>
+          <div className="text-sm text-gray-500">
+            Use your points to redeem any available reward!
+          </div>
         </div>
       </div>
 
       {/* Available Rewards */}
-      <h2 className="text-xl font-semibold mb-3 mt-6 flex items-center gap-2">
-        <Gift className="w-5 h-5 text-pink-300" />
-        Available Rewards
-      </h2>
-      {loading ? (
-        <div className="flex items-center gap-2 text-gray-600">
-          <Loader2 className="animate-spin w-6 h-6" /> Loading rewards...
-        </div>
-      ) : rewards.length === 0 ? (
-        <div className="text-gray-400 italic flex items-center gap-2">
-          <Ban className="w-5 h-5" /> No rewards available yet.
-        </div>
-      ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-10">
-          {rewards.map((r) => {
-            const outOfStock =
-              r.quantity !== undefined && r.quantity !== null && r.quantity < 1;
-            const notEnoughPoints = points < r.pointsCost;
-            const alreadyRequested = redemptions.some(
-              (red) =>
-                red.rewardId === r.id &&
-                (red.status === "pending" || red.status === "approved")
-            );
-            return (
-              <div
-                key={r.id}
-                className={`rounded-xl border-2 p-5 bg-blue-50 flex flex-col gap-2 shadow relative group ${
-                  outOfStock ? "opacity-50" : ""
-                }`}
-                aria-disabled={outOfStock}
-              >
-                <div className="flex items-center gap-2">
-                  {r.imageUrl ? (
-                    <img
-                      src={r.imageUrl}
-                      alt={r.name}
-                      className="w-16 h-16 object-cover rounded border"
-                    />
-                  ) : (
-                    <Gift className="w-10 h-10 text-pink-300" aria-hidden="true" />
-                  )}
-                  <div>
-                    <div className="font-bold text-lg text-blue-900">{r.name}</div>
-                    <div className="text-blue-700 font-bold text-base flex items-center gap-1">
-                      <Star className="w-4 h-4 text-yellow-400" />
-                      {r.pointsCost} pts
+      <div className="px-8 py-6">
+        <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
+          <Gift className="w-5 h-5 text-pink-300" /> Available Rewards
+        </h2>
+        {loading ? (
+          <div className="flex items-center gap-2 text-gray-600 py-8">
+            <Loader2 className="animate-spin w-6 h-6" /> Loading rewards...
+          </div>
+        ) : rewards.length === 0 ? (
+          <div className="text-gray-400 italic flex items-center gap-2 py-8">
+            <Ban className="w-5 h-5" /> No rewards available yet.
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 mb-6">
+            {rewards.map((r) => {
+              const outOfStock =
+                r.quantity !== undefined && r.quantity !== null && r.quantity < 1;
+              const notEnoughPoints = points < r.pointsCost;
+              const alreadyRequested = redemptions.some(
+                (red) =>
+                  red.rewardId === r.id &&
+                  (red.status === "pending" || red.status === "approved")
+              );
+              return (
+                <div
+                  key={r.id}
+                  className={`rounded-xl border border-blue-100 bg-blue-50/60 p-4 flex flex-col gap-2 shadow-sm relative group
+                    transition-all ${outOfStock ? "opacity-60" : ""}`}
+                  aria-disabled={outOfStock}
+                >
+                  <div className="flex items-center gap-2">
+                    {r.imageUrl ? (
+                      <img
+                        src={r.imageUrl}
+                        alt={r.name}
+                        className="w-14 h-14 object-cover rounded border"
+                      />
+                    ) : (
+                      <Gift className="w-9 h-9 text-pink-300" aria-hidden="true" />
+                    )}
+                    <div>
+                      <div className="font-bold text-lg text-blue-900">{r.name}</div>
+                      <div className="text-blue-700 font-bold text-base flex items-center gap-1">
+                        <Star className="w-4 h-4 text-yellow-400" />
+                        {r.pointsCost} pts
+                      </div>
                     </div>
                   </div>
-                </div>
-                {r.description && (
-                  <div className="text-xs text-gray-500 mt-1 flex items-center gap-1">
-                    <MessageSquareText className="w-4 h-4 text-blue-200" />
-                    {r.description}
-                  </div>
-                )}
-                <div className="flex items-center gap-3 mt-1">
-                  <div className="text-xs text-gray-600 flex items-center gap-1">
-                    {r.quantity === undefined || r.quantity === null
-                      ? <span className="flex items-center gap-1"><Star className="w-4 h-4 text-yellow-300" /> Unlimited</span>
-                      : r.quantity < 1
-                      ? <span className="flex items-center gap-1"><Ban className="w-4 h-4 text-gray-400" /> Out of stock</span>
-                      : <span className="flex items-center gap-1"><CheckCircle2 className="w-4 h-4 text-green-500" /> Available: {r.quantity}</span>}
-                  </div>
-                </div>
-                <input
-                  type="text"
-                  placeholder="Notes (optional)"
-                  className="p-2 mt-2 border border-gray-200 rounded w-full text-sm"
-                  value={notes[r.id] || ""}
-                  onChange={e =>
-                    setNotes((prev) => ({
-                      ...prev,
-                      [r.id]: e.target.value,
-                    }))
-                  }
-                  maxLength={120}
-                  disabled={outOfStock || notEnoughPoints || alreadyRequested}
-                  aria-label={`Add notes for ${r.name}`}
-                />
-                <button
-                  disabled={
-                    notEnoughPoints ||
-                    outOfStock ||
-                    !!redeemingId ||
-                    alreadyRequested
-                  }
-                  onClick={() => handleRedeem(r)}
-                  className={`mt-2 px-4 py-2 rounded-xl font-bold text-white shadow transition flex items-center justify-center gap-2 focus:outline-none
-                    ${
-                      notEnoughPoints || outOfStock || !!redeemingId || alreadyRequested
-                        ? "bg-gray-300 cursor-not-allowed"
-                        : "bg-blue-600 hover:bg-blue-700 focus:ring-2 focus:ring-blue-400"
-                    }`}
-                  aria-label={
-                    alreadyRequested
-                      ? `Request for ${r.name} is pending`
-                      : outOfStock
-                      ? `${r.name} is out of stock`
-                      : notEnoughPoints
-                      ? `Not enough points for ${r.name}`
-                      : `Redeem ${r.name}`
-                  }
-                >
-                  {alreadyRequested ? (
-                    <>
-                      <Hourglass className="w-4 h-4" /> Request Pending
-                    </>
-                  ) : outOfStock ? (
-                    <>
-                      <Ban className="w-4 h-4" /> Out of Stock
-                    </>
-                  ) : notEnoughPoints ? (
-                    <>
-                      <AlertTriangle className="w-4 h-4" /> Not Enough Points
-                    </>
-                  ) : redeemingId === r.id ? (
-                    <>
-                      <Loader2 className="animate-spin w-4 h-4" /> Processing...
-                    </>
-                  ) : (
-                    <>
-                      <Gift className="w-4 h-4" /> Redeem
-                    </>
+                  {r.description && (
+                    <div className="text-xs text-gray-500 mt-1 flex items-center gap-1">
+                      <MessageSquareText className="w-4 h-4 text-blue-200" />
+                      {r.description}
+                    </div>
                   )}
-                </button>
-              </div>
-            );
-          })}
-        </div>
-      )}
+                  <div className="flex items-center gap-3 mt-1">
+                    <div className="text-xs text-gray-600 flex items-center gap-1">
+                      {r.quantity === undefined || r.quantity === null
+                        ? <span className="flex items-center gap-1"><Star className="w-4 h-4 text-yellow-300" /> Unlimited</span>
+                        : r.quantity < 1
+                        ? <span className="flex items-center gap-1"><Ban className="w-4 h-4 text-gray-400" /> Out of stock</span>
+                        : <span className="flex items-center gap-1"><CheckCircle2 className="w-4 h-4 text-green-500" /> Available: {r.quantity}</span>}
+                    </div>
+                  </div>
+                  <input
+                    type="text"
+                    placeholder="Notes (optional)"
+                    className="p-2 mt-2 border border-gray-200 rounded w-full text-sm"
+                    value={notes[r.id] || ""}
+                    onChange={e =>
+                      setNotes((prev) => ({
+                        ...prev,
+                        [r.id]: e.target.value,
+                      }))
+                    }
+                    maxLength={120}
+                    disabled={outOfStock || notEnoughPoints || alreadyRequested}
+                    aria-label={`Add notes for ${r.name}`}
+                  />
+                  <button
+                    disabled={
+                      notEnoughPoints ||
+                      outOfStock ||
+                      !!redeemingId ||
+                      alreadyRequested
+                    }
+                    onClick={() => handleRedeem(r)}
+                    className={`mt-2 px-4 py-2 rounded-lg font-bold text-white shadow transition flex items-center justify-center gap-2 focus:outline-none
+                      ${
+                        notEnoughPoints || outOfStock || !!redeemingId || alreadyRequested
+                          ? "bg-gray-300 cursor-not-allowed"
+                          : "bg-blue-600 hover:bg-blue-700 focus:ring-2 focus:ring-blue-400"
+                      }`}
+                    aria-label={
+                      alreadyRequested
+                        ? `Request for ${r.name} is pending`
+                        : outOfStock
+                        ? `${r.name} is out of stock`
+                        : notEnoughPoints
+                        ? `Not enough points for ${r.name}`
+                        : `Redeem ${r.name}`
+                    }
+                  >
+                    {alreadyRequested ? (
+                      <>
+                        <Hourglass className="w-4 h-4" /> Request Pending
+                      </>
+                    ) : outOfStock ? (
+                      <>
+                        <Ban className="w-4 h-4" /> Out of Stock
+                      </>
+                    ) : notEnoughPoints ? (
+                      <>
+                        <AlertTriangle className="w-4 h-4" /> Not Enough Points
+                      </>
+                    ) : redeemingId === r.id ? (
+                      <>
+                        <Loader2 className="animate-spin w-4 h-4" /> Processing...
+                      </>
+                    ) : (
+                      <>
+                        <Gift className="w-4 h-4" /> Redeem
+                      </>
+                    )}
+                  </button>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
 
       {/* Redemption History */}
-      <h2 className="text-xl font-semibold mb-3 mt-8 flex items-center gap-2">
-        <Gift className="w-5 h-5 text-pink-300" /> Your Redemption History
-      </h2>
-      {redemptions.length === 0 ? (
-        <div className="text-gray-400 italic flex items-center gap-2">
-          <Hourglass className="w-5 h-5" /> No redemption requests yet.
-        </div>
-      ) : (
-        <table className="min-w-full border text-sm">
-          <thead>
-            <tr className="bg-gray-100">
-              <th className="py-2 px-3">Reward</th>
-              <th className="py-2 px-3">Points</th>
-              <th className="py-2 px-3">Requested</th>
-              <th className="py-2 px-3">Status</th>
-              <th className="py-2 px-3">Notes</th>
-              <th className="py-2 px-3"></th>
-            </tr>
-          </thead>
-          <tbody>
-            {redemptions.map((r) => (
-              <tr key={r.id} className="border-t">
-                <td className="py-2 px-3">{r.rewardName}</td>
-                <td className="py-2 px-3">{r.pointsCost}</td>
-                <td className="py-2 px-3">
-                  {r.requestedAt && r.requestedAt.toDate
-                    ? r.requestedAt.toDate().toLocaleDateString()
-                    : ""}
-                </td>
-                <td className="py-2 px-3 font-semibold flex items-center gap-1">
-                  {r.status.charAt(0).toUpperCase() + r.status.slice(1)}
-                  {r.status === "denied" && (
-                    <Ban className="text-red-500 w-4 h-4 ml-1" />
-                  )}
-                  {r.status === "fulfilled" && (
-                    <CheckCircle2 className="text-green-600 w-4 h-4 ml-1" />
-                  )}
-                  {r.status === "pending" && (
-                    <Hourglass className="text-yellow-500 w-4 h-4 ml-1" />
-                  )}
-                </td>
-                <td className="py-2 px-3">{r.notes || ""}</td>
-                <td className="py-2 px-3">
-                  {r.status === "pending" && (
-                    <button
-                      className="text-xs text-red-600 underline"
-                      onClick={() => handleCancelRedemption(r)}
-                      aria-label={`Cancel redemption for ${r.rewardName}`}
-                    >
-                      Cancel
-                    </button>
-                  )}
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      )}
+      <div className="px-8 pb-8">
+        <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
+          <Gift className="w-5 h-5 text-pink-300" /> Your Redemption History
+        </h2>
+        {redemptions.length === 0 ? (
+          <div className="text-gray-400 italic flex items-center gap-2 py-6">
+            <Hourglass className="w-5 h-5" /> No redemption requests yet.
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="min-w-full text-sm bg-transparent">
+              <thead>
+                <tr className="bg-white border-b border-blue-50">
+                  <th className="py-2 px-3 text-left font-semibold text-blue-700">Reward</th>
+                  <th className="py-2 px-3 text-left font-semibold text-blue-700">Points</th>
+                  <th className="py-2 px-3 text-left font-semibold text-blue-700">Requested</th>
+                  <th className="py-2 px-3 text-left font-semibold text-blue-700">Status</th>
+                  <th className="py-2 px-3 text-left font-semibold text-blue-700">Notes</th>
+                  <th className="py-2 px-3"></th>
+                </tr>
+              </thead>
+              <tbody>
+                {redemptions.map((r) => (
+                  <tr key={r.id} className="border-b border-blue-50 last:border-b-0 hover:bg-blue-50/30 transition">
+                    <td className="py-2 px-3">{r.rewardName}</td>
+                    <td className="py-2 px-3">{r.pointsCost}</td>
+                    <td className="py-2 px-3">
+                      {r.requestedAt && r.requestedAt.toDate
+                        ? r.requestedAt.toDate().toLocaleDateString()
+                        : ""}
+                    </td>
+                    <td className="py-2 px-3 font-semibold flex items-center gap-1">
+                      {r.status.charAt(0).toUpperCase() + r.status.slice(1)}
+                      {r.status === "denied" && (
+                        <Ban className="text-red-500 w-4 h-4 ml-1" />
+                      )}
+                      {r.status === "fulfilled" && (
+                        <CheckCircle2 className="text-green-600 w-4 h-4 ml-1" />
+                      )}
+                      {r.status === "pending" && (
+                        <Hourglass className="text-yellow-500 w-4 h-4 ml-1" />
+                      )}
+                    </td>
+                    <td className="py-2 px-3">{r.notes || ""}</td>
+                    <td className="py-2 px-3">
+                      {r.status === "pending" && (
+                        <button
+                          className="text-xs text-red-600 underline"
+                          onClick={() => handleCancelRedemption(r)}
+                          aria-label={`Cancel redemption for ${r.rewardName}`}
+                        >
+                          Cancel
+                        </button>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
     </div>
   );
 }

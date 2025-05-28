@@ -58,7 +58,7 @@ type DocInfo = {
 };
 
 export default function AssignedTasksDashboard() {
-  const { user, companyId } = useAuth();
+  const { user, companyId, role } = useAuth();
 
   const [assignments, setAssignments] = useState<UserTaskAssignment[]>([]);
   const [users, setUsers] = useState<UserProfile[]>([]);
@@ -67,8 +67,8 @@ export default function AssignedTasksDashboard() {
   const [toast, setToast] = useState<string | null>(null);
   const [markingId, setMarkingId] = useState<string | null>(null);
 
-  // For live toast location at top center
-  const toastAnchor = useRef<HTMLDivElement>(null);
+  // Defensive: Only show for admin, manager, or if you have assigned tasks
+  const allowedRoles = ["admin", "manager"];
 
   useEffect(() => {
     if (!user || !companyId) return;
@@ -117,10 +117,8 @@ export default function AssignedTasksDashboard() {
       setLoading(false);
     };
     fetchData();
-    // eslint-disable-next-line
   }, [user, companyId]);
 
-  // Mark task complete
   async function markComplete(assignmentId: string) {
     setMarkingId(assignmentId);
     try {
@@ -152,7 +150,6 @@ export default function AssignedTasksDashboard() {
   // Helper for overdue detection
   const isOverdue = (t: UserTaskAssignment) => {
     if (!t.dueDate || t.completed) return false;
-    // Firestore Timestamp or JS Date or string
     let due: Date | null = null;
     if (typeof t.dueDate?.toDate === "function") {
       due = t.dueDate.toDate();
@@ -169,6 +166,12 @@ export default function AssignedTasksDashboard() {
   const totalAssigned = assignments.length;
   const totalCompleted = assignments.filter(t => t.completed).length;
 
+  // Hide if no tasks assigned (parent can decide to show/hide)
+  if (!loading && assignments.length === 0) return null;
+
+  // Only show if has tasks or user is admin/manager (paranoia check)
+  if (!loading && assignments.length === 0 && !allowedRoles.includes(role || "")) return null;
+
   if (loading) {
     return (
       <div className="flex flex-col items-center justify-center py-12 text-blue-600 animate-pulse">
@@ -178,19 +181,10 @@ export default function AssignedTasksDashboard() {
     );
   }
 
-  if (assignments.length === 0) {
-    return (
-      <div className="text-gray-500 text-center py-8 flex flex-col items-center">
-        <PartyPopper className="w-8 h-8 mb-2 text-green-400" />
-        <div className="text-lg mt-2">No onboarding tasks assigned to you yet!</div>
-      </div>
-    );
-  }
-
   return (
     <div className="relative bg-white/90 rounded-2xl shadow-xl border border-brand-100 p-6 mb-8">
-      {/* Toast anchor */}
-      <div ref={toastAnchor} className="fixed top-16 left-1/2 transform -translate-x-1/2 z-50 pointer-events-none">
+      {/* Toast */}
+      <div className="fixed top-16 left-1/2 transform -translate-x-1/2 z-50 pointer-events-none">
         {toast && (
           <Toast
             message={toast}

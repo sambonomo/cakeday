@@ -69,7 +69,7 @@ function ConfettiBurst() {
 }
 
 export default function OnboardingChecklist({ companyId: propCompanyId }: OnboardingChecklistProps) {
-  const { user, companyId: contextCompanyId } = useAuth();
+  const { user, companyId: contextCompanyId, role } = useAuth();
   const companyId = propCompanyId || contextCompanyId;
 
   const [tasks, setTasks] = useState<any[]>([]);
@@ -134,7 +134,15 @@ export default function OnboardingChecklist({ companyId: propCompanyId }: Onboar
     fetchData();
   }, [user, companyId]);
 
-  // Handler with feedback: show confetti and modal when all tasks marked complete
+  const canView =
+    role === "admin" ||
+    role === "manager" ||
+    user?.status === "newHire" ||
+    user?.status === "active";
+
+  // Hide onboarding for regular users who aren't new hires
+  if (!canView) return null;
+
   const toggleTask = async (taskId: string, completed: boolean) => {
     if (!user || !companyId) return;
     setProgress((prev) => ({ ...prev, [taskId]: completed }));
@@ -171,7 +179,7 @@ export default function OnboardingChecklist({ companyId: propCompanyId }: Onboar
   const completedTasks = tasks.filter((t) => progress[t.id]).length;
   const progressPercent = totalTasks === 0 ? 0 : Math.round((completedTasks / totalTasks) * 100);
 
-  // Helper for overdue detection (strict-safe)
+  // Helper for overdue detection
   const isOverdue = (task: any) => {
     if (
       typeof task.dueOffsetDays !== "number" ||
@@ -297,7 +305,6 @@ export default function OnboardingChecklist({ companyId: propCompanyId }: Onboar
                       ${taskCompleted ? "line-through text-gray-400" : ""}
                       hover:shadow-md`}
                   >
-                    {/* Checkbox: Disable for non-user tasks */}
                     <div className="flex-shrink-0 pt-1">
                       <input
                         type="checkbox"

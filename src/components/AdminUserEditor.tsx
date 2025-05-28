@@ -34,7 +34,8 @@ import {
   ArrowRight,
   Star,
   Loader2,
-  Edit2
+  Edit2,
+  Shield,
 } from "lucide-react";
 
 const ROLES = ["user", "admin", "manager"];
@@ -57,7 +58,7 @@ type FormState = {
 };
 
 export default function AdminUserEditor(): React.ReactElement {
-  const { companyId, user: adminUser, role: adminRole } = useAuth();
+  const { companyId, user: adminUser, role: adminRole, loading: authLoading } = useAuth();
 
   const [users, setUsers] = useState<UserProfile[]>([]);
   const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
@@ -86,7 +87,6 @@ export default function AdminUserEditor(): React.ReactElement {
 
   // Onboarding template state
   const [templates, setTemplates] = useState<any[]>([]);
-  const [templateLoading, setTemplateLoading] = useState<boolean>(false);
   const [assigned, setAssigned] = useState<boolean>(false);
 
   // New Hire Modal state
@@ -116,10 +116,8 @@ export default function AdminUserEditor(): React.ReactElement {
   // Fetch templates for onboarding assignment
   useEffect(() => {
     if (!companyId) return;
-    setTemplateLoading(true);
     getOnboardingTemplates(companyId)
-      .then((t) => setTemplates(t))
-      .finally(() => setTemplateLoading(false));
+      .then((t) => setTemplates(t));
   }, [companyId]);
 
   // Populate form on user select, scroll to edit panel
@@ -173,20 +171,27 @@ export default function AdminUserEditor(): React.ReactElement {
     setSuccess(null);
     setError(null);
 
-    const updates: any = {
+    // Restrict: Only admins can update roles/company assignment/disabled
+    let updates: any = {
       fullName: form.fullName,
       phone: form.phone,
       birthday: form.birthday,
       anniversary: form.anniversary,
-      role: form.role,
-      photoURL: form.photoURL,
-      disabled: !!form.disabled,
       gender: form.gender,
       department: form.department,
       status: form.status,
       onboardingTemplateId: form.onboardingTemplateId || "",
       hireStartDate: form.hireStartDate || "",
+      photoURL: form.photoURL,
     };
+    if (adminRole === "admin") {
+      updates = {
+        ...updates,
+        role: form.role,
+        disabled: !!form.disabled,
+      };
+    }
+
     try {
       await updateUserProfile(selectedUserId, updates);
       setSuccess("User profile updated!");
@@ -237,7 +242,7 @@ export default function AdminUserEditor(): React.ReactElement {
     setSaving(false);
   }
 
-  // Points assignment logic
+  // Points assignment logic (admin/manager only, not self)
   async function handleAssignPoints(e: React.FormEvent) {
     e.preventDefault();
     if (!selectedUserId || adminUser?.uid === selectedUserId) return;
@@ -282,9 +287,9 @@ export default function AdminUserEditor(): React.ReactElement {
     setSaving(false);
   }
 
-  // Disable/enable user handler
+  // Disable/enable user handler (admin only)
   async function handleToggleDisable() {
-    if (!selectedUserId) return;
+    if (!selectedUserId || adminRole !== "admin") return;
     const newDisabled = !form.disabled;
     setSaving(true);
     setSuccess(null);
@@ -334,7 +339,7 @@ export default function AdminUserEditor(): React.ReactElement {
       (u.role && u.role.toLowerCase().includes(filter.toLowerCase()))
   );
 
-  if (!companyId) {
+  if (!companyId || authLoading) {
     return <div className="text-gray-500 mt-8">Loading admin info...</div>;
   }
 
@@ -345,6 +350,20 @@ export default function AdminUserEditor(): React.ReactElement {
       </div>
     );
 
+  // Only admins and managers can edit users. Others see a locked message.
+  if (adminRole !== "admin" && adminRole !== "manager") {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[40vh] text-center py-20 gap-4">
+        <Shield className="w-12 h-12 text-blue-300 mb-1" />
+        <div className="text-2xl font-bold text-blue-800">Restricted</div>
+        <div className="text-base text-gray-500 max-w-sm">
+          Only company admins or managers can manage users.<br />
+          Please contact your admin if you need access.
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="flex flex-col md:flex-row gap-8 w-full">
       {/* Toasts for whole editor */}
@@ -352,24 +371,28 @@ export default function AdminUserEditor(): React.ReactElement {
         {success && <Toast message={success} type="success" onClose={() => setSuccess(null)} />}
         {error && <Toast message={error} type="error" onClose={() => setError(null)} />}
       </div>
-      {/* Invite New Hire Button and Modal */}
-      <InviteNewHireModal
-        open={inviteOpen}
-        onClose={() => setInviteOpen(false)}
-        onSuccess={() => setInviteOpen(false)}
-      />
-      <div className="w-full mb-4 flex justify-between items-end">
-        <h2 className="text-xl font-semibold text-blue-700 flex items-center gap-2">
-          <UserCog className="w-6 h-6" />
-          All Users
-        </h2>
-        <button
-          className="bg-green-600 text-white font-bold px-4 py-2 rounded-xl shadow hover:bg-green-700 transition flex items-center gap-2"
-          onClick={() => setInviteOpen(true)}
-        >
-          <UserPlus className="w-5 h-5" /> Invite New Hire
-        </button>
-      </div>
+      {/* Invite New Hire Button and Modal (admins only) */}
+      {adminRole === "admin" && (
+        <>
+          <InviteNewHireModal
+            open={inviteOpen}
+            onClose={() => setInviteOpen(false)}
+            onSuccess={() => setInviteOpen(false)}
+          />
+          <div className="w-full mb-4 flex justify-between items-end">
+            <h2 className="text-xl font-semibold text-blue-700 flex items-center gap-2">
+              <UserCog className="w-6 h-6" />
+              All Users
+            </h2>
+            <button
+              className="bg-green-600 text-white font-bold px-4 py-2 rounded-xl shadow hover:bg-green-700 transition flex items-center gap-2"
+              onClick={() => setInviteOpen(true)}
+            >
+              <UserPlus className="w-5 h-5" /> Invite New Hire
+            </button>
+          </div>
+        </>
+      )}
 
       {/* User List */}
       <div className="w-full md:w-1/2">
@@ -532,21 +555,24 @@ export default function AdminUserEditor(): React.ReactElement {
                 max={new Date().toISOString().split("T")[0]}
               />
             </label>
-            <label className="font-medium">
-              Role
-              <select
-                name="role"
-                value={form.role}
-                onChange={handleChange}
-                className="p-2 border border-gray-300 rounded w-full mt-1"
-              >
-                {ROLES.map((r) => (
-                  <option key={r} value={r}>
-                    {r.charAt(0).toUpperCase() + r.slice(1)}
-                  </option>
-                ))}
-              </select>
-            </label>
+            {/* Only admin can assign role */}
+            {adminRole === "admin" && (
+              <label className="font-medium">
+                Role
+                <select
+                  name="role"
+                  value={form.role}
+                  onChange={handleChange}
+                  className="p-2 border border-gray-300 rounded w-full mt-1"
+                >
+                  {ROLES.map((r) => (
+                    <option key={r} value={r}>
+                      {r.charAt(0).toUpperCase() + r.slice(1)}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            )}
             <label className="font-medium">
               Department
               <input
@@ -638,56 +664,57 @@ export default function AdminUserEditor(): React.ReactElement {
             {/* Points assign (only for admin/manager, not to self) */}
             {adminUser?.uid !== selectedUserId &&
               (adminRole === "admin" || adminRole === "manager") && (
-                <form
-                  onSubmit={handleAssignPoints}
-                  className="mt-3 bg-blue-50 rounded-xl p-3 flex flex-col gap-2"
-                >
-                  <label className="font-medium">
-                    Points
-                    <input
-                      type="number"
-                      min={0}
-                      step={1}
-                      value={pointsEdit}
-                      onChange={(e) => setPointsEdit(e.target.value)}
-                      className="p-2 border border-gray-300 rounded w-full mt-1"
-                    />
-                    <span className="text-xs text-gray-500 ml-2">
-                      Old: <b>{form.points ?? 0}</b>
-                    </span>
-                  </label>
-                  <button
-                    type="submit"
-                    className="bg-green-600 text-white px-4 py-2 rounded mt-1 font-bold hover:bg-green-700 flex items-center gap-1"
-                    disabled={saving || pointsEdit === String(form.points ?? 0)}
-                  >
-                    <Star className="w-4 h-4" />
-                    {saving ? "Saving..." : "Set Points"}
-                  </button>
-                </form>
+                <div className="mt-3 bg-blue-50 rounded-xl p-3 flex flex-col gap-2">
+                  <form onSubmit={handleAssignPoints}>
+                    <label className="font-medium">
+                      Points
+                      <input
+                        type="number"
+                        min={0}
+                        step={1}
+                        value={pointsEdit}
+                        onChange={(e) => setPointsEdit(e.target.value)}
+                        className="p-2 border border-gray-300 rounded w-full mt-1"
+                      />
+                      <span className="text-xs text-gray-500 ml-2">
+                        Old: <b>{form.points ?? 0}</b>
+                      </span>
+                    </label>
+                    <button
+                      type="submit"
+                      className="bg-green-600 text-white px-4 py-2 rounded mt-1 font-bold hover:bg-green-700 flex items-center gap-1"
+                      disabled={saving || pointsEdit === String(form.points ?? 0)}
+                    >
+                      <Star className="w-4 h-4" />
+                      {saving ? "Saving..." : "Set Points"}
+                    </button>
+                  </form>
+                </div>
               )}
 
-            {/* Disable/Enable button */}
-            <button
-              type="button"
-              className={`mt-2 px-4 py-2 rounded flex items-center gap-1 ${
-                form.disabled
-                  ? "bg-green-500 hover:bg-green-600"
-                  : "bg-gray-500 hover:bg-gray-700"
-              } text-white transition`}
-              onClick={handleToggleDisable}
-              disabled={saving}
-            >
-              {form.disabled ? (
-                <>
-                  <Unlock className="w-4 h-4" /> Re-enable User
-                </>
-              ) : (
-                <>
-                  <Lock className="w-4 h-4" /> Disable User
-                </>
-              )}
-            </button>
+            {/* Disable/Enable button (admin only) */}
+            {adminRole === "admin" && (
+              <button
+                type="button"
+                className={`mt-2 px-4 py-2 rounded flex items-center gap-1 ${
+                  form.disabled
+                    ? "bg-green-500 hover:bg-green-600"
+                    : "bg-gray-500 hover:bg-gray-700"
+                } text-white transition`}
+                onClick={handleToggleDisable}
+                disabled={saving}
+              >
+                {form.disabled ? (
+                  <>
+                    <Unlock className="w-4 h-4" /> Re-enable User
+                  </>
+                ) : (
+                  <>
+                    <Lock className="w-4 h-4" /> Disable User
+                  </>
+                )}
+              </button>
+            )}
             <button
               type="submit"
               className="bg-blue-600 text-white rounded px-4 py-2 hover:bg-blue-700 transition disabled:opacity-60 mt-2 flex items-center gap-1"

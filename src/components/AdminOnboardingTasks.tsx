@@ -27,11 +27,13 @@ import {
   Mail,
   Slack,
   FileText,
+  Shield,
 } from "lucide-react";
 import { db } from "../lib/firebase";
 import { collection, query, where, getDocs } from "firebase/firestore";
 import Toast from "./Toast";
 
+// Docs and select options
 type DocInfo = {
   id: string;
   title: string;
@@ -54,7 +56,6 @@ const SEND_WHEN_OPTIONS = [
   { value: "custom_date", label: "Custom Date" },
 ];
 
-// Who is expected to do the task
 const ASSIGNEE_ROLE_OPTIONS = [
   { value: "user", label: "New Hire" },
   { value: "manager", label: "Manager" },
@@ -63,8 +64,11 @@ const ASSIGNEE_ROLE_OPTIONS = [
 ];
 
 export default function AdminOnboardingTasks({ companyId: propCompanyId }: { companyId?: string }) {
-  const { companyId: contextCompanyId } = useAuth();
+  const { companyId: contextCompanyId, role, loading: authLoading } = useAuth();
   const companyId = propCompanyId || contextCompanyId;
+
+  // --- Permissions check ---
+  const isAdmin = role === "admin";
 
   // --- Template state ---
   const [templates, setTemplates] = useState<OnboardingTemplate[]>([]);
@@ -97,16 +101,14 @@ export default function AdminOnboardingTasks({ companyId: propCompanyId }: { com
 
   const formRef = useRef<HTMLFormElement>(null);
 
-  // Fetch templates
+  // --- Data fetching ---
   useEffect(() => {
-    if (!companyId) return;
+    if (!companyId || !isAdmin) return;
     getOnboardingTemplates(companyId).then(setTemplates);
-  }, [companyId, success]);
+  }, [companyId, isAdmin, success]);
 
-  // Fetch tasks for selected template
   useEffect(() => {
-    if (!companyId) return;
-    if (!selectedTemplateId) {
+    if (!companyId || !selectedTemplateId || !isAdmin) {
       setTasks([]);
       return;
     }
@@ -115,16 +117,12 @@ export default function AdminOnboardingTasks({ companyId: propCompanyId }: { com
       setTasks(loaded);
       setLoading(false);
     });
-  }, [companyId, selectedTemplateId, success]);
+  }, [companyId, selectedTemplateId, isAdmin, success]);
 
-  // Fetch docs for attachment
   useEffect(() => {
-    if (!companyId) return;
+    if (!companyId || !isAdmin) return;
     getDocs(
-      query(
-        collection(db, "documents"),
-        where("companyId", "==", companyId)
-      )
+      query(collection(db, "documents"), where("companyId", "==", companyId))
     ).then(snap => {
       setDocs(
         snap.docs
@@ -135,7 +133,7 @@ export default function AdminOnboardingTasks({ companyId: propCompanyId }: { com
           .filter((d) => d.category === "onboarding" || d.category === "general")
       );
     });
-  }, [companyId]);
+  }, [companyId, isAdmin]);
 
   // --- Template CRUD ---
   function resetTemplateFields() {
@@ -148,6 +146,7 @@ export default function AdminOnboardingTasks({ companyId: propCompanyId }: { com
 
   async function handleTemplateSave(e: React.FormEvent) {
     e.preventDefault();
+    if (!isAdmin) return;
     setError(null);
     setSuccess(null);
     setLoading(true);
@@ -184,7 +183,7 @@ export default function AdminOnboardingTasks({ companyId: propCompanyId }: { com
           companyId: companyId!,
         });
         setSuccess("Template created!");
-        setSelectedTemplateId(newId); // Select new template right away
+        setSelectedTemplateId(newId);
       }
       resetTemplateFields();
     } catch (err: any) {
@@ -211,6 +210,7 @@ export default function AdminOnboardingTasks({ companyId: propCompanyId }: { com
   }
 
   async function handleTemplateDelete(id: string) {
+    if (!isAdmin) return;
     if (!window.confirm("Delete this template and all its tasks?")) return;
     setLoading(true);
     try {
@@ -258,9 +258,9 @@ export default function AdminOnboardingTasks({ companyId: propCompanyId }: { com
     setTimeout(() => formRef.current?.focus(), 50);
   };
 
-  // Add/update task for template
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!isAdmin) return;
     setError(null);
     setSuccess(null);
     setLoading(true);
@@ -308,8 +308,8 @@ export default function AdminOnboardingTasks({ companyId: propCompanyId }: { com
     setLoading(false);
   };
 
-  // Delete a task
   const handleDelete = async (id: string) => {
+    if (!isAdmin) return;
     if (!window.confirm("Delete this task?")) return;
     setError(null);
     setSuccess(null);
@@ -325,6 +325,7 @@ export default function AdminOnboardingTasks({ companyId: propCompanyId }: { com
 
   // Drag-and-drop reorder
   const handleDragEnd = async (result: DropResult) => {
+    if (!isAdmin) return;
     if (!result.destination || result.destination.index === result.source.index) return;
     const newTasks = Array.from(tasks);
     const [moved] = newTasks.splice(result.source.index, 1);
@@ -344,6 +345,29 @@ export default function AdminOnboardingTasks({ companyId: propCompanyId }: { com
     }
     setLoading(false);
   };
+
+  // ---------------- RENDER ----------------
+  // Show locked state for non-admins
+  if (authLoading) {
+    return (
+      <div className="flex flex-col items-center py-16">
+        <Loader2 className="w-8 h-8 animate-spin text-blue-400 mb-2" />
+        <div className="text-blue-600 text-lg font-semibold">Loading...</div>
+      </div>
+    );
+  }
+
+  if (!isAdmin) {
+    return (
+      <div className="flex flex-col items-center py-20 gap-4 text-blue-800">
+        <Shield className="w-10 h-10 text-blue-300 mb-2" />
+        <div className="text-2xl font-bold">Admin Only</div>
+        <div className="text-base text-gray-500 max-w-sm text-center">
+          Only company admins can manage onboarding templates and tasks. Please contact your admin for access.
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="bg-gradient-to-tr from-white via-blue-50 to-blue-100 rounded-3xl shadow-2xl p-8 w-full max-w-3xl mt-10">

@@ -57,7 +57,11 @@ export default function Leaderboard({
   const selfOnBoard = selfRank >= limit && users[selfRank];
 
   if (loading)
-    return <div className="text-gray-500">Loading leaderboard...</div>;
+    return (
+      <div className="text-gray-500 text-center py-6">
+        Loading leaderboard...
+      </div>
+    );
   if (users.length === 0)
     return (
       <div className="text-gray-400 flex flex-col items-center py-6">
@@ -67,11 +71,11 @@ export default function Leaderboard({
     );
 
   return (
-    <div className="glass-card w-full max-w-2xl mx-auto shadow-xl rounded-3xl p-6 mt-8 animate-fade-in">
-      <h2 className="text-2xl font-extrabold text-blue-700 flex items-center gap-2 mb-3">
-        <Crown className="w-7 h-7 text-yellow-400 drop-shadow" /> Kudos Leaderboard
+    <div className="w-full max-w-2xl mx-auto rounded-2xl bg-white/90 border border-blue-100 shadow-md px-2 py-6 animate-fade-in">
+      <h2 className="text-xl font-bold text-blue-800 flex items-center gap-2 mb-1 px-4">
+        <Crown className="w-6 h-6 text-yellow-400 drop-shadow" /> Kudos Leaderboard
       </h2>
-      <ul className="divide-y divide-blue-100">
+      <ul className="divide-y divide-blue-50">
         {topUsers.map((u, idx) => {
           const isTop = idx === 0;
           const isSelf = loggedInUser && u.uid === loggedInUser.uid;
@@ -79,14 +83,15 @@ export default function Leaderboard({
             <li
               key={u.uid}
               className={`
-                flex items-center gap-4 py-4 px-2 transition-all group outline-none
+                flex items-center gap-4 py-3 px-3 group transition
                 ${isTop
-                  ? "bg-gradient-to-r from-yellow-50 via-blue-50 to-white rounded-xl border-2 border-yellow-300 shadow-lg"
+                  ? "bg-gradient-to-r from-yellow-50 via-blue-50 to-white rounded-xl border-2 border-yellow-200 shadow"
                   : ""}
                 ${isSelf && !isTop
-                  ? "bg-green-50 border border-green-300 rounded-lg shadow"
+                  ? "bg-green-50 border border-green-200 rounded-lg shadow-sm"
                   : ""}
                 focus:ring-2 focus:ring-accent-400
+                outline-none
               `}
               tabIndex={0}
               aria-label={
@@ -97,9 +102,9 @@ export default function Leaderboard({
               title={isSelf ? "You" : u.fullName || u.email}
             >
               {/* Position / Crown */}
-              <span className="text-xl font-bold w-8 flex-shrink-0 text-center select-none">
+              <span className="text-lg font-bold w-7 flex-shrink-0 text-center select-none">
                 {isTop ? (
-                  <Crown className="inline w-7 h-7 text-yellow-400" aria-label="First place" />
+                  <Crown className="inline w-6 h-6 text-yellow-400" aria-label="First place" />
                 ) : (
                   idx + 1
                 )}
@@ -108,7 +113,7 @@ export default function Leaderboard({
               <UserAvatar
                 nameOrEmail={u.fullName || u.email}
                 photoURL={typeof u.photoURL === "string" ? u.photoURL : undefined}
-                size={48}
+                size={38}
                 className={isSelf ? "ring-2 ring-green-500" : ""}
               />
               {/* User Info */}
@@ -141,8 +146,8 @@ export default function Leaderboard({
                 </div>
               </div>
               {/* Points */}
-              <div className="flex flex-col items-end justify-center min-w-[60px]">
-                <span className="font-bold text-lg text-blue-900 flex items-center gap-1">
+              <div className="flex flex-col items-end justify-center min-w-[48px]">
+                <span className="font-bold text-base text-blue-900 flex items-center gap-1">
                   <Star className="w-4 h-4 text-yellow-400" /> {u.points || 0}
                 </span>
                 <span className="text-xs text-gray-400">pts</span>
@@ -155,18 +160,18 @@ export default function Leaderboard({
         {selfOnBoard && (
           <li
             className={`
-              flex items-center gap-4 py-4 px-2 transition-all group outline-none bg-green-50 border border-green-300 rounded-lg shadow mt-2
+              flex items-center gap-4 py-3 px-3 group outline-none bg-green-50 border border-green-200 rounded-lg shadow mt-2
               focus:ring-2 focus:ring-accent-400
             `}
             tabIndex={0}
             aria-label={`Your ranking: #${selfRank + 1} ${(selfOnBoard.fullName || selfOnBoard.email)}. ${selfOnBoard.points || 0} points.`}
             title="You"
           >
-            <span className="text-xl font-bold w-8 flex-shrink-0 text-center select-none">{selfRank + 1}</span>
+            <span className="text-lg font-bold w-7 flex-shrink-0 text-center select-none">{selfRank + 1}</span>
             <UserAvatar
               nameOrEmail={selfOnBoard.fullName || selfOnBoard.email}
               photoURL={typeof selfOnBoard.photoURL === "string" ? selfOnBoard.photoURL : undefined}
-              size={48}
+              size={38}
               className="ring-2 ring-green-500"
             />
             <div className="flex-1 min-w-0">
@@ -192,8 +197,8 @@ export default function Leaderboard({
                 })}
               </div>
             </div>
-            <div className="flex flex-col items-end justify-center min-w-[60px]">
-              <span className="font-bold text-lg text-blue-900 flex items-center gap-1">
+            <div className="flex flex-col items-end justify-center min-w-[48px]">
+              <span className="font-bold text-base text-blue-900 flex items-center gap-1">
                 <Star className="w-4 h-4 text-yellow-400" /> {selfOnBoard.points || 0}
               </span>
               <span className="text-xs text-gray-400">pts</span>
@@ -201,7 +206,7 @@ export default function Leaderboard({
           </li>
         )}
       </ul>
-      <div className="mt-4 text-center text-xs text-gray-400">
+      <div className="mt-3 text-center text-xs text-gray-400 px-2">
         Keep sending kudos to climb the leaderboard!
       </div>
     </div>
