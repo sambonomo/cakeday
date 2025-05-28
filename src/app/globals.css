@@ -156,3 +156,77 @@ a:hover, a:focus {
     outline: 2px solid #fbbf24;
   }
 }
+
+/* 
+   =================== MOBILE FONT CONTRAST ENHANCEMENTS ===================
+   Make ALL text higher contrast and bigger on small screens for accessibility.
+*/
+@media (max-width: 768px) {
+  body {
+    color: #131e2a !important;         /* Much darker primary text */
+    font-size: 1.04rem !important;      /* Slightly larger base font */
+    background: linear-gradient(115deg, #f7faff 0%, #fff0fa 100%);
+  }
+  .glass-card,
+  .card-panel {
+    background: #fff !important;
+    box-shadow: 0 4px 22px 0 rgba(0,0,0,0.11) !important;
+    border-color: #e0e7ef !important;
+  }
+  .text-gray-900, .text-brand-800, .text-blue-800, .text-accent-700, .text-green-800 {
+    color: #161f2e !important;
+  }
+  .text-gray-800,
+  .text-gray-700,
+  .text-gray-600,
+  .text-gray-500,
+  .text-gray-400,
+  .text-brand-600,
+  .text-blue-700,
+  .text-blue-600,
+  .text-accent-600,
+  .text-green-700,
+  .text-pink-700 {
+    color: #28354a !important;         /* High contrast for secondary/tertiary text */
+  }
+  .text-xs, .text-sm, .text-base, .text-lg {
+    font-weight: 500;
+    letter-spacing: 0.01em;
+  }
+  /* All links: darker, underlined, easier to read/tap */
+  a, a:visited {
+    color: #234099 !important;
+    text-decoration: underline !important;
+    font-size: 1.04em;
+    font-weight: 700;
+    letter-spacing: 0.01em;
+  }
+  a:hover, a:focus {
+    color: #be2ba2 !important;
+  }
+  /* Toasts, buttons, and input placeholders higher contrast on mobile */
+  .btn, button, input, textarea, select, .glass-card, .card-panel {
+    color: #131e2a !important;
+  }
+  ::placeholder {
+    color: #454a5a !important;
+    opacity: 1 !important;
+  }
+}
+
+/* Even higher contrast for buttons on mobile */
+@media (max-width: 480px) {
+  .btn-primary, .btn-secondary, .btn {
+    font-size: 1.12em !important;
+    font-weight: 700 !important;
+    border-radius: 1.2em !important;
+  }
+}
+
+/* =================== Extra: Slightly Larger Touch Targets =================== */
+@media (pointer: coarse) and (max-width: 768px) {
+  button, .btn, input, textarea, select {
+    min-height: 44px !important;
+    font-size: 1.1em !important;
+  }
+}
